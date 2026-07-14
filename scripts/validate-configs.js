@@ -109,7 +109,9 @@ const checks = [
     required: [
       "edge-metrics:",
       "${SWARMCAST_EDGE_NGINX_IMAGE:-nginx:1.27}",
-      "${SWARMCAST_EDGE_METRICS_IMAGE:-node:22-slim}",
+      "${SWARMCAST_EDGE_METRICS_IMAGE:-swarmcast-edge-metrics:local}",
+      "dockerfile: infra/edge/Dockerfile.nginx",
+      "dockerfile: infra/edge/Dockerfile.metrics",
       "${SWARMCAST_NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.8.0}",
       "EDGE_ACCESS_LOG: /var/log/nginx/edge-access.log",
       "EDGE_METRICS_PORT: \"9101\"",
@@ -2330,18 +2332,29 @@ const releaseWorkflowText = readFileSync(".github/workflows/release.yml", "utf8"
 for (const required of [
   "workflow_dispatch:",
   "strategy:",
-  "service: [auth, ingest, tracker, control-plane, retention-worker]",
-  "-f \"services/${{ matrix.service }}/Dockerfile\"",
+  "service: auth",
+  "service: node-exporter",
+  "mode: build",
+  "mode: mirror",
+  "docker build --pull -f \"$DOCKERFILE\"",
+  "docker image inspect --format '{{ index .RepoDigests 0 }}'",
   "npm run sbom:generate -- --output var/sbom/swarmcast-sbom.json",
   "npm run sbom:generate -- --check",
+  "npm run release:images:check",
+  "npm run image:scan:bundle:validate",
   "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0",
   "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0",
   "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
+  "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1",
   "docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0",
+  "aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1",
+  "sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2",
+  "cosign sign --yes",
+  "swarmcast-image-scans",
+  "swarmcast-image-sboms-signatures",
   "swarmcast-sbom",
-  "- Images: auth, ingest, tracker, control-plane, retention-worker, nginx, prometheus, alertmanager, grafana, edge-nginx, edge-metrics, node-exporter",
   "docker push",
-  "Immutable tags"
+  "12 digest-pinned GHCR images"
 ]) {
   if (!releaseWorkflowText.includes(required)) {
     console.error(`.github/workflows/release.yml: missing release workflow text: ${required}`);
@@ -3162,8 +3175,8 @@ const envExampleText = readFileSync(".env.example", "utf8");
 for (const required of [
   "SWARMCAST_AUTH_IMAGE=ghcr.io/org/repo/auth@sha256:replace-with-image-digest",
   "SWARMCAST_RETENTION_WORKER_IMAGE=ghcr.io/org/repo/retention-worker@sha256:replace-with-image-digest",
-  "SWARMCAST_PROMETHEUS_IMAGE=prom/prometheus:v2.53.0@sha256:replace-with-image-digest",
-  "SWARMCAST_NODE_EXPORTER_IMAGE=prom/node-exporter:v1.8.0@sha256:replace-with-image-digest"
+  "SWARMCAST_PROMETHEUS_IMAGE=ghcr.io/org/repo/prometheus@sha256:replace-with-image-digest",
+  "SWARMCAST_NODE_EXPORTER_IMAGE=ghcr.io/org/repo/node-exporter@sha256:replace-with-image-digest"
 ]) {
   if (!envExampleText.includes(required)) {
     console.error(`.env.example: missing production image example text: ${required}`);

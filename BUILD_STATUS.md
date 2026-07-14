@@ -2752,9 +2752,22 @@ Results:
 - Verified the record with `npm run android:ci:evidence:validate` and retained all local checks green.
 - The first remote Android CI artifact blocker is closed; physical-device and production-environment gates remain open.
 
+## Completed In Build Slice 294
+
+- Rebuilt the release workflow around all 12 production runtime images instead of only five app services.
+- The workflow builds custom services and immutable origin nginx, edge nginx, and edge-metrics images, and mirrors the four monitoring images into the owned GHCR namespace.
+- Every image is tagged by release and commit, pulled back from GHCR, resolved to a registry digest, scanned with Trivy, and documented with a CycloneDX image SBOM.
+- HIGH and CRITICAL findings fail the matrix while still uploading raw per-image evidence for diagnosis.
+- Clean image digests are keyless-signed and verified with the GitHub Actions OIDC identity through Cosign.
+- The final evidence job aggregates 12 digest environment records, enforces digest pins, validates all scan reports against the release manifest, and uploads manifest, source SBOM, image scans, image SBOMs, digests, and signature verification records for 90 days.
+- All workflow actions are pinned to immutable commits; Trivy 0.72.0 and Cosign 3.1.1 are selected explicitly.
+- Added baked origin nginx, edge nginx, and edge metrics Dockerfiles; production containers no longer depend on host-mounted application source or nginx configuration.
+- Verified both workflow files with actionlint 1.7.12, rendered base/edge/production compose plans, built all three new images locally, ran the edge-metrics image, validated SBOM coverage, and passed `npm run check`.
+- GitHub branch protection could not be enabled because the current account tier rejects protection for private repositories; the repository was not made public to bypass that policy.
+
 ## Next Build Slice
 
 1. Continue hardening the remaining launch gates:
-   - Enforce protected-main CI requirements and execute the first signed release workflow to publish digest-pinned images, SBOM, and scan evidence.
+   - Push slice 294 through CI and execute the first signed staging release workflow to publish digest-pinned images, SBOMs, and scan evidence.
    - Run physical-device playback/P2P/RLNC/accessibility evidence when hardware is attached; emulator evidence remains regression-only.
 2. Remaining hard gates are signed legal/privacy/security/threat/dependency/RLNC/retention approvals, physical Android device validation, real host provisioning/DNS/TLS/secrets, signed catalog import, real production/staging smokes, VM/WebRTC load ladder, Alertmanager/chaos/restore/rollback/canary drills, and final owner go/no-go.

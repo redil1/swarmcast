@@ -15,96 +15,256 @@ on:
         options:
           - staging
           - production
-      push_images:
-        description: Push images to GHCR
-        required: true
-        default: true
-        type: boolean
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
+      - name: Validate release input
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$RELEASE_VERSION" =~ ^v?[0-9A-Za-z][0-9A-Za-z._-]*$ ]]
       - run: npm ci --ignore-scripts
       - run: npm run verify
-      - name: Generate release manifest
+      - run: npm audit --audit-level=moderate
+      - run: npm run sbom:generate -- --check
+
+  images:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: auth
+            mode: build
+            dockerfile: services/auth/Dockerfile
+            env_name: SWARMCAST_AUTH_IMAGE
+          - service: ingest
+            mode: build
+            dockerfile: services/ingest/Dockerfile
+            env_name: SWARMCAST_INGEST_IMAGE
+          - service: tracker
+            mode: build
+            dockerfile: services/tracker/Dockerfile
+            env_name: SWARMCAST_TRACKER_IMAGE
+          - service: control-plane
+            mode: build
+            dockerfile: services/control-plane/Dockerfile
+            env_name: SWARMCAST_CONTROL_PLANE_IMAGE
+          - service: retention-worker
+            mode: build
+            dockerfile: services/retention-worker/Dockerfile
+            env_name: SWARMCAST_RETENTION_WORKER_IMAGE
+          - service: nginx
+            mode: build
+            dockerfile: infra/nginx/Dockerfile
+            env_name: SWARMCAST_NGINX_IMAGE
+          - service: edge-nginx
+            mode: build
+            dockerfile: infra/edge/Dockerfile.nginx
+            env_name: SWARMCAST_EDGE_NGINX_IMAGE
+          - service: edge-metrics
+            mode: build
+            dockerfile: infra/edge/Dockerfile.metrics
+            env_name: SWARMCAST_EDGE_METRICS_IMAGE
+          - service: prometheus
+            mode: mirror
+            source: prom/prometheus:v2.53.0
+            env_name: SWARMCAST_PROMETHEUS_IMAGE
+          - service: alertmanager
+            mode: mirror
+            source: prom/alertmanager:v0.27.0
+            env_name: SWARMCAST_ALERTMANAGER_IMAGE
+          - service: grafana
+            mode: mirror
+            source: grafana/grafana:11.1.0
+            env_name: SWARMCAST_GRAFANA_IMAGE
+          - service: node-exporter
+            mode: mirror
+            source: prom/node-exporter:v1.8.0
+            env_name: SWARMCAST_NODE_EXPORTER_IMAGE
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.72.0
+          cache: true
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.1.1
+      - name: Build or mirror immutable image
+        id: image
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          SERVICE: ${{ matrix.service }}
+          MODE: ${{ matrix.mode }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          SOURCE_IMAGE: ${{ matrix.source }}
+          IMAGE_ENV_NAME: ${{ matrix.env_name }}
         run: |
-          mkdir -p var/release
+          set -euo pipefail
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/${SERVICE}"
+          if [[ "$MODE" == "build" ]]; then
+            docker build --pull -f "$DOCKERFILE" -t "$IMAGE:$RELEASE_VERSION" -t "$IMAGE:$GITHUB_SHA" .
+          else
+            docker pull "$SOURCE_IMAGE"
+            docker tag "$SOURCE_IMAGE" "$IMAGE:$RELEASE_VERSION"
+            docker tag "$SOURCE_IMAGE" "$IMAGE:$GITHUB_SHA"
+          fi
+          docker push "$IMAGE:$RELEASE_VERSION"
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker image rm "$IMAGE:$RELEASE_VERSION" "$IMAGE:$GITHUB_SHA" >/dev/null
+          docker pull "$IMAGE:$RELEASE_VERSION"
+          IMAGE_REF=$(docker image inspect --format '{{ index .RepoDigests 0 }}' "$IMAGE:$RELEASE_VERSION")
+          [[ "$IMAGE_REF" =~ @sha256:[a-f0-9]{64}$ ]]
+          mkdir -p var/image-evidence var/scans var/image-sboms
+          printf '%s=%s\n' "$IMAGE_ENV_NAME" "$IMAGE_REF" > "var/image-evidence/$SERVICE.env"
+          printf '%s\n' "$IMAGE_REF" > "var/image-evidence/$SERVICE.digest"
+          echo "image_ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+      - name: Generate real image scan and SBOM
+        env:
+          SERVICE: ${{ matrix.service }}
+          IMAGE_REF: ${{ steps.image.outputs.image_ref }}
+        run: |
+          trivy image --format json --output "var/scans/$SERVICE.trivy.json" "$IMAGE_REF"
+          trivy image --scanners vuln --format cyclonedx --output "var/image-sboms/$SERVICE.cdx.json" "$IMAGE_REF"
+      - name: Enforce HIGH and CRITICAL vulnerability gate
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: node scripts/validate-image-scan-report.js "var/scans/$SERVICE.trivy.json"
+      - name: Sign and verify image digest
+        env:
+          SERVICE: ${{ matrix.service }}
+          IMAGE_REF: ${{ steps.image.outputs.image_ref }}
+        run: |
+          cosign sign --yes "$IMAGE_REF"
+          cosign verify \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@refs/heads/.*$" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$IMAGE_REF" > "var/image-evidence/$SERVICE.cosign-verify.json"
+      - name: Upload per-image release evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: swarmcast-image-${{ matrix.service }}
+          path: |
+            var/image-evidence/${{ matrix.service }}.*
+            var/scans/${{ matrix.service }}.trivy.json
+            var/image-sboms/${{ matrix.service }}.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+
+  release-evidence:
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: swarmcast-image-*
+          path: var
+          merge-multiple: true
+      - run: npm ci --ignore-scripts
+      - name: Validate digests and assemble release evidence
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          set -a
+          for file in var/image-evidence/*.env; do . "$file"; done
+          set +a
+          npm run release:images:check
+          mkdir -p var/release var/sbom
           npm run release:manifest -- \
-            --version "${{ inputs.version }}" \
-            --environment "${{ inputs.environment }}" \
-            --commit "${{ github.sha }}" \
-            --repository "${{ github.repository }}" \
+            --version "$RELEASE_VERSION" \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --commit "$GITHUB_SHA" \
+            --repository "$GITHUB_REPOSITORY" \
+            --require-digests \
             --output var/release/swarmcast-release-manifest.json
           npm run release:manifest -- --input var/release/swarmcast-release-manifest.json --check
-      - name: Generate SBOM
-        run: |
-          mkdir -p var/sbom
           npm run sbom:generate -- --output var/sbom/swarmcast-sbom.json
           npm run sbom:generate -- --check
+          npm run image:scan:bundle:validate -- \
+            --manifest var/release/swarmcast-release-manifest.json \
+            var/scans/*.trivy.json
       - name: Upload release manifest
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: swarmcast-release-manifest
           path: var/release/swarmcast-release-manifest.json
-      - name: Upload SBOM
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload source SBOM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: swarmcast-sbom
           path: var/sbom/swarmcast-sbom.json
-
-  images:
-    needs: verify
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [auth, ingest, tracker, control-plane, retention-worker]
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - name: Log in to GHCR
-        if: ${{ inputs.push_images }}
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload image scans
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build image
-        run: |
-          IMAGE="ghcr.io/${{ github.repository }}/${{ matrix.service }}"
-          docker build \
-            -f "services/${{ matrix.service }}/Dockerfile" \
-            -t "${IMAGE}:${{ inputs.version }}" \
-            -t "${IMAGE}:${{ github.sha }}" \
-            .
-      - name: Push immutable tags
-        if: ${{ inputs.push_images }}
-        run: |
-          IMAGE="ghcr.io/${{ github.repository }}/${{ matrix.service }}"
-          docker push "${IMAGE}:${{ inputs.version }}"
-          docker push "${IMAGE}:${{ github.sha }}"
+          name: swarmcast-image-scans
+          path: var/scans/*.trivy.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload image SBOMs and signatures
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: swarmcast-image-sboms-signatures
+          path: |
+            var/image-sboms/*.cdx.json
+            var/image-evidence/*.cosign-verify.json
+            var/image-evidence/*.digest
+          if-no-files-found: error
+          retention-days: 90
 
   release-notes:
-    needs: images
+    needs: release-evidence
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Write release summary
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
         run: |
           {
-            echo "## SwarmCast ${{ inputs.version }}"
-            echo "- Environment: ${{ inputs.environment }}"
-            echo "- Images: auth, ingest, tracker, control-plane, retention-worker, nginx, prometheus, alertmanager, grafana, edge-nginx, edge-metrics, node-exporter"
-            echo "- Immutable tags: ${{ inputs.version }}, ${{ github.sha }}"
+            echo "## SwarmCast $RELEASE_VERSION"
+            echo "- Environment: $RELEASE_ENVIRONMENT"
+            echo "- Images: 12 digest-pinned GHCR images"
+            echo "- Signatures: keyless Cosign signatures verified for every digest"
+            echo "- Scans: 12 real Trivy JSON reports with no blocked findings"
+            echo "- SBOMs: source SBOM plus 12 CycloneDX image SBOMs"
             echo "- Release manifest artifact: swarmcast-release-manifest"
             echo "- SBOM artifact: swarmcast-sbom"
+            echo "- Commit: $GITHUB_SHA"
             echo "- Readiness gate: docs/launch-readiness.md"
           } >> "$GITHUB_STEP_SUMMARY"

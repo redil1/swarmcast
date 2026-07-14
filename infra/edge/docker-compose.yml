@@ -1,12 +1,14 @@
 services:
   nginx-edge:
+    build:
+      context: ../..
+      dockerfile: infra/edge/Dockerfile.nginx
     image: ${SWARMCAST_EDGE_NGINX_IMAGE:-nginx:1.27}
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx-edge.conf:/etc/nginx/conf.d/edge.conf:ro
       - /var/www/certbot:/var/www/certbot:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - edge_logs:/var/log/nginx
@@ -14,7 +16,10 @@ services:
       - /dev/shm/edgecache:size=8g
 
   edge-metrics:
-    image: ${SWARMCAST_EDGE_METRICS_IMAGE:-node:22-slim}
+    build:
+      context: ../..
+      dockerfile: infra/edge/Dockerfile.metrics
+    image: ${SWARMCAST_EDGE_METRICS_IMAGE:-swarmcast-edge-metrics:local}
     restart: unless-stopped
     working_dir: /app
     command: ["node", "scripts/edge-cache-metrics-server.js"]
@@ -24,8 +29,6 @@ services:
     ports:
       - "9101:9101"
     volumes:
-      - ../../package.json:/app/package.json:ro
-      - ../../scripts:/app/scripts:ro
       - edge_logs:/var/log/nginx:ro
 
   node_exporter:

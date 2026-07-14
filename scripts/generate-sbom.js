@@ -68,7 +68,10 @@ function collectDockerfiles(components) {
     "services/control-plane/Dockerfile",
     "services/ingest/Dockerfile",
     "services/tracker/Dockerfile",
-    "services/retention-worker/Dockerfile"
+    "services/retention-worker/Dockerfile",
+    "infra/nginx/Dockerfile",
+    "infra/edge/Dockerfile.nginx",
+    "infra/edge/Dockerfile.metrics"
   ]) {
     const text = readText(file);
     for (const match of text.matchAll(/^\s*FROM\s+([^\s]+)(?:\s+AS\s+\S+)?/gim)) {
@@ -172,7 +175,10 @@ function createSbom() {
         "infra/docker-compose.yml",
         "infra/docker-compose.release.yml",
         "infra/edge/docker-compose.yml",
-        "services/*/Dockerfile"
+        "services/*/Dockerfile",
+        "infra/nginx/Dockerfile",
+        "infra/edge/Dockerfile.nginx",
+        "infra/edge/Dockerfile.metrics"
       ]
     },
     components: [...components.values()].sort((a, b) =>
