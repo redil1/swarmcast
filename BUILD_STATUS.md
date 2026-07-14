@@ -2740,9 +2740,21 @@ Results:
 - Verified Android `testDebugUnitTest assembleDebug assembleRelease` and `npm run check`.
 - Emulator evidence does not close physical-device playback, WebRTC/P2P, RLNC performance/battery, accessibility, or remote-CI launch gates.
 
+## Completed In Build Slice 293
+
+- Audited the workspace for credentials and generated output, initialized Git, and created the private `redil1/swarmcast` GitHub repository.
+- Ran the complete remote Node, deployment-shape, and Android CI jobs successfully twice.
+- Updated all CI and release third-party actions to current release lines pinned by immutable commit SHA.
+- Fixed Android APK checksum sidecars to use artifact-local basenames so a normal downloaded artifact verifies directly with `sha256sum -c`.
+- Hardened run `29327610922` passed Android unit tests, debug/release assembly, checksum generation, and both artifact uploads at commit `8685f81207499c3e2f843f9755f1d0b5374ee7d6`.
+- Downloaded `swarmcast-android-debug-apk` and `swarmcast-android-release-unsigned-apk`; both checksum sidecars passed.
+- Recorded non-synthetic run, job, toolchain, artifact ID, size, and SHA-256 evidence in `evidence/android/ci-build-29327610922.json`.
+- Verified the record with `npm run android:ci:evidence:validate` and retained all local checks green.
+- The first remote Android CI artifact blocker is closed; physical-device and production-environment gates remain open.
+
 ## Next Build Slice
 
 1. Continue hardening the remaining launch gates:
-   - Establish the authoritative SwarmCast remote repository and capture the first real Android CI build artifacts with the RLNC unit-test step.
+   - Enforce protected-main CI requirements and execute the first signed release workflow to publish digest-pinned images, SBOM, and scan evidence.
    - Run physical-device playback/P2P/RLNC/accessibility evidence when hardware is attached; emulator evidence remains regression-only.
-2. Remaining hard gates are legal approval, privacy/store sign-off, remote Android build artifact/device validation, real host provisioning, real host/staging nginx/TLS evidence, VM/WebRTC load ladder, production dependency approval, threat-model sign-off, staging retention execution, and accessibility device validation.
+2. Remaining hard gates are signed legal/privacy/security/threat/dependency/RLNC/retention approvals, physical Android device validation, real host provisioning/DNS/TLS/secrets, signed catalog import, real production/staging smokes, VM/WebRTC load ladder, Alertmanager/chaos/restore/rollback/canary drills, and final owner go/no-go.
