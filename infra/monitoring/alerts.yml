@@ -1,0 +1,212 @@
+groups:
+  - name: swarmcast-core
+    rules:
+      - alert: SwarmcastLowOffloadRatio
+        expr: swarmcast_tracker_offload_ratio_5m < 0.90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P2P offload ratio is below launch target"
+          description: "Rolling 5-minute offload ratio has stayed below 0.90 for 15 minutes. Edge fleet load and cost will rise."
+          runbook_url: "docs/runbooks/low-offload-ratio.md"
+
+      - alert: SwarmcastLowSuperPeerFraction
+        expr: swarmcast_tracker_super_peer_fraction < 0.10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too few super-peers"
+          description: "Super-peer fraction is below 10%, which risks poor swarm sustainability."
+          runbook_url: "docs/runbooks/low-super-peer-fraction.md"
+
+      - alert: SwarmcastTrackerPeerDrops
+        expr: delta(swarmcast_tracker_peers[5m]) < -100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tracker peers dropped sharply"
+          description: "Tracker peer count fell by more than 100 within 5 minutes."
+          runbook_url: "docs/runbooks/tracker-peer-drops.md"
+
+      - alert: SwarmcastPeerHashFailures
+        expr: increase(swarmcast_tracker_peer_hash_failures_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Peer hash verification failures detected"
+          description: "At least one Android client reported peer bytes that failed segment hash verification."
+          runbook_url: "docs/runbooks/peer-health.md"
+
+      - alert: SwarmcastPeerDisconnectSpike
+        expr: increase(swarmcast_tracker_peer_disconnects_total[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Peer disconnects increased"
+          description: "Android clients are disconnecting peers after local P2P policy or poisoning defense."
+          runbook_url: "docs/runbooks/peer-health.md"
+
+      - alert: SwarmcastPeerTimeoutSpike
+        expr: increase(swarmcast_tracker_peer_timeouts_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Peer request timeouts increased"
+          description: "Android clients are reporting elevated peer segment request timeouts."
+          runbook_url: "docs/runbooks/peer-health.md"
+
+      - alert: SwarmcastHighPlaybackStallRate
+        expr: swarmcast_tracker_stall_rate_5m > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Playback stall rate is above launch budget"
+          description: "Client-reported rolling 5-minute stall rate is above 1%."
+          runbook_url: "docs/runbooks/app-incident.md"
+
+      - alert: SwarmcastHighStartupLatency
+        expr: swarmcast_tracker_startup_latency_ms_avg_5m > 5000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Playback startup latency is high"
+          description: "Client-reported startup latency has averaged above 5 seconds over the rolling 5-minute tracker window."
+          runbook_url: "docs/runbooks/app-incident.md"
+
+      - alert: SwarmcastLowPlaybackBuffer
+        expr: (swarmcast_tracker_buffer_ms_min_5m > 0) and (swarmcast_tracker_buffer_ms_min_5m < 10000)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Playback buffer depth is low"
+          description: "At least one reporting client has less than 10 seconds of buffered media in the rolling 5-minute tracker window."
+          runbook_url: "docs/runbooks/app-incident.md"
+
+      - alert: SwarmcastLowEdgeCacheHitRatio
+        expr: swarmcast_edge_cache_hit_ratio < 0.80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Edge cache hit ratio is low"
+          description: "Edge cache hit ratio has stayed below 80%, increasing origin load."
+          runbook_url: "docs/runbooks/edge-cache-hit-ratio.md"
+
+      - alert: SwarmcastHighEdgeEgressRate
+        expr: rate(swarmcast_edge_egress_bytes_total[5m]) > 200000000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Edge egress is high"
+          description: "Owned edge nodes are serving more than 200 MB/s over 5 minutes, which can indicate unexpected audience growth, low P2P offload, or edge capacity risk."
+          runbook_url: "docs/runbooks/edge-cache-hit-ratio.md"
+
+      - alert: SwarmcastHighEdgeOriginFillRate
+        expr: rate(swarmcast_edge_origin_fill_bytes_total[5m]) > 50000000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Edge origin-fill egress is high"
+          description: "Owned edge nodes are filling more than 50 MB/s from origin, which can indicate cache churn, hot misses, or origin saturation risk."
+          runbook_url: "docs/runbooks/edge-cache-hit-ratio.md"
+
+      - alert: SwarmcastHighEdgeErrorRate
+        expr: rate(swarmcast_edge_errors_total[5m]) / clamp_min(rate(swarmcast_edge_requests_total[5m]), 1) > 0.02
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Edge 5xx error rate is high"
+          description: "More than 2% of edge requests are returning 5xx responses over 5 minutes."
+          runbook_url: "docs/runbooks/edge-cache-hit-ratio.md"
+
+      - alert: SwarmcastIngestDegradedChannels
+        expr: swarmcast_ingest_degraded_channels > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "One or more channels are degraded"
+          description: "At least one ffmpeg worker is in degraded state."
+          runbook_url: "docs/runbooks/ingest-degraded.md"
+
+      - alert: SwarmcastIngestStaleSegments
+        expr: swarmcast_ingest_segment_age_seconds > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ingest segments are stale"
+          description: "At least one active ingest channel has not announced a fresh segment within 30 seconds."
+          runbook_url: "docs/runbooks/ingest-degraded.md"
+
+      - alert: SwarmcastFfmpegFailureSpike
+        expr: increase(swarmcast_ingest_ffmpeg_failures_total[15m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ffmpeg failures are increasing"
+          description: "Repeated ffmpeg failures may indicate an upstream source issue."
+          runbook_url: "docs/runbooks/ingest-degraded.md"
+
+      - alert: SwarmcastAuthVerifyFailures
+        expr: rate(swarmcast_auth_verify_fail_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Auth verification failures are elevated"
+          description: "Token verification failures may indicate scraping, expired clients, or integration problems."
+          runbook_url: "docs/runbooks/auth-verify-failures.md"
+
+      - alert: SwarmcastControlPlaneCatalogNotDurable
+        expr: sum by (job, instance) (swarmcast_control_catalog_backend_info{backend!="sqlite"}) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Control-plane catalog is not using SQLite"
+          description: "The control-plane catalog backend is not the production durable SQLite backend. Catalog changes may not survive restart or restore as expected."
+          runbook_url: "docs/runbooks/control-plane-storage-backend.md"
+
+      - alert: SwarmcastControlPlanePlacementNotDurable
+        expr: sum by (job, instance) (swarmcast_control_placement_backend_info{backend!="sqlite"}) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Control-plane placement registry is not using SQLite"
+          description: "The control-plane placement registry backend is not the production durable SQLite backend. Channel placement state may be lost during restart or restore."
+          runbook_url: "docs/runbooks/control-plane-storage-backend.md"
+
+      - alert: SwarmcastRetentionJobFailures
+        expr: increase(swarmcast_retention_failures_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Retention job failures detected"
+          description: "Retention deletion or aggregation has failed within the last hour."
+          runbook_url: "docs/runbooks/retention-job-failures.md"
+
+      - alert: SwarmcastRetentionJobStale
+        expr: time() - swarmcast_retention_last_success_timestamp_seconds > 90000
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Retention job has not completed recently"
+          description: "No successful retention job timestamp has been observed within 25 hours."
+          runbook_url: "docs/runbooks/retention-job-failures.md"

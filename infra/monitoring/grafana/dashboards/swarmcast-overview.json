@@ -1,0 +1,191 @@
+{
+  "uid": "swarmcast-overview",
+  "title": "SwarmCast Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "tags": ["swarmcast", "production"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Tracker Peers",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "swarmcast_tracker_peers", "legendFormat": "peers" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "gauge",
+      "title": "P2P Offload Ratio (5m)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.9 },
+              { "color": "green", "value": 0.97 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        { "expr": "swarmcast_tracker_offload_ratio_5m", "legendFormat": "rho 5m" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Super-Peer Fraction",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "swarmcast_tracker_super_peer_fraction", "legendFormat": "super peers" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Active Ingest Channels",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "swarmcast_ingest_active_channels", "legendFormat": "active" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Client Download Bytes",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "rate(swarmcast_tracker_download_p2p_bytes_total[5m])", "legendFormat": "p2p" },
+        { "expr": "rate(swarmcast_tracker_download_edge_bytes_total[5m])", "legendFormat": "edge" }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Ingest Health",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "swarmcast_ingest_live_channels", "legendFormat": "live" },
+        { "expr": "swarmcast_ingest_starting_channels", "legendFormat": "starting" },
+        { "expr": "swarmcast_ingest_degraded_channels", "legendFormat": "degraded" },
+        { "expr": "swarmcast_ingest_segment_age_seconds", "legendFormat": "segment age seconds" }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Auth Activity",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "rate(swarmcast_auth_tokens_issued_total[5m])", "legendFormat": "tokens issued" },
+        { "expr": "rate(swarmcast_auth_verify_ok_total[5m])", "legendFormat": "verify ok" },
+        { "expr": "rate(swarmcast_auth_verify_fail_total[5m])", "legendFormat": "verify fail" }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Control Plane",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "swarmcast_control_catalog_channels", "legendFormat": "catalog channels" },
+        { "expr": "swarmcast_control_channel_placements", "legendFormat": "placements" }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Rolling Download Bytes (5m)",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "swarmcast_tracker_download_p2p_bytes_5m", "legendFormat": "p2p 5m" },
+        { "expr": "swarmcast_tracker_download_edge_bytes_5m", "legendFormat": "edge 5m" }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "gauge",
+      "title": "Edge Cache Hit Ratio",
+      "gridPos": { "x": 12, "y": 20, "w": 6, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.8 },
+              { "color": "green", "value": 0.9 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        { "expr": "swarmcast_edge_cache_hit_ratio", "legendFormat": "edge cache hit ratio" }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Edge Egress And Origin Fill",
+      "gridPos": { "x": 18, "y": 20, "w": 6, "h": 8 },
+      "targets": [
+        { "expr": "rate(swarmcast_edge_egress_bytes_total[5m])", "legendFormat": "edge egress" },
+        { "expr": "rate(swarmcast_edge_origin_fill_bytes_total[5m])", "legendFormat": "origin fill" }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Playback Quality",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 8 },
+      "targets": [
+        { "expr": "swarmcast_tracker_stall_rate_5m", "legendFormat": "stall rate 5m" },
+        { "expr": "swarmcast_tracker_startup_latency_ms_avg_5m", "legendFormat": "startup avg ms" },
+        { "expr": "swarmcast_tracker_buffer_ms_min_5m", "legendFormat": "buffer min ms" }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Peer Health",
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 8 },
+      "targets": [
+        { "expr": "swarmcast_tracker_peer_timeouts_5m", "legendFormat": "timeouts 5m" },
+        { "expr": "swarmcast_tracker_peer_hash_failures_5m", "legendFormat": "hash failures 5m" },
+        { "expr": "swarmcast_tracker_peer_disconnects_5m", "legendFormat": "disconnects 5m" }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Control Plane Storage Backends",
+      "gridPos": { "x": 0, "y": 44, "w": 24, "h": 6 },
+      "targets": [
+        { "expr": "swarmcast_control_catalog_backend_info", "legendFormat": "catalog {{backend}}" },
+        { "expr": "swarmcast_control_placement_backend_info", "legendFormat": "placement {{backend}}" }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Active Alerts",
+      "gridPos": { "x": 0, "y": 50, "w": 24, "h": 6 },
+      "targets": [
+        { "expr": "ALERTS{alertstate=\"firing\",alertname=~\"Swarmcast.*\"}", "legendFormat": "{{alertname}} {{severity}}" }
+      ]
+    }
+  ]
+}

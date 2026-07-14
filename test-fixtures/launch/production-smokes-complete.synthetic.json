@@ -1,0 +1,68 @@
+{
+  "evidenceId": "production-smokes-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:12:00.000Z",
+  "thirdPartyCdnUsed": false,
+  "sourceUrlsExposed": false,
+  "tokensExposed": false,
+  "synthetic": true,
+  "checks": [
+    {
+      "id": "auth-token-issuance",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["production-smokes/auth-token-issuance-synthetic"]
+    },
+    {
+      "id": "auth-token-verify",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["production-smokes/auth-token-verify-synthetic"]
+    },
+    {
+      "id": "source-preflight",
+      "owner": "content-ops",
+      "status": "pass",
+      "evidence": ["production-smokes/source-preflight-synthetic"]
+    },
+    {
+      "id": "catalog-search-pagination",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["production-smokes/catalog-search-pagination-synthetic"]
+    },
+    {
+      "id": "ingest-demand-segments",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["production-smokes/ingest-demand-segments-synthetic"]
+    },
+    {
+      "id": "edge-cache-miss-hit",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["production-smokes/edge-cache-miss-hit-synthetic"]
+    },
+    {
+      "id": "tracker-join-peer-list-signal-stats-metrics",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["production-smokes/tracker-join-peer-list-signal-stats-metrics-synthetic"]
+    },
+    {
+      "id": "retention-health-metrics",
+      "owner": "privacy",
+      "status": "pass",
+      "evidence": ["production-smokes/retention-health-metrics-synthetic"]
+    },
+    {
+      "id": "offload-dashboard-alert-query",
+      "owner": "on-call",
+      "status": "pass",
+      "evidence": ["production-smokes/offload-dashboard-alert-query-synthetic"]
+    }
+  ]
+}

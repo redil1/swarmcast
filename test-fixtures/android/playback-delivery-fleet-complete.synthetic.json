@@ -1,0 +1,62 @@
+{
+  "reviewId": "android-playback-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "appVersion": "v0.1.0-rc1",
+  "testedAt": "2026-07-05T00:00:00.000Z",
+  "synthetic": true,
+  "devices": [
+    {
+      "id": "pixel-8",
+      "name": "Pixel 8 synthetic device",
+      "androidVersion": "15",
+      "network": "wifi"
+    },
+    {
+      "id": "midrange-phone",
+      "name": "Midrange synthetic device",
+      "androidVersion": "14",
+      "network": "cellular"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "wifi-edge-soak",
+      "deviceId": "pixel-8",
+      "channelId": "synthetic-news",
+      "deliveryMode": "delivery-fleet-only",
+      "p2pEnabled": false,
+      "authenticated": true,
+      "crashFree": true,
+      "durationSeconds": 1800,
+      "startupLatencyMsP95": 3200,
+      "stallRate": 0.002,
+      "bufferMsMin": 30000,
+      "edgeCacheHitRatio": 0.92,
+      "batteryDrainPctPerHour": 5.2,
+      "evidence": [
+        "device-lab/android-playback/wifi-edge-soak.delivery-fleet-only.30m-soak.crash-free.synthetic.json",
+        "tracker-metrics/android-playback/wifi-edge-soak.edge-cache-hit.synthetic.prom"
+      ]
+    },
+    {
+      "id": "cellular-edge-soak",
+      "deviceId": "midrange-phone",
+      "channelId": "synthetic-sports",
+      "deliveryMode": "delivery-fleet-only",
+      "p2pEnabled": false,
+      "authenticated": true,
+      "crashFree": true,
+      "durationSeconds": 1800,
+      "startupLatencyMsP95": 4100,
+      "stallRate": 0.004,
+      "bufferMsMin": 24000,
+      "edgeCacheHitRatio": 0.88,
+      "batteryDrainPctPerHour": 6.8,
+      "evidence": [
+        "device-lab/android-playback/cellular-edge-soak.delivery-fleet-only.30m-soak.crash-free.synthetic.json",
+        "tracker-metrics/android-playback/cellular-edge-soak.edge-cache-hit.synthetic.prom"
+      ]
+    }
+  ]
+}

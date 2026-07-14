@@ -1,0 +1,114 @@
+{
+  "reviewId": "android-p2p-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "appVersion": "v0.1.0-rc1",
+  "testedAt": "2026-07-05T00:00:00.000Z",
+  "synthetic": true,
+  "devices": [
+    {
+      "id": "pixel-8-a",
+      "name": "Pixel 8 synthetic sender",
+      "androidVersion": "15",
+      "network": "wifi"
+    },
+    {
+      "id": "pixel-8-b",
+      "name": "Pixel 8 synthetic receiver",
+      "androidVersion": "15",
+      "network": "cellular"
+    },
+    {
+      "id": "pixel-8-c",
+      "name": "Pixel 8 synthetic wifi observer",
+      "androidVersion": "15",
+      "network": "wifi"
+    }
+  ],
+  "checks": [
+    {
+      "id": "webrtc-offer-answer",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/webrtc-offer-answer.synthetic.json"]
+    },
+    {
+      "id": "ice-connected",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/ice-connected.synthetic.json"]
+    },
+    {
+      "id": "datachannel-open",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/datachannel-open.synthetic.json"]
+    },
+    {
+      "id": "peer-segment-transfer",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/peer-segment-transfer.synthetic.json"]
+    },
+    {
+      "id": "hash-verification",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/hash-verification.synthetic.json", "android/app/src/main/java/tv/swarmcast/p2p/SegmentStore.kt"]
+    },
+    {
+      "id": "edge-fallback",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/edge-fallback.synthetic.json", "android/app/src/main/java/tv/swarmcast/p2p/SegmentScheduler.kt"]
+    },
+    {
+      "id": "tracker-stats",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["tracker-metrics/p2p-transfer.synthetic.prom", "android/app/src/main/java/tv/swarmcast/p2p/TrackerClient.kt"]
+    },
+    {
+      "id": "p2p-disable-closes-peers",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/disable-closes-peers.synthetic.json", "android/app/src/main/java/tv/swarmcast/playback/PlaybackSessionCoordinator.kt"]
+    },
+    {
+      "id": "cellular-receive-only",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/cellular-receive-only.cellular-no-upload.synthetic.json", "android/app/src/main/java/tv/swarmcast/p2p/NetworkPolicy.kt"]
+    }
+  ],
+  "transfer": {
+    "channelId": "synthetic-news",
+    "deliveryMode": "p2p-with-edge-fallback",
+    "p2pEnabled": true,
+    "edgeFallbackVerified": true,
+    "sourceDeviceId": "pixel-8-a",
+    "sinkDeviceId": "pixel-8-b",
+    "verifiedSegments": 24,
+    "peerBytes": 6291456,
+    "edgeBytes": 1048576,
+    "hashFailures": 0,
+    "disconnects": 0,
+    "offloadRatio": 0.86,
+    "stallRate": 0.002,
+    "bufferMsMin": 28000,
+    "evidence": [
+      "device-lab/p2p/transfer-summary.webrtc-datachannel.tracker-signaling-relay.synthetic.json",
+      "device-lab/p2p/verified-segment-hash.edge-fallback.p2p-disable-closes-peers.cellular-no-upload.synthetic.json",
+      "tracker-metrics/p2p-transfer.synthetic.prom"
+    ]
+  }
+}

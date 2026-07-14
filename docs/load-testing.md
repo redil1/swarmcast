@@ -1,0 +1,63 @@
+# Load Testing
+
+The load ladder must move from deterministic local smokes to VM/WebRTC tests before launch.
+
+## Executable Local Gates
+
+- `npm run smoke:edge-cache-metrics`: parses structured edge nginx access-log samples and verifies cache hit ratio, egress bytes, origin-fill bytes, error counts, and upstream timing metrics without exposing request URIs.
+- `npm run smoke:edge-cache-metrics-server`: starts the edge metrics exporter and verifies `/health` plus `/metrics` can be scraped from structured edge logs.
+- `npm run smoke:nginx-edge-cache`: runs the edge nginx TLS server block in Docker, verifies unauthorized segment requests return 401, and verifies one authenticated segment fetch returns `X-Cache: MISS` while a second valid token for the same segment returns `X-Cache: HIT` with one origin fill.
+- `npm run smoke:catalog-sqlite-20k`: imports a synthetic 20K-channel catalog into SQLite, reloads it from disk, starts the public catalog HTTP server, and checks first-page, search, and group latency against the 100 ms budget.
+- `npm run smoke:placement-movement`: assigns 20K synthetic channels before and after adding an ingest node, verifies bounded placement movement, and checks distribution skew across ingest nodes.
+- `npm run smoke:headless-peer`: verifies a peer reconstructs a segment from two partial recoders.
+- `npm run smoke:headless-200`: verifies 200 viewers reconstruct a verified coded segment through helper recoding.
+- `npm run smoke:headless-super-peer-sweep`: runs a 500-peer deterministic headless sweep across 5%, 10%, 15%, 20%, and 25% super-peer fractions, verifies every viewer reconstructs the segment, and identifies where edge fallback flattens to zero under the configured helper upload budget.
+- `npm run smoke:ingest-demand-playlist`: starts a real ingest HTTP server with `ChannelManager`, demands a channel, produces synthetic fMP4 HLS files through a worker shim, watches the segment, announces it to a fake tracker internal endpoint, and verifies live status.
+- `npm run smoke:ingest-ffmpeg-chaos`: simulates repeated ffmpeg worker crashes for a demanded channel and verifies restart backoff preserves demand metadata before the channel enters degraded state.
+- `npm run smoke:ingest-tail-admission`: verifies `TAIL_ADMISSION_MAX_CHANNELS` rejects new cold-tail channels before ffmpeg starts while allowing hot channels through the normal capacity path.
+- `npm run smoke:ingest-tail-downscale`: verifies cold-tail demand uses lower-bitrate ffmpeg arguments when `TAIL_DOWNSCALE_ENABLED` is set and restarts back to source-copy packaging when demand rises above the tail threshold.
+- `npm run smoke:multi-ingest-routing`: starts a real control-plane placement API with two ingest nodes, drives tracker joins for two channels, verifies `/edge/<node>/live/...` media templates, and confirms demand calls route to the selected ingest nodes.
+- `npm run smoke:nginx-origin-playback`: packages fMP4 HLS, runs the origin nginx TLS server block in Docker, verifies auth-gated playlist denial without a token, then fetches the playlist and first media segment over HTTPS with a real auth token.
+- `npm run smoke:tracker-load`: drives 200 deterministic peers through tracker join and stats handling, verifies `rho >= 0.90`, confirms P2P peer lists after the swarm threshold, checks tracker message p95 against `config/performance-budgets.json`, and verifies tracker playback-quality metrics for stall rate, startup latency, buffer health, plus peer timeout/hash-failure/disconnect counters.
+- `npm run smoke:tracker-sharding`: verifies deterministic channel-to-tracker-shard routing, wrong-shard `redirect` responses, and that only the owning shard creates swarm state and sends demand.
+- `npm run smoke:tracker-ws`: starts local auth, fake ingest, and the tracker process; rejects an invalid JWT, connects with a real JWT over WebSocket, verifies join, ping, recurring demand heartbeat, tracker metrics, playback-quality stats, segment announcement delivery, two-client WebRTC signaling relay for offer, answer, and ICE-shaped envelopes, connection-limit rejection, rate-limit disconnect, oversized-frame disconnect behavior, and idle-timeout closure.
+- `npm run smoke:tracker-ws-load`: opens 200 real WebSocket clients against the tracker, verifies demand calls, `rho >= 0.90`, rolling offload, and P2P peer-list activation.
+- `npm run smoke:tracker-ws-multichannel`: opens 200 real WebSocket clients across 5 channels and verifies per-channel demand size, aggregate `rho`, rolling offload, and P2P peer-list activation.
+- `npm run smoke:tracker-ws-restart`: starts auth, fake ingest, and tracker, connects an active WebSocket swarm, stops the tracker, confirms sockets close, restarts the tracker on the same ports, and verifies clients can rejoin with Delivery Fleet playlist URLs, demand calls, `rho >= 0.90`, rolling offload, and P2P peer-list activation.
+- `npm run smoke:load-ladder-evidence-validation`: proves the load-ladder evidence gate rejects missing stages, low offload, high stall rate, high tracker CPU, firing alerts, sensitive evidence references, and synthetic evidence without an explicit flag.
+
+`smoke:tracker-ws` requires a Node version supported by `uWebSockets.js` v20.51.0: Node 18, 20, 22, or 23. The CI and service Docker runtime use Node 22.
+On a local Node 24 shell, build the tracker image and run `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws` to execute the smoke through Docker.
+Use the same `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local` prefix for `npm run smoke:tracker-ws-load`, `npm run smoke:tracker-ws-multichannel`, and `npm run smoke:tracker-ws-restart`.
+
+## Required Staging Ladder
+
+1. 1 channel / 3 Android devices on WiFi.
+2. 1 channel / 200 mixed headless peers through real tracker WebSockets and WebRTC DataChannels.
+3. 50 channels / 2000 peers across multiple VMs with WebRTC DataChannel transfer.
+4. Zipf-distributed catalog test using the committed distribution fixtures with WebRTC DataChannel transfer.
+
+## Launch Evidence
+
+Each staging run must record:
+
+- command, commit, image tags, and host shape
+- peer count, channel count, WiFi/cellular mix, and super-peer fraction
+- WebRTC DataChannel transport, tracker-signaling relay path, and successful DataChannel transfer
+- rolling `rho`, stall rate, startup latency, buffer health, tracker p95 message cost, and memory per peer
+- edge egress, origin egress, cache hit ratio, and alert state
+- self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, and edge-fallback packets per fraction
+
+Validate the final ladder evidence before launch:
+
+```bash
+npm run load:ladder:validate -- path/to/load-ladder-evidence.json
+```
+
+Synthetic fixtures must be validated explicitly:
+
+```bash
+npm run load:ladder:validate -- --allow-synthetic test-fixtures/load/load-ladder-complete.synthetic.json
+```
+
+Production launch remains blocked until the VM/WebRTC ladder has stored results and regressions are tied to the release gate.

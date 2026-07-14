@@ -1,0 +1,131 @@
+{
+  "deploymentId": "deployment-20260705",
+  "environment": "staging",
+  "releaseVersion": "v0.1.0-rc1",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "deployedBy": "synthetic-release-operator",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:18:00.000Z",
+  "thirdPartyCdnUsed": false,
+  "synthetic": true,
+  "commands": [
+    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker",
+    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker"
+  ],
+  "services": [
+    {
+      "name": "auth",
+      "image": "ghcr.io/example/swarmcast/auth@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "pulled": true,
+      "running": true,
+      "health": "healthy",
+      "evidence": ["deploy/auth/health-synthetic"]
+    },
+    {
+      "name": "ingest",
+      "image": "ghcr.io/example/swarmcast/ingest@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "pulled": true,
+      "running": true,
+      "health": "healthy",
+      "evidence": ["deploy/ingest/health-synthetic"]
+    },
+    {
+      "name": "tracker",
+      "image": "ghcr.io/example/swarmcast/tracker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "pulled": true,
+      "running": true,
+      "health": "ready",
+      "evidence": ["deploy/tracker/metrics-synthetic"]
+    },
+    {
+      "name": "control-plane",
+      "image": "ghcr.io/example/swarmcast/control-plane@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "pulled": true,
+      "running": true,
+      "health": "healthy",
+      "evidence": ["deploy/control-plane/health-synthetic"]
+    },
+    {
+      "name": "retention-worker",
+      "image": "ghcr.io/example/swarmcast/retention-worker@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "pulled": true,
+      "running": true,
+      "health": "healthy",
+      "evidence": ["deploy/retention-worker/health-synthetic"]
+    }
+  ],
+  "checks": [
+    {
+      "id": "release-manifest-validated",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["release-manifest-validated release:manifest check synthetic-pass"]
+    },
+    {
+      "id": "image-digests-pinned",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["image-digests-pinned release:images:check synthetic-pass"]
+    },
+    {
+      "id": "production-env-validated",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["production-env-validated env:production:validate synthetic-pass"]
+    },
+    {
+      "id": "secrets-evidence-validated",
+      "owner": "security",
+      "status": "pass",
+      "evidence": ["secrets-evidence-validated secrets:evidence:validate synthetic-pass"]
+    },
+    {
+      "id": "host-provisioning-validated",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning-validated host:provisioning:evidence:validate synthetic-pass"]
+    },
+    {
+      "id": "compose-rendered",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["compose-rendered docker-compose-release-config synthetic-pass"]
+    },
+    {
+      "id": "images-pulled",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["images-pulled deploy/pull-output-synthetic"]
+    },
+    {
+      "id": "deployed-up-no-build",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["deployed-up-no-build deploy/up-no-build-output-synthetic"]
+    },
+    {
+      "id": "service-health",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["service-health deploy/service-health-synthetic"]
+    },
+    {
+      "id": "post-deploy-smokes",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["post-deploy-smokes production:smoke:evidence:validate synthetic-pass"]
+    },
+    {
+      "id": "rollback-ready",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["rollback-ready rollback:evidence:validate synthetic-pass"]
+    },
+    {
+      "id": "no-third-party-cdn",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["no-third-party-cdn deployment/no-third-party-cdn-synthetic"]
+    }
+  ]
+}

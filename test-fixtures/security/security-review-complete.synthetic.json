@@ -1,0 +1,62 @@
+{
+  "reviewId": "security-review-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "reviewedAt": "2026-07-05T00:00:00.000Z",
+  "threatModel": "docs/threat-model.md#review-date-2026-07-05",
+  "synthetic": true,
+  "reviewers": [
+    {
+      "name": "synthetic-security-reviewer",
+      "role": "application-security"
+    }
+  ],
+  "scopes": [
+    {
+      "id": "authentication-and-tokens",
+      "status": "pass",
+      "evidence": ["services/auth/test/auth.test.js", "smoke:tracker-ws invalid-token coverage"]
+    },
+    {
+      "id": "internal-apis",
+      "status": "pass",
+      "evidence": ["services/ingest/test/server.test.js", "services/control-plane/test/catalogServer.test.js"]
+    },
+    {
+      "id": "source-url-protection",
+      "status": "pass",
+      "evidence": ["smoke:source-policy", "smoke:catalog-source-preflight"]
+    },
+    {
+      "id": "tracker-abuse",
+      "status": "pass",
+      "evidence": ["smoke:tracker-ws rate-limit and oversized-frame coverage"]
+    },
+    {
+      "id": "p2p-poisoning",
+      "status": "pass",
+      "evidence": ["smoke:poisoning", "packages/p2p/test/receiver.test.js"]
+    },
+    {
+      "id": "release-gate",
+      "status": "pass",
+      "evidence": ["npm run release:images:check synthetic refs", "npm run image:scan:validate synthetic clean report"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "P2",
+      "status": "accepted",
+      "owner": "platform",
+      "evidence": ["docs/security-review.md#synthetic-p2-risk"]
+    },
+    {
+      "id": "SEC-002",
+      "severity": "P1",
+      "status": "fixed",
+      "owner": "platform",
+      "evidence": ["docs/source-url-policy.md#private-network-rejection"]
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "rolloutId": "canary-rollout-20260705",
+  "environment": "staging",
+  "releaseVersion": "v0.1.0-rc1",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "reviewedAt": "2026-07-05T00:00:00.000Z",
+  "thirdPartyCdnUsed": false,
+  "synthetic": true,
+  "stages": [
+    {
+      "id": "internal",
+      "cohortPercent": 0,
+      "startedAt": "2026-07-05T00:00:00.000Z",
+      "completedAt": "2026-07-05T00:30:00.000Z",
+      "status": "pass",
+      "alertState": "clear",
+      "rollbackAvailable": true,
+      "evidence": ["canary:metrics:validate internal-synthetic-pass peerTimeouts5m=0 peerHashFailures5m=0 peerDisconnects5m=0"]
+    },
+    {
+      "id": "one-percent",
+      "cohortPercent": 1,
+      "startedAt": "2026-07-05T00:30:00.000Z",
+      "completedAt": "2026-07-05T01:00:00.000Z",
+      "status": "pass",
+      "alertState": "clear",
+      "rollbackAvailable": true,
+      "evidence": ["canary:metrics:validate one-percent-synthetic-pass peerTimeouts5m=1 peerHashFailures5m=0 peerDisconnects5m=0"]
+    },
+    {
+      "id": "five-percent",
+      "cohortPercent": 5,
+      "startedAt": "2026-07-05T01:00:00.000Z",
+      "completedAt": "2026-07-05T01:30:00.000Z",
+      "status": "pass",
+      "alertState": "clear",
+      "rollbackAvailable": true,
+      "evidence": ["canary:metrics:validate five-percent-synthetic-pass peerTimeouts5m=2 peerHashFailures5m=0 peerDisconnects5m=0"]
+    },
+    {
+      "id": "twenty-five-percent",
+      "cohortPercent": 25,
+      "startedAt": "2026-07-05T01:30:00.000Z",
+      "completedAt": "2026-07-05T02:00:00.000Z",
+      "status": "pass",
+      "alertState": "clear",
+      "rollbackAvailable": true,
+      "evidence": ["canary:metrics:validate twenty-five-percent-synthetic-pass peerTimeouts5m=4 peerHashFailures5m=0 peerDisconnects5m=0"]
+    },
+    {
+      "id": "full-public",
+      "cohortPercent": 100,
+      "startedAt": "2026-07-05T02:00:00.000Z",
+      "completedAt": "2026-07-05T02:30:00.000Z",
+      "status": "pass",
+      "alertState": "clear",
+      "rollbackAvailable": true,
+      "evidence": ["canary:metrics:validate full-public-synthetic-pass peerTimeouts5m=8 peerHashFailures5m=0 peerDisconnects5m=0"]
+    }
+  ],
+  "checks": [
+    {
+      "id": "canary-metrics-validated",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["canary:metrics:validate all-stages-synthetic-pass"]
+    },
+    {
+      "id": "android-rollout-control-ready",
+      "owner": "android",
+      "status": "pass",
+      "evidence": ["android-rollout-control synthetic-ready"]
+    },
+    {
+      "id": "rollback-halt-tested",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["docs/runbooks/app-incident.md#synthetic-halt-ready"]
+    },
+    {
+      "id": "edge-egress-budget-reviewed",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["capacity:plan:validate synthetic-pass"]
+    },
+    {
+      "id": "alerts-clear",
+      "owner": "on-call",
+      "status": "pass",
+      "evidence": ["alertmanager/canary-clear-synthetic"]
+    },
+    {
+      "id": "support-monitoring-ready",
+      "owner": "support",
+      "status": "pass",
+      "evidence": ["support/canary-monitoring-synthetic"]
+    },
+    {
+      "id": "no-third-party-cdn",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["canary/no-third-party-cdn-synthetic"]
+    }
+  ]
+}

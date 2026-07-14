@@ -1,0 +1,88 @@
+{
+  "reviewId": "android-accessibility-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "testedAt": "2026-07-05T00:00:00.000Z",
+  "synthetic": true,
+  "devices": [
+    {
+      "id": "pixel-8",
+      "name": "Pixel 8 synthetic device",
+      "androidVersion": "15",
+      "screen": "412x915dp",
+      "fontScale": 1
+    },
+    {
+      "id": "small-phone",
+      "name": "Small phone synthetic device",
+      "androidVersion": "14",
+      "screen": "360x640dp",
+      "fontScale": 2
+    }
+  ],
+  "checks": [
+    {
+      "id": "talkback-focus-order",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8"],
+      "evidence": ["screenshots/accessibility/talkback-focus-order.synthetic.png", "docs/accessibility-ux-baseline.md#talkback"]
+    },
+    {
+      "id": "large-font-200",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["small-phone"],
+      "evidence": ["screenshots/accessibility/large-font-200.synthetic.png"]
+    },
+    {
+      "id": "small-screen-layout",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["small-phone"],
+      "evidence": ["screenshots/accessibility/small-screen.synthetic.png"]
+    },
+    {
+      "id": "media3-controls",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8"],
+      "evidence": ["screenshots/accessibility/media3-controls.synthetic.png", "android/app/src/main/java/tv/swarmcast/playback/PlayerHolder.kt"]
+    },
+    {
+      "id": "p2p-toggle",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8", "small-phone"],
+      "evidence": ["screenshots/accessibility/p2p-toggle.synthetic.png", "android/app/src/main/java/tv/swarmcast/ui/SwarmCastScreen.kt"]
+    },
+    {
+      "id": "privacy-dialog",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8"],
+      "evidence": ["screenshots/accessibility/privacy-dialog.synthetic.png", "docs/privacy-store-compliance.md#peer-disclosure"]
+    },
+    {
+      "id": "error-states",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8"],
+      "evidence": ["screenshots/accessibility/error-state.synthetic.png", "android/app/src/main/java/tv/swarmcast/data/ErrorTaxonomy.kt"]
+    },
+    {
+      "id": "localization-pseudolocale",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["small-phone"],
+      "evidence": ["screenshots/accessibility/pseudolocale.synthetic.png", "android/app/src/main/res/values/strings.xml"]
+    },
+    {
+      "id": "touch-targets",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8", "small-phone"],
+      "evidence": ["screenshots/accessibility/touch-targets.synthetic.png", "docs/accessibility-ux-baseline.md#touch-targets"]
+    }
+  ]
+}

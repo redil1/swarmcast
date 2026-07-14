@@ -1,0 +1,172 @@
+{
+  "reviewId": "dependency-review-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "reviewedAt": "2026-07-05T00:00:00.000Z",
+  "synthetic": true,
+  "reviewers": [
+    {
+      "name": "synthetic-dependency-reviewer",
+      "role": "release-engineering"
+    },
+    {
+      "name": "synthetic-security-reviewer",
+      "role": "application-security"
+    }
+  ],
+  "checks": [
+    {
+      "id": "npm-audit",
+      "status": "pass",
+      "owner": "release",
+      "evidence": ["npm-audit npm audit --audit-level=moderate"]
+    },
+    {
+      "id": "sbom",
+      "status": "pass",
+      "owner": "release",
+      "evidence": ["sbom npm run sbom:generate -- --check"]
+    },
+    {
+      "id": "release-image-refs",
+      "status": "pass",
+      "owner": "release",
+      "evidence": ["release-image-refs npm run release:images:check synthetic digest refs"]
+    },
+    {
+      "id": "image-scans",
+      "status": "pass",
+      "owner": "security",
+      "evidence": ["image-scans npm run image:scan:validate -- test-fixtures/security/trivy-clean.json"]
+    },
+    {
+      "id": "android-debug-build",
+      "status": "pass",
+      "owner": "android",
+      "evidence": ["android-debug-build ci/android-debug-build/synthetic-pass"]
+    },
+    {
+      "id": "android-release-build",
+      "status": "pass",
+      "owner": "android",
+      "evidence": ["android-release-build ci/android-release-build/synthetic-pass"]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "node-runtime",
+      "status": "approved",
+      "owner": "platform",
+      "decision": "Keep Node 22 LTS runtime for production service images until Node 24 compatibility is separately validated.",
+      "evidence": ["node-runtime config/dependency-inventory.json#node-runtime", "node-runtime services/auth/Dockerfile"]
+    },
+    {
+      "id": "jose",
+      "status": "approved",
+      "owner": "security",
+      "decision": "Approve locked jose 5.10.0 for launch after auth token and JWKS regression coverage.",
+      "evidence": ["jose services/auth/test/auth.test.js", "jose package-lock.json#jose"]
+    },
+    {
+      "id": "uwebsockets-js",
+      "status": "approved",
+      "owner": "platform",
+      "decision": "Approve v20.51.0 for launch on Node 22 after tracker WebSocket load and restart smokes.",
+      "evidence": ["uwebsockets-js npm run smoke:tracker-ws-load", "uwebsockets-js npm run smoke:tracker-ws-restart"]
+    },
+    {
+      "id": "ffmpeg",
+      "status": "waived",
+      "owner": "media",
+      "decision": "Temporarily accept Debian-packaged ffmpeg only for this synthetic record.",
+      "evidence": ["ffmpeg npm run smoke:ffmpeg", "ffmpeg npm run smoke:ingest-demand-playlist"],
+      "waiver": {
+        "reason": "Synthetic fixture demonstrates time-boxed waiver schema; production must pin package or base-image digest.",
+        "approvedBy": "synthetic-release-board",
+        "expiresAt": "2026-08-05T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "nginx",
+      "status": "approved",
+      "owner": "edge",
+      "decision": "Approve nginx runtime only with digest-pinned release image references and origin/edge smoke evidence.",
+      "evidence": ["nginx npm run smoke:nginx-origin-playback", "nginx npm run smoke:nginx-edge-cache"]
+    },
+    {
+      "id": "prometheus",
+      "status": "approved",
+      "owner": "observability",
+      "decision": "Approve Prometheus 2.53.0 for launch with documented upgrade follow-up.",
+      "evidence": ["prometheus infra/monitoring/prometheus.yml", "prometheus infra/monitoring/alerts.yml"]
+    },
+    {
+      "id": "alertmanager",
+      "status": "approved",
+      "owner": "observability",
+      "decision": "Approve Alertmanager 0.27.0 after receiver and routing validation.",
+      "evidence": ["alertmanager npm run alertmanager:receivers:validate -- test-fixtures/monitoring/alertmanager-production.yml", "alertmanager npm run smoke:alertmanager-routing"]
+    },
+    {
+      "id": "grafana",
+      "status": "approved",
+      "owner": "observability",
+      "decision": "Approve Grafana 11.1.0 dashboard runtime with pinned release image reference.",
+      "evidence": ["grafana infra/monitoring/grafana/dashboards/swarmcast-overview.json"]
+    },
+    {
+      "id": "node-exporter",
+      "status": "approved",
+      "owner": "observability",
+      "decision": "Approve node_exporter 1.8.0 for edge host metrics with pinned release image reference.",
+      "evidence": ["node-exporter infra/edge/docker-compose.yml#node-exporter"]
+    },
+    {
+      "id": "android-gradle-plugin",
+      "status": "approved",
+      "owner": "android",
+      "decision": "Approve AGP 8.7.3 after synthetic debug and release build evidence.",
+      "evidence": ["android-gradle-plugin ci/android-debug-build/synthetic-pass", "android-gradle-plugin ci/android-release-build/synthetic-pass"]
+    },
+    {
+      "id": "kotlin",
+      "status": "approved",
+      "owner": "android",
+      "decision": "Approve Kotlin 2.0.21 after synthetic compile evidence.",
+      "evidence": ["kotlin android/build.gradle.kts", "kotlin ci/android-release-build/synthetic-pass"]
+    },
+    {
+      "id": "media3",
+      "status": "approved",
+      "owner": "android",
+      "decision": "Approve Media3 1.6.0 after synthetic playback evidence.",
+      "evidence": ["media3 android/app/build.gradle.kts#media3", "media3 device-playback/synthetic-pass"]
+    },
+    {
+      "id": "okhttp",
+      "status": "approved",
+      "owner": "android",
+      "decision": "Approve OkHttp 4.12.0 after auth/catalog integration evidence.",
+      "evidence": ["okhttp android/app/src/main/java/com/swarmcast/app/net/AuthRepository.kt", "okhttp android/app/src/main/java/com/swarmcast/app/net/ChannelRepository.kt"]
+    },
+    {
+      "id": "stream-webrtc-android",
+      "status": "approved",
+      "owner": "android",
+      "decision": "Approve Stream WebRTC Android 1.3.8 after synthetic DataChannel transfer evidence.",
+      "evidence": ["stream-webrtc-android device-webrtc-datachannel/synthetic-pass", "stream-webrtc-android android/app/build.gradle.kts#stream-webrtc"]
+    },
+    {
+      "id": "android-rlnc-library",
+      "status": "waived",
+      "owner": "android",
+      "decision": "Temporarily waive Android RLNC library selection only for this synthetic complete fixture.",
+      "evidence": ["android-rlnc-library docs/adr/0008-android-rlnc-library-boundary.md", "android-rlnc-library packages/p2p/test/rlnc.test.js"],
+      "waiver": {
+        "reason": "Synthetic fixture demonstrates launch waiver structure; production still requires library selection, license review, fuzzing, and benchmarks.",
+        "approvedBy": "synthetic-release-board",
+        "expiresAt": "2026-08-05T00:00:00.000Z"
+      }
+    }
+  ]
+}

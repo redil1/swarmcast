@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">SwarmCast</string>
+    <string name="search_label">Search channels</string>
+    <string name="refresh_action">Refresh</string>
+    <string name="p2p_upload_label">P2P upload</string>
+    <string name="p2p_enabled_state">P2P upload on</string>
+    <string name="p2p_disabled_state">P2P upload off</string>
+    <string name="privacy_action">Privacy</string>
+    <string name="privacy_title">P2P privacy</string>
+    <string name="privacy_body">Peer mode may expose your IP address to peers watching the same channel. Turn it off to use Delivery Fleet only.</string>
+    <string name="privacy_done">Done</string>
+    <string name="player_content_description">Player for %1$s</string>
+    <string name="player_state_peer_on">Peer assist on</string>
+    <string name="player_state_delivery_only">Delivery Fleet only</string>
+    <string name="loading_channels">Loading channels</string>
+    <string name="loading_more_channels">Loading more channels</string>
+    <string name="load_more_action">Load more</string>
+    <string name="no_channels">No channels</string>
+    <string name="catalog_request_failed">Catalog request failed. Try again.</string>
+    <string name="unknown_group">unknown group</string>
+    <string name="channel_row_content_description">%1$s, group %2$s</string>
+</resources>

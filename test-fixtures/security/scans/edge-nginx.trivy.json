@@ -1,0 +1,23 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "nginx:1.27@sha256:5555555555555555555555555555555555555555555555555555555555555555",
+  "ArtifactType": "container_image",
+  "Synthetic": true,
+  "Results": [
+    {
+      "Target": "nginx:1.27",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2099-0105",
+          "PkgName": "example-low-risk-package",
+          "InstalledVersion": "1.0.0",
+          "FixedVersion": "1.0.1",
+          "Severity": "LOW",
+          "Title": "Low severity fixture vulnerability"
+        }
+      ]
+    }
+  ]
+}

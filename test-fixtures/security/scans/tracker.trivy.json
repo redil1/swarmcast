@@ -1,0 +1,23 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "ghcr.io/example/swarmcast/tracker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "ArtifactType": "container_image",
+  "Synthetic": true,
+  "Results": [
+    {
+      "Target": "node:22-slim",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2099-0003",
+          "PkgName": "example-low-risk-package",
+          "InstalledVersion": "1.0.0",
+          "FixedVersion": "1.0.1",
+          "Severity": "LOW",
+          "Title": "Low severity fixture vulnerability"
+        }
+      ]
+    }
+  ]
+}

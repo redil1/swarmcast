@@ -1,0 +1,124 @@
+{
+  "evidenceId": "host-provisioning-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:16:00.000Z",
+  "publicTcpPorts": [80, 443],
+  "deniedInternalTcpPorts": [7000, 7001, 7002, 7003, 7010, 7020, 9101],
+  "thirdPartyCdnUsed": false,
+  "synthetic": true,
+  "hosts": [
+    {
+      "id": "origin-1",
+      "role": "origin",
+      "publicHostnames": ["origin.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/origin-host-synthetic"]
+    },
+    {
+      "id": "edge-1",
+      "role": "edge",
+      "publicHostnames": ["edge.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/edge-host-synthetic"]
+    },
+    {
+      "id": "api-1",
+      "role": "api",
+      "publicHostnames": ["api.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/api-host-synthetic"]
+    },
+    {
+      "id": "tracker-1",
+      "role": "tracker",
+      "publicHostnames": ["tracker.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/tracker-host-synthetic"]
+    },
+    {
+      "id": "control-1",
+      "role": "control-plane",
+      "publicHostnames": ["control.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/control-plane-host-synthetic"]
+    },
+    {
+      "id": "retention-1",
+      "role": "retention-worker",
+      "publicHostnames": ["retention.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/retention-worker-host-synthetic"]
+    },
+    {
+      "id": "monitoring-1",
+      "role": "monitoring",
+      "publicHostnames": ["monitoring.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/monitoring-host-synthetic"]
+    }
+  ],
+  "checks": [
+    {
+      "id": "ubuntu-2404-lts",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/ubuntu-2404-lts-os-release-synthetic"]
+    },
+    {
+      "id": "docker-compose-installed",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/docker-compose-installed-version-synthetic"]
+    },
+    {
+      "id": "sysctl-applied",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/sysctl-applied-synthetic"]
+    },
+    {
+      "id": "file-limits-applied",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/file-limits-applied-synthetic"]
+    },
+    {
+      "id": "tmpfs-var-hls-mounted",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/tmpfs-var-hls-mounted-synthetic"]
+    },
+    {
+      "id": "firewall-applied",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/firewall-applied-ufw-status-synthetic"]
+    },
+    {
+      "id": "internal-ports-denied",
+      "owner": "security",
+      "status": "pass",
+      "evidence": ["host-provisioning/internal-ports-denied-synthetic"]
+    },
+    {
+      "id": "tls-certificates-issued",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/tls-certificates-issued-certbot-synthetic"]
+    },
+    {
+      "id": "certbot-renew-dry-run",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/certbot-renew-dry-run-synthetic"]
+    },
+    {
+      "id": "compose-renders",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/compose-renders-docker-compose-config-synthetic"]
+    },
+    {
+      "id": "public-dns-configured",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["host-provisioning/public-dns-configured-synthetic"]
+    }
+  ]
+}

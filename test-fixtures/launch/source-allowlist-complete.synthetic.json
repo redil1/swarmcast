@@ -1,0 +1,36 @@
+{
+  "evidenceId": "source-allowlist-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:07:00.000Z",
+  "approvedHosts": ["source1.upstream.tv", "source2.upstream.tv"],
+  "privateNetworksAllowed": false,
+  "catchAllWildcardAllowed": false,
+  "approvedBy": "content-ops",
+  "approvalRef": "source-allowlist/synthetic-approval",
+  "synthetic": true,
+  "productionEnvValidation": {
+    "command": "npm run env:production:validate -- test-fixtures/config/production.env",
+    "status": "pass",
+    "evidence": ["source-allowlist/production-env-validation-synthetic"]
+  },
+  "sourcePreflight": {
+    "command": "npm run source:preflight",
+    "status": "pass",
+    "total": 20000,
+    "healthy": 20000,
+    "failed": 0,
+    "rawSourceUrlsExposed": false,
+    "privateNetworkSourcesRejected": true,
+    "credentialedSourcesRejected": true,
+    "evidence": ["source-allowlist/production-catalog-preflight-synthetic"]
+  },
+  "catalogImport": {
+    "channelCount": 20000,
+    "publicCatalogStripsSourceUrls": true,
+    "stableIdsGenerated": true,
+    "evidence": ["source-allowlist/public-catalog-sanitized-synthetic"]
+  }
+}

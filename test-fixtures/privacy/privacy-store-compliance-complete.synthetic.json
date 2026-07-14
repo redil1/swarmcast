@@ -1,0 +1,94 @@
+{
+  "reviewId": "privacy-store-compliance-20260705",
+  "releaseVersion": "v0.1.0-rc1",
+  "reviewedAt": "2026-07-05T00:00:00.000Z",
+  "synthetic": true,
+  "approvals": [
+    {
+      "role": "privacy",
+      "name": "synthetic-privacy-reviewer",
+      "approvedAt": "2026-07-05T00:00:00.000Z",
+      "evidence": ["privacy/review/privacy-policy-synthetic"]
+    },
+    {
+      "role": "legal",
+      "name": "synthetic-legal-reviewer",
+      "approvedAt": "2026-07-05T00:01:00.000Z",
+      "evidence": ["privacy/review/store-disclosure-legal-synthetic"]
+    },
+    {
+      "role": "support",
+      "name": "synthetic-support-reviewer",
+      "approvedAt": "2026-07-05T00:02:00.000Z",
+      "evidence": ["support/faq/p2p-disclosure-synthetic"]
+    }
+  ],
+  "checks": [
+    {
+      "id": "privacy-policy-text-reviewed",
+      "owner": "privacy",
+      "status": "pass",
+      "evidence": ["privacy-policy/p2p-ip-visibility-copy-synthetic"]
+    },
+    {
+      "id": "app-store-notes-reviewed",
+      "owner": "legal",
+      "status": "pass",
+      "evidence": ["store-review/peer-assisted-delivery-notes-synthetic"]
+    },
+    {
+      "id": "support-faq-reviewed",
+      "owner": "support",
+      "status": "pass",
+      "evidence": ["support/faq/p2p-upload-controls-synthetic"]
+    },
+    {
+      "id": "peer-ip-disclosure-present",
+      "owner": "privacy",
+      "status": "pass",
+      "evidence": ["docs/privacy-store-compliance.md#p2p-disclosure"]
+    },
+    {
+      "id": "p2p-toggle-before-playback",
+      "owner": "android",
+      "status": "pass",
+      "evidence": ["android/privacy-disclosure/p2p-toggle-before-playback-synthetic"]
+    },
+    {
+      "id": "cellular-no-upload",
+      "owner": "android",
+      "status": "pass",
+      "evidence": ["android/network-policy/cellular-no-upload-synthetic"]
+    },
+    {
+      "id": "low-battery-upload-disabled",
+      "owner": "android",
+      "status": "pass",
+      "evidence": ["android/network-policy/low-battery-upload-disabled-synthetic"]
+    },
+    {
+      "id": "p2p-disable-closes-links",
+      "owner": "android",
+      "status": "pass",
+      "evidence": ["android/peerlink/p2p-disable-closes-links-synthetic"]
+    },
+    {
+      "id": "telemetry-source-url-redaction",
+      "owner": "privacy",
+      "status": "pass",
+      "evidence": ["telemetry/source-url-redaction-synthetic"]
+    },
+    {
+      "id": "retention-policy-linked",
+      "owner": "privacy",
+      "status": "pass",
+      "evidence": ["docs/data-retention-policy.md", "config/data-retention.json"]
+    }
+  ],
+  "evidence": [
+    "docs/privacy-store-compliance.md",
+    "privacy/review/final-policy-copy-synthetic",
+    "store-review/final-notes-synthetic",
+    "support/faq/final-p2p-copy-synthetic"
+  ]
+}

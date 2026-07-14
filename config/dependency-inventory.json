@@ -1,0 +1,155 @@
+{
+  "reviewDate": "2026-07-14",
+  "items": [
+    {
+      "id": "node-runtime",
+      "area": "server",
+      "name": "Node.js runtime",
+      "current": "node:22-slim / engines >=22",
+      "source": "services/*/Dockerfile and package.json",
+      "pinning": "major tag only",
+      "launchDecision": "allowed for staging",
+      "releaseGate": "Pin service images by digest and either validate Node 24 LTS or explicitly keep Node 22 LTS before production."
+    },
+    {
+      "id": "jose",
+      "area": "server",
+      "name": "jose",
+      "current": "^5.9.0, lockfile 5.10.0",
+      "source": "services/auth/package.json, services/tracker/package.json, package-lock.json",
+      "pinning": "semver range in service packages",
+      "launchDecision": "allowed for staging",
+      "releaseGate": "Pin exact version or complete jose 6 migration review with auth/token regression tests."
+    },
+    {
+      "id": "uwebsockets-js",
+      "area": "server",
+      "name": "uWebSockets.js",
+      "current": "github:uNetworking/uWebSockets.js#v20.51.0",
+      "source": "services/tracker/package.json",
+      "pinning": "git tag",
+      "launchDecision": "allowed for staging",
+      "releaseGate": "Validate Node 22/24 native binary compatibility and tracker WebSocket soak before launch."
+    },
+    {
+      "id": "ffmpeg",
+      "area": "ingest",
+      "name": "ffmpeg",
+      "current": "installed from Debian apt in node:22-slim image",
+      "source": "services/ingest/Dockerfile",
+      "pinning": "not pinned",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Pin base image digest or package snapshot and run packaging/playback smokes on the production image."
+    },
+    {
+      "id": "nginx",
+      "area": "edge",
+      "name": "nginx",
+      "current": "nginx:1.27",
+      "source": "infra/docker-compose.yml and infra/edge/docker-compose.yml",
+      "pinning": "version tag only",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Move to a supported stable tag, pin by digest, and rerun origin/edge nginx config and playback smokes."
+    },
+    {
+      "id": "prometheus",
+      "area": "monitoring",
+      "name": "Prometheus",
+      "current": "prom/prometheus:v2.53.0",
+      "source": "infra/docker-compose.yml",
+      "pinning": "version tag only",
+      "launchDecision": "allowed for staging",
+      "releaseGate": "Review Prometheus 3 migration or document v2 support choice, then pin image digest."
+    },
+    {
+      "id": "alertmanager",
+      "area": "monitoring",
+      "name": "Alertmanager",
+      "current": "prom/alertmanager:v0.27.0",
+      "source": "infra/docker-compose.yml",
+      "pinning": "version tag only",
+      "launchDecision": "allowed for staging",
+      "releaseGate": "Upgrade review and receiver fire-drill before production; pin image digest."
+    },
+    {
+      "id": "grafana",
+      "area": "monitoring",
+      "name": "Grafana",
+      "current": "grafana/grafana:11.1.0",
+      "source": "infra/docker-compose.yml",
+      "pinning": "version tag only",
+      "launchDecision": "allowed for staging",
+      "releaseGate": "Review major-version upgrade path and pin image digest before production."
+    },
+    {
+      "id": "node-exporter",
+      "area": "monitoring",
+      "name": "node_exporter",
+      "current": "prom/node-exporter:v1.8.0",
+      "source": "infra/edge/docker-compose.yml",
+      "pinning": "version tag only",
+      "launchDecision": "allowed for staging",
+      "releaseGate": "Review latest exporter version and pin image digest before production."
+    },
+    {
+      "id": "android-gradle-plugin",
+      "area": "android",
+      "name": "Android Gradle Plugin",
+      "current": "8.7.3",
+      "source": "android/build.gradle.kts",
+      "pinning": "exact version",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Install Android SDK/Gradle, run debug and release builds, then decide whether to move to AGP 9.x."
+    },
+    {
+      "id": "kotlin",
+      "area": "android",
+      "name": "Kotlin Gradle plugins",
+      "current": "2.0.21",
+      "source": "android/build.gradle.kts",
+      "pinning": "exact version",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Compile Android app and review Kotlin 2.4 migration after Gradle tooling is available."
+    },
+    {
+      "id": "media3",
+      "area": "android",
+      "name": "AndroidX Media3",
+      "current": "1.6.0",
+      "source": "android/app/build.gradle.kts",
+      "pinning": "exact version",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Run playback soak on real devices and evaluate upgrade to current stable Media3."
+    },
+    {
+      "id": "okhttp",
+      "area": "android",
+      "name": "OkHttp",
+      "current": "4.12.0",
+      "source": "android/app/build.gradle.kts",
+      "pinning": "exact version",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Evaluate OkHttp 5 migration after Android compile and tracker/auth integration tests pass."
+    },
+    {
+      "id": "stream-webrtc-android",
+      "area": "android",
+      "name": "Stream WebRTC Android",
+      "current": "1.3.8",
+      "source": "android/app/build.gradle.kts",
+      "pinning": "exact version",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Upgrade or explicitly waive after multi-device WebRTC/DataChannel transfer and license review."
+    },
+    {
+      "id": "android-rlnc-library",
+      "area": "android",
+      "name": "Backblaze JavaReedSolomon GF(2^8)",
+      "current": "git commit d3c481dc69471e0c47ff6f67f33d53bde941675e",
+      "source": "android/app/build.gradle.kts and docs/adr/0008-android-rlnc-library-boundary.md",
+      "pinning": "immutable git commit through group-restricted JitPack",
+      "launchDecision": "blocked for production",
+      "releaseGate": "Complete MIT license approval, security review, malformed-packet fuzzing, Android decode/allocation/battery benchmarks, and real-device hash-verified swarm validation before enabling RLNC in release config."
+    }
+  ]
+}

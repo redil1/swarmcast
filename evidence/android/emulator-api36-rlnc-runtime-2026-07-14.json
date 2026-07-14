@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-07-14T10:45:58.848Z",
+  "scope": "install-and-cold-launch",
+  "launchGateEligible": false,
+  "device": {
+    "kind": "emulator",
+    "model": "sdk_gphone64_arm64",
+    "androidRelease": "16",
+    "apiLevel": 36
+  },
+  "app": {
+    "applicationId": "tv.swarmcast",
+    "versionName": "0.1.0",
+    "rlncEnabled": true,
+    "apkSha256": "93c3efbc9a5efb6085751adb949b7784bc34a56ee6f7fecf2cff8202911a2e02"
+  },
+  "checks": {
+    "install": "passed",
+    "coldLaunch": "passed",
+    "processAlive": "passed",
+    "foregroundActivity": "passed",
+    "fatalExceptionOrAnr": "none",
+    "coldLaunchMs": 1525
+  },
+  "artifacts": {
+    "screenshot": "evidence/android/emulator-api36-rlnc-runtime-2026-07-14.png",
+    "screenshotSha256": "68893bde9359ffaa849540e038ba4c4a7ce0604cb7f6f5033dfae90e93428754"
+  },
+  "limitations": [
+    "This smoke does not prove backend connectivity, playback, WebRTC transfer, battery use, accessibility, or store readiness.",
+    "Emulator results do not satisfy physical-device launch gates."
+  ]
+}

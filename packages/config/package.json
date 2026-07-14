@@ -1,0 +1,19 @@
+{
+  "name": "@swarmcast/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./env": "./src/env.js",
+    "./errors": "./src/errors.js",
+    "./flags": "./src/flags.js",
+    "./logging": "./src/logging.js",
+    "./media-urls": "./src/mediaUrls.js",
+    "./performance-budgets": "./src/performanceBudgets.js",
+    "./retention": "./src/retention.js",
+    "./retention-stores": "./src/retentionStores.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

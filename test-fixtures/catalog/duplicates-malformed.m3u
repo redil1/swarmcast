@@ -1,0 +1,9 @@
+#EXTM3U
+https://source.example/orphan-without-extinf.m3u8
+#EXTINF:-1 tvg-id="dup.one" group-title="News",Duplicate One
+https://source.example/live/duplicate/index.m3u8
+#EXTINF:-1 tvg-id="dup.two" group-title="News",Duplicate Two Wins
+https://source.example/live/duplicate/index.m3u8
+#BROKEN:ignored
+#EXTINF:-1 group-title="Kids",Missing TVG ID
+https://source.example/live/kids/index.m3u8

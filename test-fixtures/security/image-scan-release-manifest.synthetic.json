@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "project": "swarmcast",
+  "version": "v0.1.0-rc1",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "repository": "aziz/ads",
+  "synthetic": true,
+  "artifacts": {
+    "sbom": {
+      "name": "swarmcast-sbom",
+      "path": "var/sbom/swarmcast-sbom.json"
+    },
+    "releaseManifest": {
+      "name": "swarmcast-release-manifest",
+      "path": "var/release/swarmcast-release-manifest.json"
+    },
+    "expectedImageScans": [
+      "var/scans/auth.trivy.json",
+      "var/scans/ingest.trivy.json",
+      "var/scans/tracker.trivy.json",
+      "var/scans/control-plane.trivy.json",
+      "var/scans/retention-worker.trivy.json",
+      "var/scans/nginx.trivy.json",
+      "var/scans/prometheus.trivy.json",
+      "var/scans/alertmanager.trivy.json",
+      "var/scans/grafana.trivy.json",
+      "var/scans/edge-nginx.trivy.json",
+      "var/scans/edge-metrics.trivy.json",
+      "var/scans/node-exporter.trivy.json"
+    ]
+  },
+  "checks": [
+    "npm run verify",
+    "npm audit --audit-level=moderate",
+    "npm run sbom:generate -- --check",
+    "npm run image:scan:validate -- var/scans/*.json",
+    "npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json",
+    "npm run release:images:check"
+  ],
+  "images": [
+    {
+      "service": "auth",
+      "env": "SWARMCAST_AUTH_IMAGE",
+      "image": "ghcr.io/example/swarmcast/auth@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "service": "ingest",
+      "env": "SWARMCAST_INGEST_IMAGE",
+      "image": "ghcr.io/example/swarmcast/ingest@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "service": "tracker",
+      "env": "SWARMCAST_TRACKER_IMAGE",
+      "image": "ghcr.io/example/swarmcast/tracker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "service": "control-plane",
+      "env": "SWARMCAST_CONTROL_PLANE_IMAGE",
+      "image": "ghcr.io/example/swarmcast/control-plane@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "service": "retention-worker",
+      "env": "SWARMCAST_RETENTION_WORKER_IMAGE",
+      "image": "ghcr.io/example/swarmcast/retention-worker@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "service": "nginx",
+      "env": "SWARMCAST_NGINX_IMAGE",
+      "image": "nginx:1.27@sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "service": "prometheus",
+      "env": "SWARMCAST_PROMETHEUS_IMAGE",
+      "image": "prom/prometheus:v2.53.0@sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "service": "alertmanager",
+      "env": "SWARMCAST_ALERTMANAGER_IMAGE",
+      "image": "prom/alertmanager:v0.27.0@sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "service": "grafana",
+      "env": "SWARMCAST_GRAFANA_IMAGE",
+      "image": "grafana/grafana:11.1.0@sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "service": "edge-nginx",
+      "env": "SWARMCAST_EDGE_NGINX_IMAGE",
+      "image": "nginx:1.27@sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    {
+      "service": "edge-metrics",
+      "env": "SWARMCAST_EDGE_METRICS_IMAGE",
+      "image": "node:22-slim@sha256:6666666666666666666666666666666666666666666666666666666666666666"
+    },
+    {
+      "service": "node-exporter",
+      "env": "SWARMCAST_NODE_EXPORTER_IMAGE",
+      "image": "prom/node-exporter:v1.8.0@sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  ]
+}

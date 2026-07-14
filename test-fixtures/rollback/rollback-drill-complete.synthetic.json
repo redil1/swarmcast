@@ -1,0 +1,156 @@
+{
+  "drillId": "rollback-drill-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "currentVersion": "v0.1.0-rc1",
+  "rollbackVersion": "v0.1.0-previous",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:09:30.000Z",
+  "rtoSeconds": 570,
+  "reason": "Synthetic rollback rehearsal for launch readiness evidence shape.",
+  "decision": "keep-rollback",
+  "noThirdPartyCdnFallback": true,
+  "dataLoss": false,
+  "synthetic": true,
+  "currentImages": {
+    "auth": "ghcr.io/example/swarmcast/auth@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ingest": "ghcr.io/example/swarmcast/ingest@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "tracker": "ghcr.io/example/swarmcast/tracker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "control-plane": "ghcr.io/example/swarmcast/control-plane@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "retention-worker": "ghcr.io/example/swarmcast/retention-worker@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "rollbackImages": {
+    "auth": "ghcr.io/example/swarmcast/auth@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "ingest": "ghcr.io/example/swarmcast/ingest@sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "tracker": "ghcr.io/example/swarmcast/tracker@sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "control-plane": "ghcr.io/example/swarmcast/control-plane@sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "retention-worker": "ghcr.io/example/swarmcast/retention-worker@sha256:5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  "preflightChecks": [
+    {
+      "id": "freeze-deployments",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["rollback/preflight/freeze-window-synthetic"]
+    },
+    {
+      "id": "previous-stable-images",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["rollback/preflight/previous-stable-digests-synthetic"]
+    },
+    {
+      "id": "backup-or-restore-coverage",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["npm run restore:evidence:validate synthetic pass"]
+    },
+    {
+      "id": "release-images-check",
+      "owner": "release",
+      "status": "pass",
+      "evidence": ["npm run release:images:check synthetic pass"]
+    },
+    {
+      "id": "compose-config-rendered",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["docker compose release override config synthetic pass"]
+    }
+  ],
+  "commands": [
+    {
+      "id": "pull-previous-images",
+      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker",
+      "status": "pass",
+      "evidence": ["rollback/commands/pull-previous-images-synthetic"]
+    },
+    {
+      "id": "up-no-build",
+      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker",
+      "status": "pass",
+      "evidence": ["rollback/commands/up-no-build-synthetic"]
+    },
+    {
+      "id": "service-ps",
+      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml ps",
+      "status": "pass",
+      "evidence": ["rollback/commands/service-ps-synthetic"]
+    }
+  ],
+  "postRollbackChecks": [
+    {
+      "id": "auth-token-verify",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/auth-token-verify-synthetic"]
+    },
+    {
+      "id": "source-preflight",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/source-preflight-synthetic"]
+    },
+    {
+      "id": "catalog-channels",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/catalog-channels-synthetic"]
+    },
+    {
+      "id": "catalog-groups",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/catalog-groups-synthetic"]
+    },
+    {
+      "id": "ingest-demand-segments",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/ingest-demand-segments-synthetic"]
+    },
+    {
+      "id": "tracker-join-signal-stats-metrics",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/tracker-join-signal-stats-metrics-synthetic"]
+    },
+    {
+      "id": "edge-cache-miss-hit",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/edge-cache-miss-hit-synthetic"]
+    },
+    {
+      "id": "retention-health-metrics",
+      "owner": "privacy",
+      "status": "pass",
+      "evidence": ["rollback/post/retention-health-metrics-synthetic"]
+    },
+    {
+      "id": "dashboard-snapshot",
+      "owner": "on-call",
+      "status": "pass",
+      "evidence": ["rollback/post/dashboard-errors-stalls-offload-egress-synthetic"]
+    },
+    {
+      "id": "android-release-halt-ready",
+      "owner": "android",
+      "status": "pass",
+      "evidence": ["android-rollout/halt-release-synthetic"]
+    },
+    {
+      "id": "app-incident-delivery-fleet-only",
+      "owner": "support",
+      "status": "pass",
+      "evidence": ["docs/runbooks/app-incident.md#delivery-fleet-only"]
+    },
+    {
+      "id": "tail-edge-only-mode",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["feature-flags/EDGE_ONLY_MODE-synthetic-pass"]
+    }
+  ]
+}

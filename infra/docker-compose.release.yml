@@ -1,0 +1,15 @@
+services:
+  auth:
+    image: ${SWARMCAST_AUTH_IMAGE:?set SWARMCAST_AUTH_IMAGE}
+
+  ingest:
+    image: ${SWARMCAST_INGEST_IMAGE:?set SWARMCAST_INGEST_IMAGE}
+
+  tracker:
+    image: ${SWARMCAST_TRACKER_IMAGE:?set SWARMCAST_TRACKER_IMAGE}
+
+  control-plane:
+    image: ${SWARMCAST_CONTROL_PLANE_IMAGE:?set SWARMCAST_CONTROL_PLANE_IMAGE}
+
+  retention-worker:
+    image: ${SWARMCAST_RETENTION_WORKER_IMAGE:?set SWARMCAST_RETENTION_WORKER_IMAGE}

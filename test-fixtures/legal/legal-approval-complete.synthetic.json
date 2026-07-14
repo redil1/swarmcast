@@ -1,0 +1,51 @@
+{
+  "approvalId": "legal-approval-20260705",
+  "releaseVersion": "v0.1.0-rc1",
+  "contentProvider": "Synthetic content provider",
+  "contractRef": "legal/approvals/synthetic-contract-summary",
+  "reviewedAt": "2026-07-05T00:00:00.000Z",
+  "territories": ["US", "CA"],
+  "contentClasses": ["linear-live", "catch-up-test"],
+  "platforms": ["android", "web"],
+  "synthetic": true,
+  "rights": {
+    "redistribution": true,
+    "rebroadcast": true,
+    "peerRelay": true,
+    "viewerDeviceRetransmission": true,
+    "territoriesApproved": true,
+    "appStoreDistribution": true,
+    "operationalMetricsLogging": true,
+    "privacyDisclosure": true
+  },
+  "approvals": [
+    {
+      "role": "legal",
+      "name": "synthetic-legal-reviewer",
+      "approvedAt": "2026-07-05T00:00:00.000Z",
+      "evidence": ["legal/approvals/legal-review-synthetic"]
+    },
+    {
+      "role": "content-licensing",
+      "name": "synthetic-licensing-reviewer",
+      "approvedAt": "2026-07-05T00:01:00.000Z",
+      "evidence": ["legal/approvals/content-licensing-synthetic"]
+    },
+    {
+      "role": "privacy",
+      "name": "synthetic-privacy-reviewer",
+      "approvedAt": "2026-07-05T00:02:00.000Z",
+      "evidence": ["legal/approvals/privacy-disclosure-synthetic"]
+    }
+  ],
+  "evidence": [
+    "legal/approvals/redistribution-rights-synthetic",
+    "legal/approvals/rebroadcast-rights-synthetic",
+    "legal/approvals/peer-relay-rights-synthetic",
+    "legal/approvals/viewer-device-retransmission-synthetic",
+    "legal/approvals/territory-platform-scope-synthetic",
+    "legal/approvals/app-store-distribution-synthetic",
+    "legal/approvals/operational-metrics-logging-synthetic",
+    "legal/approvals/privacy-disclosure-synthetic"
+  ]
+}

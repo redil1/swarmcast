@@ -1,0 +1,56 @@
+{
+  "reviewDate": "2026-07-05",
+  "defaultRule": "Do not collect or retain fields that are not needed for reliability, abuse defense, legal compliance, or capacity planning.",
+  "classes": [
+    {
+      "id": "peer_stats",
+      "name": "Peer stats",
+      "examples": ["peer id", "channel id", "network class", "peer bytes", "edge bytes", "stall count"],
+      "rawRetentionDays": 14,
+      "aggregateRetentionDays": 180,
+      "allowedPurpose": "Reliability, P2P offload measurement, abuse defense, and capacity planning.",
+      "prohibitedFields": ["JWT", "upstream source URL", "precise location", "contact data"],
+      "deletionRule": "Delete raw peer-session rows after 14 days or aggregate them without peer identifiers."
+    },
+    {
+      "id": "ip_related_logs",
+      "name": "IP-related logs",
+      "examples": ["edge access IP", "tracker connection IP", "auth request IP"],
+      "rawRetentionDays": 7,
+      "aggregateRetentionDays": 90,
+      "allowedPurpose": "Abuse defense, rate-limit tuning, incident response, and regional capacity planning.",
+      "prohibitedFields": ["JWT", "upstream source URL", "playback history tied to durable user identity"],
+      "deletionRule": "Delete raw IP-bearing logs after 7 days unless preserved for a documented security incident."
+    },
+    {
+      "id": "auth_logs",
+      "name": "Auth logs",
+      "examples": ["token issued", "token rejected", "JWKS fetch", "rate-limit rejection"],
+      "rawRetentionDays": 30,
+      "aggregateRetentionDays": 365,
+      "allowedPurpose": "Security auditing, key rotation verification, abuse defense, and support investigation.",
+      "prohibitedFields": ["JWT", "private signing key", "app API key", "upstream source URL"],
+      "deletionRule": "Store event outcome and key id only; delete raw request logs after 30 days."
+    },
+    {
+      "id": "playback_errors",
+      "name": "Playback errors",
+      "examples": ["startup failure", "stall", "segment fetch failure", "decoder failure"],
+      "rawRetentionDays": 30,
+      "aggregateRetentionDays": 180,
+      "allowedPurpose": "Playback reliability, release quality, and device compatibility analysis.",
+      "prohibitedFields": ["JWT", "upstream source URL", "full IP address in client payload", "contact data"],
+      "deletionRule": "Aggregate by app version, network class, device class, and channel group before long-term retention."
+    },
+    {
+      "id": "metrics",
+      "name": "Metrics",
+      "examples": ["offload ratio", "edge cache hit ratio", "active peers", "ingest failures", "auth failures"],
+      "rawRetentionDays": 30,
+      "aggregateRetentionDays": 395,
+      "allowedPurpose": "Operational alerting, capacity planning, launch review, and incident retrospectives.",
+      "prohibitedFields": ["JWT", "upstream source URL", "raw peer IP", "durable user identity"],
+      "deletionRule": "Keep high-cardinality raw metrics short-lived; retain only aggregate service and channel-health series long term."
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "releaseVersion": "v0.1.0-rc1",
+  "environment": "staging",
+  "window": "30m",
+  "measuredAt": "2026-07-05T00:00:00.000Z",
+  "metrics": {
+    "androidCrashFreeSessions": 0.995,
+    "androidStartupLatencyMsP95": 3200,
+    "androidStallRate": 0.003,
+    "androidBufferMsMin": 18000,
+    "offloadRatio5m": 0.92,
+    "edgeCacheHitRatio": 0.88,
+    "edgeEgressBytesPerSecond": 120000000,
+    "originEgressBytesPerSecond": 18000000,
+    "authVerifyFailureRate": 0.001,
+    "trackerPeerDropRate": 0.002,
+    "peerTimeouts5m": 4,
+    "peerHashFailures5m": 0,
+    "peerDisconnects5m": 0
+  },
+  "limits": {
+    "androidCrashFreeSessionsMin": 0.99,
+    "offloadRatio5mMin": 0.9,
+    "edgeEgressBytesPerSecondMax": 200000000,
+    "originEgressBytesPerSecondMax": 50000000,
+    "authVerifyFailureRateMax": 0.02,
+    "trackerPeerDropRateMax": 0.02,
+    "peerTimeouts5mMax": 50,
+    "peerHashFailures5mMax": 0,
+    "peerDisconnects5mMax": 0
+  }
+}

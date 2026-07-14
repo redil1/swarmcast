@@ -1,0 +1,166 @@
+services:
+  ingest:
+    build:
+      context: ..
+      dockerfile: services/ingest/Dockerfile
+    restart: unless-stopped
+    environment:
+      M3U_PATH: ${M3U_PATH:-/config/source.m3u}
+      HLS_ROOT: /var/hls
+      MAX_CHANNELS: ${MAX_CHANNELS:-140}
+      TRACKER_INTERNAL_URL: http://tracker:7002
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      SOURCE_ALLOWED_HOSTS: ${SOURCE_ALLOWED_HOSTS:-}
+      SOURCE_ALLOW_PRIVATE_NETWORKS: ${SOURCE_ALLOW_PRIVATE_NETWORKS:-0}
+      TAIL_ADMISSION_MAX_CHANNELS: ${TAIL_ADMISSION_MAX_CHANNELS:-0}
+      TAIL_DOWNSCALE_ENABLED: ${TAIL_DOWNSCALE_ENABLED:-0}
+      TAIL_DOWNSCALE_VIDEO_KBPS: ${TAIL_DOWNSCALE_VIDEO_KBPS:-900}
+      TAIL_DOWNSCALE_AUDIO_KBPS: ${TAIL_DOWNSCALE_AUDIO_KBPS:-64}
+    volumes:
+      - /var/hls:/var/hls
+      - ../config:/config:ro
+    networks: [internal]
+
+  tracker:
+    build:
+      context: ..
+      dockerfile: services/tracker/Dockerfile
+    restart: unless-stopped
+    environment:
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      INGEST_URL: http://ingest:7001
+      CONTROL_PLANE_URL: http://control-plane:7010
+      AUTH_JWKS_URL: http://auth:7003/jwks
+      AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-swarmcast}
+      AUTH_JWT_ISSUER: ${AUTH_JWT_ISSUER:-swarmcast-auth}
+      ORIGIN_BASE: ${ORIGIN_BASE}
+      EDGE_BASE: ${EDGE_BASE}
+      P2P_MIN_SWARM_SIZE: ${P2P_MIN_SWARM_SIZE:-20}
+      TRACKER_MAX_CONNECTIONS: ${TRACKER_MAX_CONNECTIONS:-100000}
+      TRACKER_MAX_PAYLOAD_BYTES: ${TRACKER_MAX_PAYLOAD_BYTES:-16384}
+      TRACKER_MAX_BACKPRESSURE_BYTES: ${TRACKER_MAX_BACKPRESSURE_BYTES:-262144}
+      TRACKER_IDLE_TIMEOUT_SECONDS: ${TRACKER_IDLE_TIMEOUT_SECONDS:-120}
+      TRACKER_DEMAND_HEARTBEAT_SECONDS: ${TRACKER_DEMAND_HEARTBEAT_SECONDS:-30}
+      TRACKER_RATE_LIMIT_CAPACITY: ${TRACKER_RATE_LIMIT_CAPACITY:-50}
+      TRACKER_RATE_LIMIT_REFILL_PER_SECOND: ${TRACKER_RATE_LIMIT_REFILL_PER_SECOND:-50}
+      TRACKER_SHARD_ID: ${TRACKER_SHARD_ID:-}
+      TRACKER_SHARDS: ${TRACKER_SHARDS:-[]}
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+    networks: [internal]
+
+  auth:
+    build:
+      context: ..
+      dockerfile: services/auth/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_API_KEY: ${APP_API_KEY}
+      AUTH_KEY_PATH: ${AUTH_KEY_PATH:-/data/es256.pem}
+      AUTH_KEY_ID: ${AUTH_KEY_ID:-swarmcast-1}
+      AUTH_PREVIOUS_JWKS_PATH: ${AUTH_PREVIOUS_JWKS_PATH:-}
+      AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-swarmcast}
+      AUTH_JWT_ISSUER: ${AUTH_JWT_ISSUER:-swarmcast-auth}
+      AUTH_TOKEN_TTL_SECONDS: ${AUTH_TOKEN_TTL_SECONDS:-21600}
+    volumes:
+      - auth-keys:/data
+    networks: [internal]
+
+  control-plane:
+    build:
+      context: ..
+      dockerfile: services/control-plane/Dockerfile
+    restart: unless-stopped
+    environment:
+      M3U_PATH: ${M3U_PATH:-/config/source.m3u}
+      CATALOG_DB_PATH: ${CATALOG_DB_PATH:-/data/catalog.sqlite}
+      CATALOG_SNAPSHOT_PATH: ${CATALOG_SNAPSHOT_PATH:-/data/catalog-snapshot.json}
+      CONTROL_PLANE_PORT: 7010
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      INGEST_NODES: ${INGEST_NODES:-[{"id":"origin","baseUrl":"https://origin.example.tv","ingestUrl":"http://ingest:7001"}]}
+      PLACEMENT_DB_PATH: ${PLACEMENT_DB_PATH:-/data/placements.sqlite}
+      PLACEMENT_PATH: ${PLACEMENT_PATH:-/data/placements.json}
+      SOURCE_ALLOWED_HOSTS: ${SOURCE_ALLOWED_HOSTS:-}
+      SOURCE_ALLOW_PRIVATE_NETWORKS: ${SOURCE_ALLOW_PRIVATE_NETWORKS:-0}
+    volumes:
+      - ../config:/config:ro
+      - control-plane-data:/data
+    networks: [internal]
+
+  retention-worker:
+    build:
+      context: ..
+      dockerfile: services/retention-worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      RETENTION_WORKER_PORT: 7020
+      RETENTION_POLICY_FILE: /config/data-retention.json
+      RETENTION_INTERVAL_MS: ${RETENTION_INTERVAL_MS:-86400000}
+      RETENTION_RUN_ON_START: ${RETENTION_RUN_ON_START:-1}
+      RETENTION_EXECUTE: ${RETENTION_EXECUTE:-0}
+      RETENTION_STORE_MODULE: ${RETENTION_STORE_MODULE:-}
+      RETENTION_STORE_HTTP_BASE_URL: ${RETENTION_STORE_HTTP_BASE_URL:-}
+      RETENTION_STORE_HTTP_TOKEN: ${RETENTION_STORE_HTTP_TOKEN:-}
+      RETENTION_STORE_HTTP_TIMEOUT_MS: ${RETENTION_STORE_HTTP_TIMEOUT_MS:-10000}
+      RETENTION_RECORDS_FILE: ${RETENTION_RECORDS_FILE:-/data/retention-records.jsonl}
+      RETENTION_ACTION_LOG: /data/retention-actions.jsonl
+    volumes:
+      - ../config:/config:ro
+      - retention-worker-data:/data
+    networks: [internal]
+
+  nginx:
+    image: ${SWARMCAST_NGINX_IMAGE:-nginx:1.27}
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/swarmcast.conf:/etc/nginx/conf.d/swarmcast.conf:ro
+      - /var/hls:/var/hls_alias:ro
+      - /var/www/certbot:/var/www/certbot:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    networks: [internal]
+
+  prometheus:
+    image: ${SWARMCAST_PROMETHEUS_IMAGE:-prom/prometheus:v2.53.0}
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prom-data:/prometheus
+    networks: [internal]
+
+  alertmanager:
+    image: ${SWARMCAST_ALERTMANAGER_IMAGE:-prom/alertmanager:v0.27.0}
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    volumes:
+      - ${ALERTMANAGER_CONFIG_PATH:-./monitoring/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks: [internal]
+
+  grafana:
+    image: ${SWARMCAST_GRAFANA_IMAGE:-grafana/grafana:11.1.0}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks: [internal]
+
+networks:
+  internal: {}
+
+volumes:
+  auth-keys: {}
+  prom-data: {}
+  alertmanager-data: {}
+  grafana-data: {}
+  control-plane-data: {}
+  retention-worker-data: {}

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run verify
+      - run: npm audit --audit-level=moderate
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug assembleRelease
+        working-directory: android
+      - name: Compute Android APK checksums
+        run: |
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          sha256sum android/app/build/outputs/apk/release/app-release-unsigned.apk > android/app/build/outputs/apk/release/app-release-unsigned.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swarmcast-android-debug-apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swarmcast-android-release-unsigned-apk
+          path: |
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+            android/app/build/outputs/apk/release/app-release-unsigned.apk.sha256
+          if-no-files-found: error
+
+  deployment-shape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci --ignore-scripts
+      - run: docker compose -f infra/docker-compose.yml config
+      - run: docker compose -f infra/edge/docker-compose.yml config
+      - run: docker pull nginx:1.27
+      - run: npm run smoke:nginx-config
+      - run: npm run smoke:nginx-origin-playback
+      - run: npm run smoke:nginx-edge-cache

@@ -1,0 +1,122 @@
+{
+  "approvalId": "retention-approval-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "approvedAt": "2026-07-05T00:00:00.000Z",
+  "policyRevision": "config/data-retention.json#review-date-2026-07-05",
+  "synthetic": true,
+  "approvers": [
+    {
+      "role": "privacy",
+      "name": "synthetic-privacy-reviewer",
+      "approvedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "legal",
+      "name": "synthetic-legal-reviewer",
+      "approvedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "security",
+      "name": "synthetic-security-reviewer",
+      "approvedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "operations",
+      "name": "synthetic-operations-reviewer",
+      "approvedAt": "2026-07-05T00:00:00.000Z"
+    }
+  ],
+  "classes": [
+    {
+      "id": "peer_stats",
+      "status": "approved",
+      "owner": "platform",
+      "rawRetentionDays": 14,
+      "aggregateRetentionDays": 180,
+      "evidence": ["config/data-retention.json#peer_stats", "packages/config/test/retention.test.js"]
+    },
+    {
+      "id": "ip_related_logs",
+      "status": "approved",
+      "owner": "operations",
+      "rawRetentionDays": 7,
+      "aggregateRetentionDays": 90,
+      "evidence": ["config/data-retention.json#ip_related_logs", "docs/privacy-store-compliance.md#peer-ip-disclosure"]
+    },
+    {
+      "id": "auth_logs",
+      "status": "approved",
+      "owner": "security",
+      "rawRetentionDays": 30,
+      "aggregateRetentionDays": 365,
+      "evidence": ["config/data-retention.json#auth_logs", "services/auth/test/auth.test.js"]
+    },
+    {
+      "id": "playback_errors",
+      "status": "approved",
+      "owner": "android",
+      "rawRetentionDays": 30,
+      "aggregateRetentionDays": 180,
+      "evidence": ["config/data-retention.json#playback_errors", "docs/accessibility-ux-baseline.md#error-states"]
+    },
+    {
+      "id": "metrics",
+      "status": "approved",
+      "owner": "operations",
+      "rawRetentionDays": 30,
+      "aggregateRetentionDays": 395,
+      "evidence": ["config/data-retention.json#metrics", "infra/monitoring/grafana/dashboards/swarmcast-overview.json"]
+    }
+  ],
+  "controls": [
+    {
+      "id": "structured-logging-redaction",
+      "status": "pass",
+      "owner": "platform",
+      "evidence": ["packages/config/test/logger.test.js", "npm run smoke:retention-redaction"]
+    },
+    {
+      "id": "public-catalog-sanitization",
+      "status": "pass",
+      "owner": "platform",
+      "evidence": ["services/control-plane/test/catalogStore.test.js", "npm run smoke:catalog-source-preflight"]
+    },
+    {
+      "id": "retention-job",
+      "status": "pass",
+      "owner": "operations",
+      "evidence": ["npm run retention:job", "npm run retention:job -- --prometheus"]
+    },
+    {
+      "id": "destructive-execution-guard",
+      "status": "pass",
+      "owner": "operations",
+      "evidence": ["npm run smoke:retention-execute", "scripts/retention-job.js#execute-guard"]
+    },
+    {
+      "id": "retention-worker-health",
+      "status": "pass",
+      "owner": "operations",
+      "evidence": ["services/retention-worker/test/worker.test.js", "infra/monitoring/alerts.yml#retention"]
+    },
+    {
+      "id": "staging-execution",
+      "status": "pass",
+      "owner": "operations",
+      "evidence": ["staging-retention/synthetic-execution-pass", "npm run smoke:retention-http-store"]
+    },
+    {
+      "id": "backup-restore-retention",
+      "status": "pass",
+      "owner": "operations",
+      "evidence": ["docs/backup-restore.md#retention-config", "npm run restore:evidence:validate synthetic fixture"]
+    },
+    {
+      "id": "incident-hold-process",
+      "status": "pass",
+      "owner": "operations",
+      "evidence": ["docs/data-retention-policy.md#incident-holds", "docs/runbooks/retention-job-failures.md"]
+    }
+  ]
+}

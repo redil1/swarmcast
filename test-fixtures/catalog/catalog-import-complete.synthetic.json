@@ -1,0 +1,83 @@
+{
+  "importId": "catalog-import-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "catalogRevision": "catalog-20260705-0001",
+  "operator": "content-ops",
+  "reviewedAt": "2026-07-05T00:12:00.000Z",
+  "synthetic": true,
+  "rawSourceUrlsPresent": false,
+  "sourcePreflightEvidence": {
+    "command": "npm run source:preflight",
+    "status": "pass",
+    "total": 20000,
+    "healthy": 20000,
+    "failed": 0,
+    "rawSourceUrlsExposed": false,
+    "evidence": ["catalog-import/source-preflight-synthetic"]
+  },
+  "sourceAllowlistEvidence": {
+    "command": "npm run source:allowlist:evidence:validate -- test-fixtures/launch/source-allowlist-complete.synthetic.json",
+    "status": "pass",
+    "evidence": ["catalog-import/source-allowlist-approval-synthetic"]
+  },
+  "snapshot": {
+    "schemaVersion": 1,
+    "path": "artifacts/catalog/snapshots/catalog-20260705-0001.json",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "channelCount": 20000,
+    "groupCount": 42,
+    "etag": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sourceUrlsStripped": true
+  },
+  "signature": {
+    "algorithm": "cosign",
+    "signedBy": "content-ops-prod-key",
+    "signatureRef": "artifacts/catalog/signatures/catalog-20260705-0001.cosign.bundle"
+  },
+  "checks": [
+    {
+      "id": "source-preflight-passed",
+      "status": "pass",
+      "owner": "content-ops",
+      "evidence": ["catalog-import/source-preflight-synthetic"]
+    },
+    {
+      "id": "source-allowlist-approved",
+      "status": "pass",
+      "owner": "content-ops",
+      "evidence": ["catalog-import/source-allowlist-approval-synthetic"]
+    },
+    {
+      "id": "snapshot-written",
+      "status": "pass",
+      "owner": "platform",
+      "evidence": ["catalog-import/snapshot-written-synthetic"]
+    },
+    {
+      "id": "snapshot-sanitized",
+      "status": "pass",
+      "owner": "platform",
+      "evidence": ["catalog-import/snapshot-sanitized-synthetic"]
+    },
+    {
+      "id": "operator-signature-verified",
+      "status": "pass",
+      "owner": "release",
+      "evidence": ["catalog-import/operator-signature-verified-synthetic"]
+    },
+    {
+      "id": "public-catalog-smoke",
+      "status": "pass",
+      "owner": "qa",
+      "evidence": ["catalog-import/public-catalog-smoke-synthetic"]
+    },
+    {
+      "id": "rollback-snapshot-ready",
+      "status": "pass",
+      "owner": "release",
+      "evidence": ["catalog-import/rollback-snapshot-ready-synthetic"]
+    }
+  ]
+}

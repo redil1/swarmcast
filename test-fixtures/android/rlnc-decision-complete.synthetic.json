@@ -1,0 +1,113 @@
+{
+  "decisionId": "android-rlnc-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "decidedAt": "2026-07-05T00:00:00.000Z",
+  "synthetic": true,
+  "implementation": {
+    "name": "backblaze-javareedsolomon-gf256",
+    "version": "d3c481dc69471e0c47ff6f67f33d53bde941675e",
+    "source": "docs/adr/0008-android-rlnc-library-boundary.md#dependency-provenance",
+    "license": "MIT",
+    "maintenanceOwner": "android",
+    "abiRisk": "low"
+  },
+  "reviewers": [
+    {
+      "role": "android",
+      "name": "synthetic-android-reviewer",
+      "reviewedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "security",
+      "name": "synthetic-security-reviewer",
+      "reviewedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "legal",
+      "name": "synthetic-legal-reviewer",
+      "reviewedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "performance",
+      "name": "synthetic-performance-reviewer",
+      "reviewedAt": "2026-07-05T00:00:00.000Z"
+    }
+  ],
+  "checks": [
+    {
+      "id": "license-review",
+      "status": "pass",
+      "owner": "legal",
+      "evidence": ["legal/android-rlnc-license.synthetic.md"]
+    },
+    {
+      "id": "abi-review",
+      "status": "pass",
+      "owner": "android",
+      "evidence": ["android-rlnc/abi-risk.synthetic.md"]
+    },
+    {
+      "id": "decode-benchmark",
+      "status": "pass",
+      "owner": "performance",
+      "evidence": ["benchmarks/android-rlnc/decode.synthetic.json"]
+    },
+    {
+      "id": "allocation-benchmark",
+      "status": "pass",
+      "owner": "performance",
+      "evidence": ["benchmarks/android-rlnc/allocation.synthetic.json"]
+    },
+    {
+      "id": "fuzz-malformed-packets",
+      "status": "pass",
+      "owner": "security",
+      "evidence": ["fuzz/android-rlnc/malformed-packets.synthetic.json"]
+    },
+    {
+      "id": "bad-decode-rejection",
+      "status": "pass",
+      "owner": "security",
+      "evidence": ["fuzz/android-rlnc/bad-decode-rejection.synthetic.json", "packages/p2p/test/receiver.test.js"]
+    },
+    {
+      "id": "device-swarm-decode",
+      "status": "pass",
+      "owner": "android",
+      "evidence": ["device-lab/android-rlnc/swarm-decode.synthetic.json"]
+    },
+    {
+      "id": "hash-verify-before-store",
+      "status": "pass",
+      "owner": "android",
+      "evidence": ["android/app/src/main/java/tv/swarmcast/p2p/SegmentScheduler.kt", "android/app/src/test/java/tv/swarmcast/p2p/RlncCodecTest.kt"]
+    },
+    {
+      "id": "maintenance-owner",
+      "status": "pass",
+      "owner": "android",
+      "evidence": ["docs/adr/0008-android-rlnc-library-boundary.md#maintenance-owner"]
+    }
+  ],
+  "benchmarks": {
+    "decodeCpuMsP95": 64,
+    "allocationBytesP95": 4194304,
+    "batteryDrainPctPerHour": 5.5,
+    "segmentSizeBytes": 1048576,
+    "k": 32
+  },
+  "fuzz": {
+    "cases": 5000,
+    "crashes": 0,
+    "badStores": 0,
+    "evidence": ["fuzz/android-rlnc/summary.synthetic.json"]
+  },
+  "deviceDecode": {
+    "devices": 2,
+    "verifiedSegments": 32,
+    "hashFailures": 0,
+    "segmentStoreVerified": true,
+    "evidence": ["device-lab/android-rlnc/device-decode.synthetic.json", "tracker-metrics/android-rlnc.synthetic.prom"]
+  }
+}

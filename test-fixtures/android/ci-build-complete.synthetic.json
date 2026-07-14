@@ -1,0 +1,99 @@
+{
+  "buildId": "android-ci-20260705",
+  "environment": "github-actions",
+  "workflow": "CI",
+  "job": "android",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "runUrl": "https://github.com/Aziz/Ads/actions/runs/1234567890",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:08:00.000Z",
+  "synthetic": true,
+  "toolchain": {
+    "javaDistribution": "temurin",
+    "javaVersion": "17",
+    "gradleVersion": "8.9",
+    "androidPlatform": "android-35",
+    "buildTools": "35.0.0"
+  },
+  "steps": [
+    {
+      "id": "checkout",
+      "status": "pass",
+      "evidence": ["actions/checkout@v4"]
+    },
+    {
+      "id": "setup-java",
+      "status": "pass",
+      "evidence": ["actions/setup-java@v4 temurin 17"]
+    },
+    {
+      "id": "setup-android",
+      "status": "pass",
+      "evidence": ["android-actions/setup-android@v4 platforms;android-35 build-tools;35.0.0"]
+    },
+    {
+      "id": "setup-gradle",
+      "status": "pass",
+      "evidence": ["gradle/actions/setup-gradle@v6 gradle-version 8.9"]
+    },
+    {
+      "id": "testDebugUnitTest",
+      "status": "pass",
+      "evidence": ["gradle -p android --no-daemon testDebugUnitTest"]
+    },
+    {
+      "id": "assembleDebug",
+      "status": "pass",
+      "evidence": ["gradle -p android --no-daemon assembleDebug"]
+    },
+    {
+      "id": "assembleRelease",
+      "status": "pass",
+      "evidence": ["gradle -p android --no-daemon assembleRelease"]
+    },
+    {
+      "id": "computeApkChecksums",
+      "status": "pass",
+      "evidence": [
+        "sha256sum android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/app-debug.apk.sha256",
+        "sha256sum android/app/build/outputs/apk/release/app-release-unsigned.apk > android/app/build/outputs/apk/release/app-release-unsigned.apk.sha256"
+      ]
+    },
+    {
+      "id": "uploadDebugArtifact",
+      "status": "pass",
+      "evidence": ["actions/upload-artifact@v4 name=swarmcast-android-debug-apk if-no-files-found=error"]
+    },
+    {
+      "id": "uploadReleaseArtifact",
+      "status": "pass",
+      "evidence": ["actions/upload-artifact@v4 name=swarmcast-android-release-unsigned-apk if-no-files-found=error"]
+    }
+  ],
+  "artifacts": [
+    {
+      "variant": "debug",
+      "name": "app-debug.apk",
+      "path": "android/app/build/outputs/apk/debug/app-debug.apk",
+      "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sizeBytes": 12345678,
+      "evidence": [
+        "actions/upload-artifact@v4",
+        "swarmcast-android-debug-apk",
+        "android/app/build/outputs/apk/debug/app-debug.apk.sha256"
+      ]
+    },
+    {
+      "variant": "release",
+      "name": "app-release-unsigned.apk",
+      "path": "android/app/build/outputs/apk/release/app-release-unsigned.apk",
+      "sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sizeBytes": 12340000,
+      "evidence": [
+        "actions/upload-artifact@v4",
+        "swarmcast-android-release-unsigned-apk",
+        "android/app/build/outputs/apk/release/app-release-unsigned.apk.sha256"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "drillId": "restore-drill-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:14:30.000Z",
+  "rtoSeconds": 870,
+  "rpoSeconds": 300,
+  "synthetic": true,
+  "assets": [
+    {
+      "id": "auth-keys",
+      "snapshotId": "synthetic-auth-key-snapshot",
+      "checksum": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "restored": true
+    },
+    {
+      "id": "control-plane-placement",
+      "snapshotId": "synthetic-placement-snapshot",
+      "checksum": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "restored": true
+    },
+    {
+      "id": "catalog-snapshot",
+      "snapshotId": "synthetic-catalog-snapshot",
+      "checksum": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "restored": true
+    },
+    {
+      "id": "monitoring-config",
+      "snapshotId": "synthetic-monitoring-snapshot",
+      "checksum": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "restored": true
+    },
+    {
+      "id": "nginx-config",
+      "snapshotId": "synthetic-nginx-snapshot",
+      "checksum": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "restored": true
+    },
+    {
+      "id": "retention-config",
+      "snapshotId": "synthetic-retention-snapshot",
+      "checksum": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "restored": true
+    },
+    {
+      "id": "release-images",
+      "snapshotId": "synthetic-release-image-set",
+      "checksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "restored": true
+    }
+  ],
+  "checks": [
+    {
+      "id": "auth-jwks",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["restore/auth-jwks/kid-synthetic"]
+    },
+    {
+      "id": "auth-token-verify",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["restore/auth-token-verify/http-204-synthetic"]
+    },
+    {
+      "id": "source-preflight",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["restore/source-preflight/summary-no-raw-urls"]
+    },
+    {
+      "id": "placement-restart",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["smoke:control-plane-placement-restart synthetic-pass"]
+    },
+    {
+      "id": "alertmanager-routing",
+      "owner": "on-call",
+      "status": "pass",
+      "evidence": ["smoke:alertmanager-routing synthetic-pass"]
+    },
+    {
+      "id": "retention-dry-run",
+      "owner": "privacy",
+      "status": "pass",
+      "evidence": ["restore/retention-dry-run/prometheus-synthetic"]
+    },
+    {
+      "id": "post-restore-smokes",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["restore/post-restore-smokes/auth-catalog-tracker-edge-origin"]
+    }
+  ]
+}

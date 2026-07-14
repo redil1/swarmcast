@@ -1,0 +1,67 @@
+{
+  "drillId": "alertmanager-fire-drill-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "receiverConfig": "test-fixtures/monitoring/alertmanager-production.yml",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:06:00.000Z",
+  "synthetic": true,
+  "receiverValidation": {
+    "command": "npm run alertmanager:receivers:validate -- test-fixtures/monitoring/alertmanager-production.yml",
+    "status": "pass",
+    "evidence": ["alertmanager:receivers:validate alertmanager/fire-drill/receiver-validation-synthetic"]
+  },
+  "routingSmoke": {
+    "command": "npm run smoke:alertmanager-routing -- test-fixtures/monitoring/alertmanager-production.yml",
+    "status": "pass",
+    "evidence": ["smoke:alertmanager-routing alertmanager/fire-drill/routing-smoke-synthetic"]
+  },
+  "notifications": [
+    {
+      "id": "warning-firing",
+      "alertName": "SwarmcastLowOffloadRatio",
+      "severity": "warning",
+      "status": "firing",
+      "expectedReceiver": "oncall-default",
+      "observedReceiver": "oncall-default",
+      "notificationObserved": true,
+      "acknowledged": true,
+      "ackSeconds": 45,
+      "sentAt": "2026-07-05T00:01:00.000Z",
+      "deliveredAt": "2026-07-05T00:01:08.000Z",
+      "acknowledgedAt": "2026-07-05T00:01:45.000Z",
+      "evidence": ["warning-firing oncall-default acknowledged alertmanager/fire-drill/default-warning-notification-synthetic"]
+    },
+    {
+      "id": "critical-firing",
+      "alertName": "SwarmcastHighStallRate",
+      "severity": "critical",
+      "status": "firing",
+      "expectedReceiver": "oncall-critical",
+      "observedReceiver": "oncall-critical",
+      "notificationObserved": true,
+      "acknowledged": true,
+      "ackSeconds": 30,
+      "sentAt": "2026-07-05T00:02:00.000Z",
+      "deliveredAt": "2026-07-05T00:02:06.000Z",
+      "acknowledgedAt": "2026-07-05T00:02:30.000Z",
+      "evidence": ["critical-firing oncall-critical acknowledged alertmanager/fire-drill/critical-firing-notification-synthetic"]
+    },
+    {
+      "id": "critical-resolved",
+      "alertName": "SwarmcastHighStallRate",
+      "severity": "critical",
+      "status": "resolved",
+      "expectedReceiver": "oncall-critical",
+      "observedReceiver": "oncall-critical",
+      "notificationObserved": true,
+      "acknowledged": true,
+      "ackSeconds": 20,
+      "sentAt": "2026-07-05T00:04:00.000Z",
+      "deliveredAt": "2026-07-05T00:04:05.000Z",
+      "acknowledgedAt": "2026-07-05T00:04:20.000Z",
+      "evidence": ["critical-resolved oncall-critical acknowledged alertmanager/fire-drill/critical-resolved-notification-synthetic"]
+    }
+  ]
+}

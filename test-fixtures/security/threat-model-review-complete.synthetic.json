@@ -1,0 +1,232 @@
+{
+  "reviewId": "threat-model-review-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "reviewedAt": "2026-07-05T00:00:00.000Z",
+  "modelRevision": "docs/threat-model.md#review-date-2026-07-05",
+  "synthetic": true,
+  "areas": [
+    {
+      "id": "auth",
+      "owner": "security",
+      "evidence": ["services/auth/test/auth.test.js", "docs/security-review.md#jwt-review"]
+    },
+    {
+      "id": "tracker",
+      "owner": "platform",
+      "evidence": ["services/tracker/test/messages.test.js", "npm run smoke:tracker-ws"]
+    },
+    {
+      "id": "control-plane",
+      "owner": "platform",
+      "evidence": ["services/control-plane/test/placementService.test.js", "npm run smoke:control-plane-placement-restart"]
+    },
+    {
+      "id": "ingest",
+      "owner": "media",
+      "evidence": ["services/ingest/test/channelManager.test.js", "npm run smoke:ingest-ffmpeg-chaos"]
+    },
+    {
+      "id": "retention-worker",
+      "owner": "operations",
+      "evidence": ["services/retention-worker/test/worker.test.js", "npm run smoke:retention-execute"]
+    },
+    {
+      "id": "edge",
+      "owner": "edge",
+      "evidence": ["npm run smoke:nginx-edge-cache", "npm run smoke:edge-cache-metrics"]
+    },
+    {
+      "id": "android-p2p",
+      "owner": "android",
+      "evidence": ["android/app/src/main/java/com/swarmcast/app/p2p/PeerLink.kt", "docs/privacy-store-compliance.md#peer-disclosure"]
+    },
+    {
+      "id": "rlnc",
+      "owner": "android",
+      "evidence": ["docs/adr/0008-android-rlnc-library-boundary.md", "packages/p2p/test/rlnc.test.js"]
+    },
+    {
+      "id": "release",
+      "owner": "release",
+      "evidence": ["docs/deployment-pipeline.md", "npm run release:manifest"]
+    },
+    {
+      "id": "dependency-supply-chain",
+      "owner": "security",
+      "evidence": ["docs/dependency-review.md", "npm run dependency:review:validate synthetic fixture"]
+    },
+    {
+      "id": "monitoring-logs",
+      "owner": "operations",
+      "evidence": ["docs/logging-standard.md", "infra/monitoring/alerts.yml"]
+    }
+  ],
+  "threats": [
+    {
+      "id": "T-001",
+      "status": "mitigated",
+      "owner": "security",
+      "decision": "JWT media token controls and origin/edge auth coverage are accepted for staging.",
+      "evidence": ["npm run smoke:nginx-origin-playback", "npm run smoke:nginx-edge-cache"]
+    },
+    {
+      "id": "T-002",
+      "status": "mitigated",
+      "owner": "platform",
+      "decision": "Public catalog and logging protections are covered by tests and validation.",
+      "evidence": ["services/control-plane/test/catalogStore.test.js", "packages/config/test/logger.test.js"]
+    },
+    {
+      "id": "T-003",
+      "status": "mitigated",
+      "owner": "platform",
+      "decision": "Tracker payload, rate, and connection limits are covered locally.",
+      "evidence": ["services/tracker/test/messages.test.js", "npm run smoke:tracker-ws-load"]
+    },
+    {
+      "id": "T-004",
+      "status": "accepted",
+      "owner": "android",
+      "decision": "Server/headless poisoning defenses exist; real Android RLNC validation remains an open launch gate.",
+      "evidence": ["npm run smoke:poisoning", "packages/p2p/test/receiver.test.js"]
+    },
+    {
+      "id": "T-005",
+      "status": "mitigated",
+      "owner": "platform",
+      "decision": "Peer reputation remains based on local verification events.",
+      "evidence": ["packages/p2p/test/reputation.test.js"]
+    },
+    {
+      "id": "T-006",
+      "status": "accepted",
+      "owner": "android",
+      "decision": "Privacy disclosure surfaces exist; final privacy approval remains an open launch gate.",
+      "evidence": ["docs/privacy-store-compliance.md", "android/app/src/main/java/com/swarmcast/app/ui/PrivacyDisclosure.kt"]
+    },
+    {
+      "id": "T-007",
+      "status": "mitigated",
+      "owner": "platform",
+      "decision": "Placement APIs require internal tokens and public placement strips internals.",
+      "evidence": ["services/control-plane/test/catalogServer.test.js", "services/control-plane/test/placementService.test.js"]
+    },
+    {
+      "id": "T-008",
+      "status": "mitigated",
+      "owner": "media",
+      "decision": "Source allowlist and private-network rejection protect ingest from unsafe upstreams.",
+      "evidence": ["docs/source-url-policy.md", "npm run smoke:source-policy"]
+    },
+    {
+      "id": "T-009",
+      "status": "accepted",
+      "owner": "edge",
+      "decision": "Local edge auth/cache behavior is covered; real edge-node smoke remains an open launch gate.",
+      "evidence": ["npm run smoke:nginx-edge-cache", "npm run smoke:edge-cache-metrics"]
+    },
+    {
+      "id": "T-010",
+      "status": "accepted",
+      "owner": "security",
+      "decision": "Supply-chain validators exist; real production image scans and dependency decisions remain open.",
+      "evidence": ["npm run sbom:generate -- --check", "npm run dependency:review:validate synthetic fixture"]
+    },
+    {
+      "id": "T-011",
+      "status": "accepted",
+      "owner": "operations",
+      "decision": "Auth key rotation and restore evidence paths exist; production secret manager decision remains open.",
+      "evidence": ["services/auth/test/auth.test.js", "npm run restore:evidence:validate synthetic fixture"]
+    },
+    {
+      "id": "T-012",
+      "status": "mitigated",
+      "owner": "operations",
+      "decision": "Structured logging and retention policy validation reduce sensitive telemetry exposure.",
+      "evidence": ["docs/logging-standard.md", "npm run smoke:retention-redaction"]
+    },
+    {
+      "id": "T-013",
+      "status": "accepted",
+      "owner": "operations",
+      "decision": "Local tracker/control-plane restart smokes exist; staging chaos remains an open launch gate.",
+      "evidence": ["npm run smoke:tracker-ws-restart", "npm run smoke:control-plane-placement-restart"]
+    },
+    {
+      "id": "T-014",
+      "status": "mitigated",
+      "owner": "release",
+      "decision": "Release manifest and digest image checks gate mutable artifacts.",
+      "evidence": ["npm run release:manifest", "npm run release:images:check"]
+    },
+    {
+      "id": "T-015",
+      "status": "accepted",
+      "owner": "operations",
+      "decision": "Retention safeguards exist; staging execution against scoped credentials remains open.",
+      "evidence": ["npm run retention:job", "npm run smoke:retention-execute"]
+    }
+  ],
+  "openGates": [
+    {
+      "id": "android-rlnc-library",
+      "owner": "android",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["docs/adr/0008-android-rlnc-library-boundary.md"]
+    },
+    {
+      "id": "nginx-tls-smoke",
+      "owner": "edge",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["docs/launch-readiness.md#real-nginx-tls-smoke"]
+    },
+    {
+      "id": "load-ladder",
+      "owner": "platform",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["docs/load-testing.md#staged-ladder"]
+    },
+    {
+      "id": "staging-chaos-drills",
+      "owner": "operations",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["docs/chaos-drills.md#staging-gates"]
+    },
+    {
+      "id": "data-retention-approval",
+      "owner": "operations",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["docs/data-retention-policy.md#required-before-production"]
+    },
+    {
+      "id": "dependency-review",
+      "owner": "security",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["docs/dependency-review.md#required-before-production"]
+    }
+  ],
+  "signoffs": [
+    {
+      "role": "security",
+      "name": "synthetic-security-reviewer",
+      "signedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "platform",
+      "name": "synthetic-platform-reviewer",
+      "signedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "android",
+      "name": "synthetic-android-reviewer",
+      "signedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "operations",
+      "name": "synthetic-operations-reviewer",
+      "signedAt": "2026-07-05T00:00:00.000Z"
+    }
+  ]
+}

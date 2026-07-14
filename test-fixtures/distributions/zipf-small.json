@@ -1,0 +1,10 @@
+{
+  "description": "Small deterministic Zipf-style channel popularity fixture for smoke and scheduler tests.",
+  "channels": [
+    { "channelId": "news.us", "viewers": 1000 },
+    { "channelId": "sports.us", "viewers": 435 },
+    { "channelId": "kids.us", "viewers": 267 },
+    { "channelId": "movies.us", "viewers": 189 },
+    { "channelId": "tail.us.001", "viewers": 1 }
+  ]
+}

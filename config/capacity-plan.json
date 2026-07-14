@@ -1,0 +1,16 @@
+{
+  "reviewDate": "2026-07-05",
+  "peakConcurrentViewers": 20000,
+  "averageBitrateMbps": 5,
+  "measuredOffloadRatio": 0.9,
+  "selfSustainingSuperPeerFraction": 0.15,
+  "helperUploadPacketsPerSegment": 150,
+  "superPeerSweepEvidence": "load-ladder/headless-super-peer-sweep.synthetic.json",
+  "edgeCacheHitRatio": 0.85,
+  "activeChannelsPeak": 500,
+  "edgeNodeCapacityMbps": 8000,
+  "originNodeCapacityChannels": 140,
+  "headroomRatio": 0.3,
+  "plannedEdgeNodes": 2,
+  "plannedOriginNodes": 5
+}

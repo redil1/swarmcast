@@ -1,0 +1,11 @@
+{
+  "trackerCpuMsPerMessageP95": 2,
+  "trackerMemoryBytesPerPeer": 4096,
+  "segmentHashMsP95": 20,
+  "androidDecodeCpuMsPerSegmentP95": 100,
+  "androidBatteryDrainPctPerHour": 8,
+  "androidStartupLatencyMsP95": 5000,
+  "androidStallRateMax": 0.01,
+  "androidBufferMsMin": 10000,
+  "edgeCacheHitRatioMin": 0.8
+}

@@ -1,0 +1,37 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:name=".App"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
+        android:theme="@style/AppTheme">
+        <meta-data
+            android:name="tv.swarmcast.API_BASE"
+            android:value="${swarmcastApiBase}" />
+        <meta-data
+            android:name="tv.swarmcast.TRACKER_WS_URL"
+            android:value="${swarmcastTrackerWsUrl}" />
+        <meta-data
+            android:name="tv.swarmcast.APP_API_KEY"
+            android:value="${swarmcastAppApiKey}" />
+        <meta-data
+            android:name="tv.swarmcast.P2P_ENABLED"
+            android:value="${swarmcastP2pEnabled}" />
+        <meta-data
+            android:name="tv.swarmcast.EDGE_ONLY_MODE"
+            android:value="${swarmcastEdgeOnlyMode}" />
+        <meta-data
+            android:name="tv.swarmcast.RLNC_ENABLED"
+            android:value="${swarmcastRlncEnabled}" />
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

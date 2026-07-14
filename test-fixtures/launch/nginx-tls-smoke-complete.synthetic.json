@@ -1,0 +1,56 @@
+{
+  "evidenceId": "nginx-tls-smoke-20260705",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-rc1",
+  "startedAt": "2026-07-05T00:00:00.000Z",
+  "completedAt": "2026-07-05T00:08:00.000Z",
+  "localOriginSmokePassed": true,
+  "localEdgeSmokePassed": true,
+  "synthetic": true,
+  "origin": {
+    "host": "origin.staging.swarmcast.tv",
+    "tls": {
+      "validCertificate": true,
+      "hostnameVerified": true,
+      "protocol": "TLSv1.3",
+      "expiresAt": "2026-10-05T00:00:00.000Z",
+      "evidence": ["nginx-tls/origin/valid-certificate hostname-verified synthetic"]
+    },
+    "unauthorizedPlaylistStatus": 401,
+    "authorizedPlaylistStatus": 200,
+    "authorizedSegmentStatus": 200,
+    "playlistNoCache": true,
+    "segmentImmutableCache": true,
+    "sourceUrlLeaked": false,
+    "startupLatencyMs": 820,
+    "evidence": [
+      "origin-auth-401 origin-playlist-200 origin-segment-200 synthetic",
+      "playlist-no-cache segment-immutable-cache source-url-redaction synthetic"
+    ]
+  },
+  "edge": {
+    "host": "edge.staging.swarmcast.tv",
+    "tls": {
+      "validCertificate": true,
+      "hostnameVerified": true,
+      "protocol": "TLSv1.3",
+      "expiresAt": "2026-10-05T00:00:00.000Z",
+      "evidence": ["nginx-tls/edge/valid-certificate hostname-verified synthetic"]
+    },
+    "unauthorizedSegmentStatus": 401,
+    "firstSegmentStatus": 200,
+    "secondSegmentStatus": 200,
+    "firstCacheStatus": "MISS",
+    "secondCacheStatus": "HIT",
+    "crossTokenHit": true,
+    "originFills": 1,
+    "thirdPartyCdnUsed": false,
+    "tokenLeakedInCacheKey": false,
+    "cacheHitLatencyMs": 45,
+    "evidence": [
+      "edge-auth-401 edge-cache-miss edge-cache-hit synthetic",
+      "cross-token-hit origin-fills=1 no-third-party-cdn cache-key-redaction synthetic"
+    ]
+  }
+}

@@ -1,0 +1,301 @@
+{
+  "releaseVersion": "v0.1.0-rc1",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "environment": "staging",
+  "reviewedAt": "2026-07-05T00:00:00.000Z",
+  "synthetic": true,
+  "gates": [
+    {
+      "id": "legal-approval",
+      "owner": "legal",
+      "status": "complete",
+      "evidence": [
+        "legal:approval:validate synthetic-pass",
+        "redistribution-rights peer-relay-rights synthetic-pass",
+        "viewer-device-retransmission privacy-disclosure synthetic-pass",
+        "docs/legal-gate.md#synthetic-approval-record"
+      ]
+    },
+    {
+      "id": "privacy-store-compliance",
+      "owner": "privacy",
+      "status": "complete",
+      "evidence": [
+        "privacy:store:validate synthetic-pass",
+        "docs/privacy-store-compliance.md",
+        "support-faq-reviewed synthetic-pass",
+        "app-store-notes-reviewed synthetic-pass"
+      ]
+    },
+    {
+      "id": "release-artifacts",
+      "owner": "release",
+      "status": "complete",
+      "evidence": ["artifact:swarmcast-release-manifest", "artifact:swarmcast-sbom", "smoke:release-manifest-production synthetic-pass"]
+    },
+    {
+      "id": "android-release-config",
+      "owner": "android",
+      "status": "complete",
+      "evidence": ["android:release-config:validate synthetic-pass", "smoke:android-release-config-validation synthetic-pass"]
+    },
+    {
+      "id": "android-ci-build",
+      "owner": "android",
+      "status": "complete",
+      "evidence": [
+        "android:ci:evidence:validate synthetic-pass",
+        "swarmcast-android-debug-apk synthetic-artifact",
+        "swarmcast-android-release-unsigned-apk synthetic-artifact",
+        "ci/android/assembleDebug-assembleRelease/synthetic-run"
+      ]
+    },
+    {
+      "id": "android-device-playback",
+      "owner": "android",
+      "status": "complete",
+      "evidence": [
+        "android:playback:evidence:validate synthetic-pass",
+        "delivery-fleet-only 30m-soak wifi synthetic-pass",
+        "delivery-fleet-only 30m-soak cellular synthetic-pass",
+        "device-lab/playback-soak/synthetic-report"
+      ]
+    },
+    {
+      "id": "android-p2p-transfer",
+      "owner": "android",
+      "status": "complete",
+      "evidence": [
+        "android:p2p:evidence:validate synthetic-pass",
+        "webrtc-datachannel tracker-signaling-relay synthetic-pass",
+        "verified-segment-hash cellular-no-upload synthetic-pass",
+        "device-lab/webrtc-datachannel-transfer/synthetic-report"
+      ]
+    },
+    {
+      "id": "android-rlnc-decision",
+      "owner": "android",
+      "status": "complete",
+      "evidence": ["android:rlnc:decision:validate synthetic-pass", "docs/adr/0008-android-rlnc-library-boundary.md#synthetic-decision"]
+    },
+    {
+      "id": "threat-model-signoff",
+      "owner": "security",
+      "status": "complete",
+      "evidence": ["threat:model:validate synthetic-pass", "docs/threat-model.md#synthetic-signoff"]
+    },
+    {
+      "id": "dependency-review",
+      "owner": "release",
+      "status": "complete",
+      "evidence": [
+        "dependency:review:validate synthetic-pass",
+        "npm-audit sbom release-image-refs image-scans synthetic-pass",
+        "android-debug-build android-release-build synthetic-pass",
+        "inventory-decisions waiver-expiry docs/dependency-review.md#synthetic-approval"
+      ]
+    },
+    {
+      "id": "security-review",
+      "owner": "security",
+      "status": "complete",
+      "evidence": ["security:review:validate synthetic-pass", "docs/security-review.md#synthetic-signoff"]
+    },
+    {
+      "id": "image-scan-reports",
+      "owner": "security",
+      "status": "complete",
+      "evidence": [
+        "var/scans/auth.trivy.json",
+        "var/scans/ingest.trivy.json",
+        "var/scans/tracker.trivy.json",
+        "var/scans/control-plane.trivy.json",
+        "var/scans/retention-worker.trivy.json",
+        "var/scans/nginx.trivy.json",
+        "var/scans/prometheus.trivy.json",
+        "var/scans/alertmanager.trivy.json",
+        "var/scans/grafana.trivy.json",
+        "var/scans/edge-nginx.trivy.json",
+        "var/scans/edge-metrics.trivy.json",
+        "var/scans/node-exporter.trivy.json",
+        "image:scan:bundle:validate synthetic-pass"
+      ]
+    },
+    {
+      "id": "data-retention-approval",
+      "owner": "privacy",
+      "status": "complete",
+      "evidence": ["retention:approval:validate synthetic-pass", "retention:execution:evidence:validate synthetic-pass", "docs/data-retention-policy.md#synthetic-approval"]
+    },
+    {
+      "id": "accessibility-ux-baseline",
+      "owner": "android",
+      "status": "complete",
+      "evidence": [
+        "android:accessibility:validate synthetic-pass",
+        "talkback-focus-order large-font-200 synthetic-pass",
+        "small-screen-layout touch-targets synthetic-pass",
+        "docs/accessibility-ux-baseline.md#synthetic-device-pass"
+      ]
+    },
+    {
+      "id": "host-provisioning",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": [
+        "host:provisioning:evidence:validate synthetic-pass",
+        "public-dns-configured internal-ports-denied synthetic-pass",
+        "tls-certificates-issued monitoring synthetic-pass"
+      ]
+    },
+    {
+      "id": "production-secrets",
+      "owner": "security",
+      "status": "complete",
+      "evidence": [
+        "secrets:evidence:validate synthetic-pass",
+        "secret-storage rotation-policy runtime-injection synthetic-pass",
+        "access-review redaction-proof backup-restore no-raw-secret synthetic-pass"
+      ]
+    },
+    {
+      "id": "production-environment",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": ["env:production:validate synthetic-pass", "smoke:production-env-validation synthetic-pass", "smoke:compose-production-env synthetic-pass"]
+    },
+    {
+      "id": "deployment-execution",
+      "owner": "release",
+      "status": "complete",
+      "evidence": [
+        "deployment:evidence:validate synthetic-pass",
+        "release-manifest-validated image-digests-pinned compose-rendered synthetic-pass",
+        "images-pulled deployed-up-no-build service-health synthetic-pass",
+        "post-deploy-smokes rollback-ready synthetic-pass"
+      ]
+    },
+    {
+      "id": "nginx-tls-smoke",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": [
+        "nginx:tls:evidence:validate synthetic-pass",
+        "smoke:nginx-origin-playback origin-auth-401 origin-segment-200 source-url-redaction synthetic-pass",
+        "smoke:nginx-edge-cache edge-cache-miss edge-cache-hit cross-token-hit cache-key-redaction synthetic-pass",
+        "valid-certificate hostname-verified no-third-party-cdn synthetic-pass"
+      ]
+    },
+    {
+      "id": "source-allowlist",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": ["source:allowlist:evidence:validate synthetic-pass", "production-env/SOURCE_ALLOWED_HOSTS/synthetic-approval"]
+    },
+    {
+      "id": "catalog-import",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": ["catalog:import:validate synthetic-pass", "smoke:catalog-import-validation synthetic-pass", "catalog-import/signed-sanitized-snapshot-synthetic"]
+    },
+    {
+      "id": "production-smokes",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": [
+        "production:smoke:evidence:validate synthetic-pass",
+        "source-preflight synthetic-pass",
+        "catalog-search-pagination synthetic-pass",
+        "ingest-demand-segments synthetic-pass",
+        "edge-cache-miss-hit synthetic-pass",
+        "tracker-join-peer-list-signal-stats-metrics synthetic-pass",
+        "retention-health-metrics synthetic-pass",
+        "offload-dashboard-alert-query synthetic-pass"
+      ]
+    },
+    {
+      "id": "canary-rollout",
+      "owner": "release",
+      "status": "complete",
+      "evidence": [
+        "canary:rollout:evidence:validate synthetic-pass",
+        "canary:metrics:validate full-public-synthetic-pass peerTimeouts5m=8 peerHashFailures5m=0 peerDisconnects5m=0"
+      ]
+    },
+    {
+      "id": "prometheus-alerts",
+      "owner": "on-call",
+      "status": "complete",
+      "evidence": [
+        "prometheus:alerts:validate synthetic-pass",
+        "SwarmcastLowOffloadRatio SwarmcastPeerHashFailures SwarmcastHighPlaybackStallRate synthetic-pass",
+        "SwarmcastLowEdgeCacheHitRatio SwarmcastIngestDegradedChannels SwarmcastAuthVerifyFailures SwarmcastRetentionJobFailures synthetic-pass",
+        "warning critical runbook-links synthetic-pass"
+      ]
+    },
+    {
+      "id": "grafana-dashboard",
+      "owner": "on-call",
+      "status": "complete",
+      "evidence": ["grafana:dashboard:validate synthetic-pass"]
+    },
+    {
+      "id": "alert-receiver-fire-drill",
+      "owner": "on-call",
+      "status": "complete",
+      "evidence": [
+        "alertmanager:receivers:validate synthetic-pass",
+        "alertmanager:fire-drill:validate synthetic-pass",
+        "smoke:alertmanager-routing synthetic-pass",
+        "warning-firing oncall-default acknowledged synthetic-pass",
+        "critical-firing critical-resolved oncall-critical acknowledged synthetic-pass"
+      ]
+    },
+    {
+      "id": "capacity-load-ladder",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": [
+        "capacity:plan:validate config/capacity-plan.json synthetic-pass",
+        "load:ladder:validate synthetic-pass",
+        "selfSustainingSweep synthetic-pass",
+        "webrtc-datachannel synthetic-pass",
+        "tracker-signaling-relay synthetic-pass",
+        "load-ladder/webrtc-vm/synthetic-report"
+      ]
+    },
+    {
+      "id": "staging-chaos-drills",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": [
+        "chaos:staging:validate synthetic-pass",
+        "android-playback-continuity synthetic-pass",
+        "owned-edge-failover synthetic-pass",
+        "placement-failover synthetic-pass",
+        "durable-placement-restore synthetic-pass",
+        "peer-health-incident synthetic-pass",
+        "SwarmcastPeerHashFailures synthetic-observed",
+        "docs/runbooks/peer-health.md"
+      ]
+    },
+    {
+      "id": "rollback-drill",
+      "owner": "release",
+      "status": "complete",
+      "evidence": [
+        "rollback:evidence:validate synthetic-pass",
+        "docs/runbooks/rollback-drill.md#synthetic-rehearsal",
+        "android-release-halt-ready synthetic-pass",
+        "app-incident-delivery-fleet-only synthetic-pass",
+        "tail-edge-only-mode synthetic-pass"
+      ]
+    },
+    {
+      "id": "restore-drill",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": ["restore:evidence:validate synthetic-pass", "docs/runbooks/restore-drill.md#synthetic-rehearsal"]
+    }
+  ]
+}

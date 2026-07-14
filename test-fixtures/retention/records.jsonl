@@ -1,0 +1,5 @@
+{"id":"peer-recent","classId":"peer_stats","observedAt":"2026-07-04T00:00:00.000Z"}
+{"id":"peer-raw-expired","classId":"peer_stats","observedAt":"2026-06-01T00:00:00.000Z"}
+{"id":"ip-raw-expired","classId":"ip_related_logs","observedAt":"2026-06-20T00:00:00.000Z"}
+{"id":"auth-aggregate-expired","classId":"auth_logs","observedAt":"2025-01-01T00:00:00.000Z"}
+{"id":"metrics-aggregate-expired","classId":"metrics","observedAt":"2025-01-01T00:00:00.000Z"}

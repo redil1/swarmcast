@@ -1,0 +1,55 @@
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: edge-node-exporter
+    static_configs:
+      - targets: ["edge.example.tv:9100"]
+
+  - job_name: edge-cache-metrics
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["edge.example.tv:9101"]
+
+  - job_name: swarmcast-ingest
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["ingest:7001"]
+
+  - job_name: swarmcast-tracker
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["tracker:7002"]
+
+  - job_name: swarmcast-auth
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["auth:7003"]
+
+  - job_name: swarmcast-control-plane
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["control-plane:7010"]
+
+  - job_name: swarmcast-retention-worker
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["retention-worker:7020"]
