@@ -17,8 +17,8 @@ const requiredSteps = [
 ];
 const requiredArtifacts = ["debug", "release"];
 const requiredArtifactEvidence = {
-  debug: ["actions/upload-artifact@v4", "swarmcast-android-debug-apk", ".sha256"],
-  release: ["actions/upload-artifact@v4", "swarmcast-android-release-unsigned-apk", ".sha256"]
+  debug: ["actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", "swarmcast-android-debug-apk", ".sha256"],
+  release: ["actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", "swarmcast-android-release-unsigned-apk", ".sha256"]
 };
 const sensitiveEvidencePatterns = [
   /token=/i,
