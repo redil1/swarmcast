@@ -27,6 +27,7 @@ const requiredLaunchAlerts = [
   "SwarmcastFfmpegFailureSpike",
   "SwarmcastAuthVerifyFailures",
   "SwarmcastAppAttestationFailures",
+  "SwarmcastServiceTargetDown",
   "SwarmcastControlPlaneCatalogNotDurable",
   "SwarmcastControlPlanePlacementNotDurable",
   "SwarmcastRetentionJobFailures",

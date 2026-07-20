@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { loadRetentionWorkerConfig } from "@swarmcast/config/env";
 import { ERROR_CODES, httpStatusForError, publicError } from "@swarmcast/config/errors";
+import { closeHttpServer, createServiceLifecycle } from "@swarmcast/config/lifecycle";
 import { createLogger, logHttpRequest } from "@swarmcast/config/logging";
 import {
   formatRetentionMetrics,
@@ -45,6 +46,7 @@ export function createRetentionWorker({
   store,
   config = loadRetentionWorkerConfig({}),
   logger = null,
+  isReady = () => true,
   nowProvider = () => new Date()
 } = {}) {
   if (!policy) throw new Error("policy is required");
@@ -60,9 +62,9 @@ export function createRetentionWorker({
       lastSuccessTimestampSeconds: 0
     })
   };
+  let currentRun = null;
 
-  async function runOnce() {
-    if (state.running) return state.lastResult;
+  async function executeRun() {
     state.running = true;
     const now = nowProvider();
     try {
@@ -117,6 +119,16 @@ export function createRetentionWorker({
     }
   }
 
+  function runOnce() {
+    if (currentRun) return currentRun;
+    currentRun = executeRun().finally(() => { currentRun = null; });
+    return currentRun;
+  }
+
+  async function waitForIdle() {
+    if (currentRun) await currentRun;
+  }
+
   const server = http.createServer((req, res) => {
     logHttpRequest(req, res, logger);
     const url = new URL(req.url, "http://retention-worker.local");
@@ -129,6 +141,10 @@ export function createRetentionWorker({
         lastSuccessTimestampSeconds: state.lastSuccessTimestampSeconds
       });
     }
+    if (req.method === "GET" && url.pathname === "/ready") {
+      const ready = isReady();
+      return sendJson(res, ready ? 200 : 503, { ok: ready });
+    }
     if (req.method === "GET" && url.pathname === "/metrics") {
       res.writeHead(200, { "content-type": "text/plain; version=0.0.4; charset=utf-8" });
       res.end(state.metrics);
@@ -137,28 +153,29 @@ export function createRetentionWorker({
     return sendError(res, ERROR_CODES.NOT_FOUND, "not found");
   });
 
-  return { server, runOnce, state };
+  return { server, runOnce, state, waitForIdle };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const config = loadRetentionWorkerConfig(process.env);
   const logger = createLogger({ service: "retention-worker" });
+  const lifecycle = createServiceLifecycle({ service: "retention-worker", logger });
   const policy = validateRetentionPolicy(JSON.parse(readFileSync(config.policyFile, "utf8")));
   const store = await createRetentionStoreFromConfig(config, process.env);
-  const worker = createRetentionWorker({ policy, store, config, logger });
+  const worker = createRetentionWorker({ policy, store, config, logger, isReady: lifecycle.isReady });
   let timer = null;
 
   if (config.runOnStart) worker.runOnce();
   timer = setInterval(() => worker.runOnce(), config.intervalMs);
 
-  const shutdown = () => {
+  lifecycle.install(async () => {
     if (timer) clearInterval(timer);
-    worker.server.close(() => process.exit(0));
-  };
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+    await closeHttpServer(worker.server);
+    await worker.waitForIdle();
+  });
 
   worker.server.listen(config.port, () => {
+    lifecycle.markReady();
     logger.info("service_started", {
       node_id: "retention-worker",
       port: config.port,

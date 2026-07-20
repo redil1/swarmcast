@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { loadControlPlaneConfig } from "@swarmcast/config/env";
+import { closeHttpServer, createServiceLifecycle } from "@swarmcast/config/lifecycle";
 import { createLogger } from "@swarmcast/config/logging";
 import { CatalogStore } from "./catalogStore.js";
 import { createControlPlaneServer } from "./catalogServer.js";
@@ -96,6 +97,7 @@ export async function loadPlacementRegistry(runtimeConfig, logger) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const runtimeConfig = loadControlPlaneConfig(process.env, { requireSecrets: true });
   const logger = createLogger({ service: "control-plane" });
+  const lifecycle = createServiceLifecycle({ service: "control-plane", logger });
   const store = await loadCatalogStore(runtimeConfig, logger);
   const registry = await loadPlacementRegistry(runtimeConfig, logger);
   const placementService = new PlacementService({
@@ -106,9 +108,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     store,
     placementService,
     internalToken: runtimeConfig.internalToken,
+    isReady: lifecycle.isReady,
     logger
   });
+  lifecycle.install(() => closeHttpServer(server));
   server.listen(runtimeConfig.port, () => {
+    lifecycle.markReady();
     logger.info("service_started", { node_id: "control-plane", port: runtimeConfig.port }, "control-plane listening");
   });
 }

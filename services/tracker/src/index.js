@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { loadTrackerConfig } from "@swarmcast/config/env";
 import { ERROR_CODES, publicError } from "@swarmcast/config/errors";
+import { createServiceLifecycle } from "@swarmcast/config/lifecycle";
 import { createLogger } from "@swarmcast/config/logging";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { parseMessage } from "./protocol.js";
@@ -415,6 +416,7 @@ export async function handlePeerMessage({
 if (import.meta.url === `file://${process.argv[1]}`) {
   const runtimeConfig = loadTrackerConfig(process.env, { requireSecrets: true });
   const logger = createLogger({ service: "tracker" });
+  const lifecycle = createServiceLifecycle({ service: "tracker", logger });
   const [{ default: uWS }] = await Promise.all([import("uWebSockets.js")]);
   const jwks = createRemoteJWKSet(new URL(runtimeConfig.authJwksUrl));
   const state = createTrackerState();
@@ -425,7 +427,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   const send = createTrackerSender({ state, maxBackpressureBytes: runtimeConfig.maxBackpressureBytes });
 
-  uWS.App()
+  const wsApp = uWS.App()
     .ws("/ws", {
       maxPayloadLength: runtimeConfig.maxPayloadBytes,
       idleTimeout: runtimeConfig.idleTimeoutSeconds,
@@ -488,14 +490,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       close: (ws) => {
         removePeerFromState(state, ws.getUserData(), { policy: TRACKER_POLICY, send });
       }
-    })
-    .listen(runtimeConfig.port, (ok) => logger.info(ok ? "service_started" : "service_start_failed", {
-      node_id: "tracker",
-      port: runtimeConfig.port,
-      error_class: ok ? null : "listen_failed"
-    }, ok ? "tracker ws listening" : "tracker failed"));
+    });
 
-  uWS.App()
+  const internalApp = uWS.App()
+    .get("/health", (res) => {
+      res.writeHeader("content-type", "application/json");
+      res.end('{"ok":true}');
+    })
+    .get("/ready", (res) => {
+      const ready = lifecycle.isReady();
+      res.writeStatus(ready ? "200 OK" : "503 Service Unavailable");
+      res.writeHeader("content-type", "application/json");
+      res.end(JSON.stringify({ ok: ready }));
+    })
     .get("/metrics", (res) => {
       res.writeHeader("content-type", "text/plain; version=0.0.4; charset=utf-8");
       res.end(metricsForState(state));
@@ -537,24 +544,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           res.cork(() => res.writeStatus("400").end());
         }
       });
-    })
-    .listen(runtimeConfig.internalPort, (ok) => logger.info(ok ? "service_started" : "service_start_failed", {
-      node_id: "tracker-internal",
-      port: runtimeConfig.internalPort,
-      error_class: ok ? null : "listen_failed"
-    }, ok ? "tracker internal listening" : "tracker internal failed"));
+    });
 
-  setInterval(() => {
+  const timers = [];
+  timers.push(setInterval(() => {
     sendDemandHeartbeats({
       state,
       ingestUrl: runtimeConfig.ingestUrl,
       internalToken: runtimeConfig.internalToken
     }).catch(() => {});
-  }, runtimeConfig.demandHeartbeatSeconds * 1000);
+  }, runtimeConfig.demandHeartbeatSeconds * 1000));
 
   if (runtimeConfig.idleTimeoutSeconds > 0) {
     const idleTimeoutMs = runtimeConfig.idleTimeoutSeconds * 1000;
-    setInterval(() => {
+    timers.push(setInterval(() => {
       const closed = reapIdleTrackerPeers({ state, idleTimeoutMs, policy: TRACKER_POLICY, send });
       if (closed > 0) {
         logger.info("tracker_idle_peers_closed", {
@@ -562,6 +565,32 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           peers_closed: closed
         }, "tracker idle peers closed");
       }
-    }, Math.max(1000, Math.min(15_000, Math.floor(idleTimeoutMs / 2))));
+    }, Math.max(1000, Math.min(15_000, Math.floor(idleTimeoutMs / 2)))));
   }
+
+  lifecycle.install(() => {
+    for (const timer of timers) clearInterval(timer);
+    for (const ws of state.peersById.values()) ws.end?.(1012, "service restart");
+    wsApp.close();
+    internalApp.close();
+  });
+
+  let readyListeners = 0;
+  function listenerStarted(socket, nodeId, port, message) {
+    if (!socket) {
+      logger.error("service_start_failed", { node_id: nodeId, port, error_class: "listen_failed" }, message);
+      void lifecycle.shutdown("listen_failed");
+      return;
+    }
+    readyListeners += 1;
+    logger.info("service_started", { node_id: nodeId, port, error_class: null }, message);
+    if (readyListeners === 2) lifecycle.markReady();
+  }
+
+  wsApp.listen(runtimeConfig.port, (socket) => {
+    listenerStarted(socket, "tracker", runtimeConfig.port, "tracker ws listening");
+  });
+  internalApp.listen(runtimeConfig.internalPort, (socket) => {
+    listenerStarted(socket, "tracker-internal", runtimeConfig.internalPort, "tracker internal listening");
+  });
 }

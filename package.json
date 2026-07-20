@@ -52,6 +52,7 @@
     "smoke:retention-http-store": "node scripts/smoke-retention-http-store.js",
     "smoke:retention-redaction": "node scripts/smoke-retention-redaction.js",
     "smoke:source-policy": "node scripts/smoke-source-policy.js",
+    "smoke:service-lifecycle-containers": "node scripts/smoke-service-lifecycle-containers.js",
     "smoke:prometheus-alerts-validation": "node scripts/smoke-prometheus-alerts-validation.js",
     "smoke:grafana-dashboard-validation": "node scripts/smoke-grafana-dashboard-validation.js",
     "smoke:production-env-validation": "node scripts/smoke-production-env-validation.js",

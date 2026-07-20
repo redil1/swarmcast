@@ -4,6 +4,13 @@ services:
       context: ..
       dockerfile: services/ingest/Dockerfile
     restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
     environment:
       M3U_PATH: ${M3U_PATH:-/config/source.m3u}
       HLS_ROOT: /var/hls
@@ -21,12 +28,32 @@ services:
       - /var/hls:/var/hls
       - ../config:/config:ro
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:7001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
 
   tracker:
     build:
       context: ..
       dockerfile: services/tracker/Dockerfile
     restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      ingest:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      control-plane:
+        condition: service_healthy
     environment:
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       INGEST_URL: http://ingest:7001
@@ -52,12 +79,25 @@ services:
         soft: 1048576
         hard: 1048576
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:7002/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
 
   auth:
     build:
       context: ..
       dockerfile: services/auth/Dockerfile
     restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
     environment:
       APP_API_KEY: ${APP_API_KEY}
       AUTH_KEY_PATH: ${AUTH_KEY_PATH:-/data/es256.pem}
@@ -84,12 +124,25 @@ services:
       - auth-keys:/data
       - ${AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_FILE:-./secrets/play-integrity-service-account.json}:${AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH:-/run/secrets/play-integrity-service-account.json}:ro
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:7003/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
 
   control-plane:
     build:
       context: ..
       dockerfile: services/control-plane/Dockerfile
     restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
     environment:
       M3U_PATH: ${M3U_PATH:-/config/source.m3u}
       CATALOG_DB_PATH: ${CATALOG_DB_PATH:-/data/catalog.sqlite}
@@ -105,12 +158,25 @@ services:
       - ../config:/config:ro
       - control-plane-data:/data
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:7010/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
 
   retention-worker:
     build:
       context: ..
       dockerfile: services/retention-worker/Dockerfile
     restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
     environment:
       RETENTION_WORKER_PORT: 7020
       RETENTION_POLICY_FILE: /config/data-retention.json
@@ -127,6 +193,12 @@ services:
       - ../config:/config:ro
       - retention-worker-data:/data
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:7020/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
 
   nginx:
     build:
@@ -134,6 +206,12 @@ services:
       dockerfile: infra/nginx/Dockerfile
     image: ${SWARMCAST_NGINX_IMAGE:-swarmcast-nginx:local}
     restart: unless-stopped
+    stop_grace_period: 15s
+    depends_on:
+      ingest:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
     ports:
       - "443:443"
       - "80:80"

@@ -191,6 +191,16 @@ groups:
           description: "Play Integrity verdict failures may indicate modified, unlicensed, replayed, stale, or incorrectly signed Android clients."
           runbook_url: "docs/runbooks/app-attestation.md"
 
+      - alert: SwarmcastServiceTargetDown
+        expr: up{job=~"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker)|edge-cache-metrics)"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A core SwarmCast service target is unavailable"
+          description: "A core service or edge metrics target has failed Prometheus scrapes for two minutes. Confirm readiness, dependency health, and graceful restart behavior before restoring traffic."
+          runbook_url: "docs/runbooks/service-lifecycle.md"
+
       - alert: SwarmcastTurnTargetDown
         expr: up{job="swarmcast-turn"} == 0
         for: 2m

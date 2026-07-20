@@ -1,5 +1,6 @@
 import http from "node:http";
 import { ERROR_CODES, httpStatusForError, publicError } from "@swarmcast/config/errors";
+import { closeHttpServer, createServiceLifecycle } from "@swarmcast/config/lifecycle";
 import { createLogger, logHttpRequest } from "@swarmcast/config/logging";
 import { parseM3u, publicChannel } from "./catalog.js";
 import { ChannelManager } from "./channelManager.js";
@@ -27,7 +28,13 @@ async function readJsonBody(req) {
   }
 }
 
-export function createIngestServer({ cfg = config, catalog = parseM3u(cfg.m3uPath, { sourcePolicy: cfg.sourcePolicy }), manager, logger = null } = {}) {
+export function createIngestServer({
+  cfg = config,
+  catalog = parseM3u(cfg.m3uPath, { sourcePolicy: cfg.sourcePolicy }),
+  manager,
+  logger = null,
+  isReady = () => true
+} = {}) {
   const channelManager = manager || new ChannelManager({ catalog, config: cfg, logger });
 
   const server = http.createServer(async (req, res) => {
@@ -37,6 +44,11 @@ export function createIngestServer({ cfg = config, catalog = parseM3u(cfg.m3uPat
 
     if (req.method === "GET" && url.pathname === "/health") {
       return sendJson(res, 200, { ok: true });
+    }
+
+    if (req.method === "GET" && url.pathname === "/ready") {
+      const ready = isReady();
+      return sendJson(res, ready ? 200 : 503, { ok: ready });
     }
 
     if (req.method === "GET" && url.pathname === "/metrics") {
@@ -80,7 +92,12 @@ export function createIngestServer({ cfg = config, catalog = parseM3u(cfg.m3uPat
 if (import.meta.url === `file://${process.argv[1]}`) {
   const runtimeConfig = loadConfig(process.env, { requireSecrets: true });
   const logger = createLogger({ service: "ingest" });
-  const { server, catalog, manager } = createIngestServer({ cfg: runtimeConfig, logger });
+  const lifecycle = createServiceLifecycle({ service: "ingest", logger });
+  const { server, catalog, manager } = createIngestServer({
+    cfg: runtimeConfig,
+    logger,
+    isReady: lifecycle.isReady
+  });
   const watcher = watchSegments({
     hlsRoot: runtimeConfig.hlsRoot,
     trackerInternalUrl: runtimeConfig.trackerInternalUrl,
@@ -92,17 +109,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 
   const reapTimer = setInterval(() => manager.reapIdle(), 15_000);
-  const shutdown = () => {
+  lifecycle.install(async () => {
     clearInterval(reapTimer);
     watcher.close();
     manager.stopAll();
-    server.close(() => process.exit(0));
-  };
-
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+    await closeHttpServer(server);
+  });
 
   server.listen(runtimeConfig.restApiPort, () => {
+    lifecycle.markReady();
     logger.info("service_started", {
       node_id: "ingest",
       port: runtimeConfig.restApiPort,

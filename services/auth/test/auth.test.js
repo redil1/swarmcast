@@ -67,6 +67,27 @@ test("auth service issues token and verifies it", async () => {
   });
 });
 
+test("auth readiness reflects lifecycle state", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "swarmcast-auth-ready-"));
+  let ready = false;
+  const server = await createAuthServer({
+    keyPath: path.join(dir, "es256.pem"),
+    appApiKey: "app-key",
+    isReady: () => ready
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/health`)).status, 200);
+    assert.equal((await fetch(`${base}/ready`)).status, 503);
+    ready = true;
+    assert.equal((await fetch(`${base}/ready`)).status, 200);
+  } finally {
+    server.close();
+  }
+});
+
 test("auth service issues short-lived coturn credentials with viewer tokens", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "swarmcast-auth-turn-"));
   const sharedSecret = "0123456789abcdef0123456789abcdef";

@@ -99,3 +99,29 @@ test("ingest server exposes prometheus metrics", async () => {
     assert.match(await response.text(), /swarmcast_ingest_active_channels/);
   });
 });
+
+test("ingest readiness reflects lifecycle state", async () => {
+  let ready = false;
+  const manager = {
+    active: new Map(),
+    demand: () => ({ ok: true }),
+    status: () => ({ state: "idle" })
+  };
+  const { server } = createIngestServer({
+    cfg: { internalToken: "test-token" },
+    catalog: new Map(),
+    manager,
+    isReady: () => ready
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/health`)).status, 200);
+    assert.equal((await fetch(`${base}/ready`)).status, 503);
+    ready = true;
+    assert.equal((await fetch(`${base}/ready`)).status, 200);
+  } finally {
+    server.close();
+  }
+});

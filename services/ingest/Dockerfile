@@ -25,4 +25,5 @@ COPY --from=build --chown=node:node /app /app
 RUN mkdir -p /var/hls && chown -R node:node /var/hls
 WORKDIR /app/services/ingest
 USER node
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 CMD ["/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:7001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 CMD ["node", "src/index.js"]

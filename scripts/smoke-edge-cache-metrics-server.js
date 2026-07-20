@@ -38,6 +38,8 @@ await once(server, "listening");
 
 try {
   const base = `http://127.0.0.1:${server.address().port}`;
+  const ready = await fetch(`${base}/ready`);
+  assert.equal(ready.status, 200);
   const firstHealth = await fetch(`${base}/health`);
   assert.equal(firstHealth.status, 200);
 
@@ -52,7 +54,7 @@ try {
   assert.equal(afterHealth.status, 200);
   assert.equal((await afterHealth.json()).lastScrapeMs, 1783209600000);
 
-  console.log("edge cache metrics server smoke OK: health=200 metrics=200 hitRatio=0.5");
+  console.log("edge cache metrics server smoke OK: ready=200 health=200 metrics=200 hitRatio=0.5");
 } finally {
   await new Promise((resolve) => server.close(resolve));
 }
