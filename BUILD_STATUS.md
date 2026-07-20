@@ -2867,7 +2867,7 @@ Results:
 - The seven-stage synthetic fixture, 18-case negative smoke, configuration validation, `npm run check`, and repository-wide verification with 163 tests pass locally.
 - Commit `8f07e17` passed remote CI run `29767526051` across Node, deployment-shape, and Android jobs. The actual 1K/10K/100K fleet runs remain external launch gates.
 
-## Build Slice 303 In Progress
+## Build Slice 303 Complete
 
 - Reclassified the committed capacity plan as a draft instead of allowing synthetic and modeled inputs to masquerade as launch measurements.
 - Replaced the unsupported 8 Gbps edge-host assumption with a conservative 800 Mbps allowance bounded by a 1 Gbps link and 80% sustained utilization.
@@ -2875,4 +2875,5 @@ Results:
 - Added a recomputed 1M-viewer sensitivity table requiring 82, 813, 2,438, or 4,063 edge nodes at direct-P2P `rho` 0.99, 0.90, 0.70, or 0.50 respectively.
 - Launch validation now requires measured non-synthetic offload, measured sustained TLS host throughput, approved provider traffic terms, and relay egress inclusion. Draft calculations require the explicit `--allow-draft` flag.
 - Final launch evidence now separately requires those capacity proofs plus 1K/10K/100K single-channel cell-ladder markers.
-- Capacity validation passes 2 positive shapes and rejects 15 invalid or unproved cases; launch evidence validation passes one synthetic shape and rejects 37 failure cases. `npm run check` passes locally; repository-wide verification and remote CI remain before this slice is complete.
+- Capacity validation passes 2 positive shapes and rejects 15 invalid or unproved cases; launch evidence validation passes one synthetic shape and rejects 37 failure cases. Repository-wide verification passes 163 tests.
+- Commit `aede0e8` passed remote CI run `29768513960` across Node, deployment-shape, and Android jobs. Real offload, throughput, provider-terms, and scale evidence remain launch gates.
