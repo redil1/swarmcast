@@ -2765,9 +2765,34 @@ Results:
 - Verified both workflow files with actionlint 1.7.12, rendered base/edge/production compose plans, built all three new images locally, ran the edge-metrics image, validated SBOM coverage, and passed `npm run check`.
 - GitHub branch protection could not be enabled because the current account tier rejects protection for private repositories; the repository was not made public to bypass that policy.
 
+## Completed In Build Slice 295
+
+- Remote CI run `29329195430` passed for slice 294.
+- Real staging release run `29329381667` exercised all 12 production image paths for `v0.1.0-rc1`.
+- All image jobs retained registry digest, Trivy JSON, and CycloneDX SBOM evidence.
+- The security gate rejected every candidate image because HIGH/CRITICAL findings remained, so signing and final release publication were correctly skipped.
+- No scan policy was weakened and no waiver was created; dependency and base-image remediation is the active build task.
+
+## Completed In Build Slice 296
+
+- Rebuilt the five Node services and edge metrics exporter on immutable builder/runtime digests, using distroless non-root runtimes where package managers are unnecessary.
+- Rebuilt origin and edge nginx from the immutable `1.29.8-alpine3.23-slim` digest with patched Alpine packages and retained the production configuration/playback/cache behavior.
+- Upgraded Prometheus to immutable `v3.13.1-distroless` and node_exporter to immutable `v1.12.0-distroless` release sources.
+- Rebuilt Alertmanager `v0.33.1` from exact commit `2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5`, verified the official UI archive checksum, used Go `1.26.5`, and upgraded `golang.org/x/crypto` to `v0.53.0`.
+- Rebuilt Grafana `13.1.0` from exact commit `b309c9bb3b81a748c3a75289236a27309ed2566a` with Go `1.26.5`; the unused Tempo backend and its affected module are excluded from the binary instead of waived.
+- Corrected the source rebuilds to use BuildKit target OS/architecture values so ARM64 local builds and AMD64 release-runner builds receive matching binaries.
+- Fixed fresh retention-worker volumes to initialize an empty records file safely while preserving fail-closed behavior for callers that do not explicitly allow initialization; added regression coverage.
+- Built and runtime-probed auth token issuance, control-plane health, retention health, tracker metrics, ingest health, edge metrics, origin/edge nginx config and authenticated cache behavior, Alertmanager version/config, and Grafana version/database health.
+- Scanned all 12 release images with Trivy `0.72.0` and the 2026-07-20 vulnerability database; every report passed the unchanged validator with zero HIGH/CRITICAL findings.
+- Updated dependency inventory/review, release-manifest defaults, source SBOM base-image resolution, compose defaults, nginx smokes, CI image pinning, and validation guards.
+- Added repository checks that reject monitoring source-build drift, missing exact commit/base-image pins, host-architecture defaults, omitted Grafana hardening patch use, or missing release-matrix coverage.
+- Classified vendored patch files for Git whitespace handling so required unified-diff context remains intact while staged source checks stay strict for every other file.
+- Verified actionlint `1.7.12`, base/edge/release compose rendering, source SBOM coverage, `npm audit --audit-level=moderate` with zero findings, `git diff --check`, and `npm run verify` with 144 passing tests.
+- Clean signed remote staging publication remains open and is the next release gate.
+
 ## Next Build Slice
 
 1. Continue hardening the remaining launch gates:
-   - Push slice 294 through CI and execute the first signed staging release workflow to publish digest-pinned images, SBOMs, and scan evidence.
+   - Execute a clean signed staging release with all 12 locally remediated digest-pinned images, SBOMs, and zero-blocked-finding scan evidence.
    - Run physical-device playback/P2P/RLNC/accessibility evidence when hardware is attached; emulator evidence remains regression-only.
-2. Remaining hard gates are signed legal/privacy/security/threat/dependency/RLNC/retention approvals, physical Android device validation, real host provisioning/DNS/TLS/secrets, signed catalog import, real production/staging smokes, VM/WebRTC load ladder, Alertmanager/chaos/restore/rollback/canary drills, and final owner go/no-go.
+2. Remaining hard gates are clean signed 12-image publication, signed legal/privacy/security/threat/dependency/RLNC/retention approvals, physical Android device validation, real host provisioning/DNS/TLS/secrets, signed catalog import, real production/staging smokes, VM/WebRTC load ladder, Alertmanager/chaos/restore/rollback/canary drills, and final owner go/no-go.

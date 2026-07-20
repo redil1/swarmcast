@@ -1,0 +1,58 @@
+diff --git a/pkg/server/wire.go b/pkg/server/wire.go
+index acba9535..b3dae8e3 100644
+--- a/pkg/server/wire.go
++++ b/pkg/server/wire.go
+@@ -209,7 +209,6 @@ import (
+ 	"github.com/grafana/grafana/pkg/tsdb/opentsdb"
+ 	"github.com/grafana/grafana/pkg/tsdb/parca"
+ 	"github.com/grafana/grafana/pkg/tsdb/prometheus"
+-	"github.com/grafana/grafana/pkg/tsdb/tempo"
+ )
+ 
+ func otelTracer() trace.Tracer {
+@@ -319,7 +318,6 @@ var wireBasicSet = wire.NewSet(
+ 	socialimpl.ProvideService,
+ 	influxdb.ProvideService,
+ 	wire.Bind(new(social.Service), new(*socialimpl.SocialService)),
+-	tempo.ProvideService,
+ 	loki.ProvideService,
+ 	graphite.ProvideService,
+ 	prometheus.ProvideService,
+diff --git a/pkg/services/pluginsintegration/coreplugin/coreplugins.go b/pkg/services/pluginsintegration/coreplugin/coreplugins.go
+index 2230df90..37291113 100644
+--- a/pkg/services/pluginsintegration/coreplugin/coreplugins.go
++++ b/pkg/services/pluginsintegration/coreplugin/coreplugins.go
+@@ -33,7 +33,6 @@ import (
+ 	"github.com/grafana/grafana/pkg/tsdb/opentsdb"
+ 	"github.com/grafana/grafana/pkg/tsdb/parca"
+ 	"github.com/grafana/grafana/pkg/tsdb/prometheus"
+-	"github.com/grafana/grafana/pkg/tsdb/tempo"
+ )
+ 
+ const (
+@@ -96,7 +95,7 @@ func ProvideCoreProvider(coreRegistry *Registry) plugins.BackendFactoryProvider
+ 
+ func ProvideCoreRegistry(tracer trace.Tracer, am *azuremonitor.Service, cw *cloudwatch.Service, cm *cloudmonitoring.Service,
+ 	grap *graphite.Service, idb *influxdb.Service, lk *loki.Service, otsdb *opentsdb.Service,
+-	pr *prometheus.Service, t *tempo.Service, td *testdatasource.Service, pg *postgres.Service, my *mysql.Service,
++	pr *prometheus.Service, td *testdatasource.Service, pg *postgres.Service, my *mysql.Service,
+ 	ms *mssql.Service, graf *grafanads.Service, pyroscope *pyroscope.Service, parca *parca.Service, jaeger *jaeger.Service) *Registry {
+ 	// Non-optimal global solution to replace plugin SDK default tracer for core plugins.
+ 	sdktracing.InitDefaultTracer(tracer)
+@@ -110,7 +109,6 @@ func ProvideCoreRegistry(tracer trace.Tracer, am *azuremonitor.Service, cw *clou
+ 		Loki:            asBackendPlugin(lk),
+ 		OpenTSDB:        asBackendPlugin(otsdb),
+ 		Prometheus:      asBackendPlugin(pr),
+-		Tempo:           asBackendPlugin(t),
+ 		TestData:        asBackendPlugin(td),
+ 		PostgreSQL:      asBackendPlugin(pg),
+ 		MySQL:           asBackendPlugin(my),
+@@ -234,8 +232,6 @@ func NewPlugin(pluginID string, httpClientProvider *httpclient.Provider, tracer
+ 		svc = opentsdb.ProvideService(httpClientProvider)
+ 	case Prometheus:
+ 		svc = prometheus.ProvideService(httpClientProvider)
+-	case Tempo:
+-		svc = tempo.ProvideService(httpClientProvider, tracer)
+ 	case PostgreSQL:
+ 		svc = postgres.ProvideService()
+ 	case MySQL:

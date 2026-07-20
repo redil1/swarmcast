@@ -3,7 +3,7 @@ services:
     build:
       context: ../..
       dockerfile: infra/edge/Dockerfile.nginx
-    image: ${SWARMCAST_EDGE_NGINX_IMAGE:-nginx:1.27}
+    image: ${SWARMCAST_EDGE_NGINX_IMAGE:-swarmcast-edge-nginx:local}
     restart: unless-stopped
     ports:
       - "80:80"
@@ -22,7 +22,6 @@ services:
     image: ${SWARMCAST_EDGE_METRICS_IMAGE:-swarmcast-edge-metrics:local}
     restart: unless-stopped
     working_dir: /app
-    command: ["node", "scripts/edge-cache-metrics-server.js"]
     environment:
       EDGE_ACCESS_LOG: /var/log/nginx/edge-access.log
       EDGE_METRICS_PORT: "9101"
@@ -32,7 +31,7 @@ services:
       - edge_logs:/var/log/nginx:ro
 
   node_exporter:
-    image: ${SWARMCAST_NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.8.0}
+    image: ${SWARMCAST_NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.12.0-distroless}
     restart: unless-stopped
     ports:
       - "9100:9100"

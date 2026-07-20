@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 const rootDir = process.cwd();
+const NGINX_IMAGE = process.env.SWARMCAST_NGINX_SMOKE_IMAGE || "nginx:1.29.8-alpine3.23-slim@sha256:c9366b8c560169b101ca0e5422ed063b20779e6454c2326b9c9704225c9b0c08";
 
 function run(cmd, args, options = {}) {
   return spawnSync(cmd, args, {
@@ -44,7 +45,7 @@ function ensureCertTree(tempRoot, domains) {
 }
 
 function dockerNginxTest({ label, configDir, mainConfig, tempRoot, extraHosts = [] }) {
-  const image = "nginx:1.27";
+  const image = NGINX_IMAGE;
   if (!imageExists(image)) {
     console.log(`${label}: ${image} image not present; skipping. Run 'docker pull ${image}' to enable this smoke.`);
     return;
@@ -125,7 +126,7 @@ const result = run("docker", [
   "-v", `${path.join(tempRoot, "letsencrypt")}:/etc/letsencrypt:ro`,
   "-v", `${path.join(tempRoot, "certbot")}:/var/www/certbot:ro`,
   "--tmpfs", "/dev/shm/edgecache:size=16m",
-  "nginx:1.27",
+  NGINX_IMAGE,
   "nginx", "-t"
 ]);
 

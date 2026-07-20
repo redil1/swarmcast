@@ -85,19 +85,19 @@ jobs:
             env_name: SWARMCAST_EDGE_METRICS_IMAGE
           - service: prometheus
             mode: mirror
-            source: prom/prometheus:v2.53.0
+            source: prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80
             env_name: SWARMCAST_PROMETHEUS_IMAGE
           - service: alertmanager
-            mode: mirror
-            source: prom/alertmanager:v0.27.0
+            mode: build
+            dockerfile: infra/monitoring/Dockerfile.alertmanager
             env_name: SWARMCAST_ALERTMANAGER_IMAGE
           - service: grafana
-            mode: mirror
-            source: grafana/grafana:11.1.0
+            mode: build
+            dockerfile: infra/monitoring/Dockerfile.grafana
             env_name: SWARMCAST_GRAFANA_IMAGE
           - service: node-exporter
             mode: mirror
-            source: prom/node-exporter:v1.8.0
+            source: prom/node-exporter:v1.12.0-distroless@sha256:843ed23bb564f897ddcc6b6b9b605e398779487a561aae36fddd2933394836cd
             env_name: SWARMCAST_NODE_EXPORTER_IMAGE
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

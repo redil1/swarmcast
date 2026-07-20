@@ -71,15 +71,24 @@ function collectDockerfiles(components) {
     "services/retention-worker/Dockerfile",
     "infra/nginx/Dockerfile",
     "infra/edge/Dockerfile.nginx",
-    "infra/edge/Dockerfile.metrics"
+    "infra/edge/Dockerfile.metrics",
+    "infra/monitoring/Dockerfile.alertmanager",
+    "infra/monitoring/Dockerfile.grafana"
   ]) {
     const text = readText(file);
+    const args = new Map(
+      [...text.matchAll(/^\s*ARG\s+([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)\s*$/gm)]
+        .map((match) => [match[1], match[2]])
+    );
     for (const match of text.matchAll(/^\s*FROM\s+([^\s]+)(?:\s+AS\s+\S+)?/gim)) {
+      const argument = match[1].match(/^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/)?.[1];
+      const image = argument ? args.get(argument) : match[1];
+      if (!image) throw new Error(`${file} FROM references ARG ${argument} without a default`);
       addComponent(components, {
         type: "container",
         ecosystem: "oci",
-        name: match[1],
-        version: imageTag(match[1]),
+        name: image,
+        version: imageTag(image),
         source: file
       });
     }
@@ -178,7 +187,9 @@ function createSbom() {
         "services/*/Dockerfile",
         "infra/nginx/Dockerfile",
         "infra/edge/Dockerfile.nginx",
-        "infra/edge/Dockerfile.metrics"
+        "infra/edge/Dockerfile.metrics",
+        "infra/monitoring/Dockerfile.alertmanager",
+        "infra/monitoring/Dockerfile.grafana"
       ]
     },
     components: [...components.values()].sort((a, b) =>
@@ -193,7 +204,17 @@ function assertCoverage(sbom) {
     if (!ecosystems.has(ecosystem)) throw new Error(`SBOM missing ${ecosystem} components`);
   }
 
-  for (const required of ["jose", "uWebSockets.js", "nginx:1.27", "prom/prometheus:v2.53.0", "androidx.media3:media3-exoplayer", "io.getstream:stream-webrtc-android"]) {
+  for (const required of [
+    "jose",
+    "uWebSockets.js",
+    "nginx:1.29.8-alpine3.23-slim@sha256:",
+    "prom/prometheus:v3.13.1-distroless",
+    "prom/node-exporter:v1.12.0-distroless",
+    "gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
+    "grafana/grafana:13.1.0-distroless-slim@sha256:",
+    "androidx.media3:media3-exoplayer",
+    "io.getstream:stream-webrtc-android"
+  ]) {
     if (!sbom.components.some((component) => component.name === required || component.name.includes(required))) {
       throw new Error(`SBOM missing required component ${required}`);
     }

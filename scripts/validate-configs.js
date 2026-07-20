@@ -79,10 +79,10 @@ const checks = [
       "CATALOG_SNAPSHOT_PATH: ${CATALOG_SNAPSHOT_PATH:-/data/catalog-snapshot.json}",
       "PLACEMENT_DB_PATH: ${PLACEMENT_DB_PATH:-/data/placements.sqlite}",
       "PLACEMENT_PATH: ${PLACEMENT_PATH:-/data/placements.json}",
-      "${SWARMCAST_NGINX_IMAGE:-nginx:1.27}",
-      "${SWARMCAST_PROMETHEUS_IMAGE:-prom/prometheus:v2.53.0}",
-      "${SWARMCAST_ALERTMANAGER_IMAGE:-prom/alertmanager:v0.27.0}",
-      "${SWARMCAST_GRAFANA_IMAGE:-grafana/grafana:11.1.0}",
+      "${SWARMCAST_NGINX_IMAGE:-swarmcast-nginx:local}",
+      "${SWARMCAST_PROMETHEUS_IMAGE:-prom/prometheus:v3.13.1-distroless}",
+      "${SWARMCAST_ALERTMANAGER_IMAGE:-swarmcast-alertmanager:local}",
+      "${SWARMCAST_GRAFANA_IMAGE:-swarmcast-grafana:local}",
       "${ALERTMANAGER_CONFIG_PATH:-./monitoring/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro",
       "/var/www/certbot:/var/www/certbot:ro"
     ],
@@ -108,11 +108,11 @@ const checks = [
     file: "infra/edge/docker-compose.yml",
     required: [
       "edge-metrics:",
-      "${SWARMCAST_EDGE_NGINX_IMAGE:-nginx:1.27}",
+      "${SWARMCAST_EDGE_NGINX_IMAGE:-swarmcast-edge-nginx:local}",
       "${SWARMCAST_EDGE_METRICS_IMAGE:-swarmcast-edge-metrics:local}",
       "dockerfile: infra/edge/Dockerfile.nginx",
       "dockerfile: infra/edge/Dockerfile.metrics",
-      "${SWARMCAST_NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.8.0}",
+      "${SWARMCAST_NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.12.0-distroless}",
       "EDGE_ACCESS_LOG: /var/log/nginx/edge-access.log",
       "EDGE_METRICS_PORT: \"9101\"",
       "edge_logs:/var/log/nginx",
@@ -864,7 +864,9 @@ for (const check of [
       "COPY services/retention-worker/package.json",
       "npm ci --omit=dev --ignore-scripts --workspace @swarmcast/auth --workspace @swarmcast/config",
       "COPY packages/config/src",
-      "WORKDIR /app/services/auth"
+      "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
+      "COPY --from=build --chown=65532:65532 /app /app",
+      'CMD ["services/auth/src/index.js"]'
     ]
   },
   {
@@ -875,7 +877,9 @@ for (const check of [
       "COPY services/retention-worker/package.json",
       "npm ci --omit=dev --ignore-scripts --workspace @swarmcast/control-plane --workspace @swarmcast/config",
       "COPY services/ingest/src/catalog.js",
-      "WORKDIR /app/services/control-plane"
+      "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
+      "COPY --from=build --chown=65532:65532 /app /app",
+      'CMD ["services/control-plane/src/index.js"]'
     ]
   },
   {
@@ -898,7 +902,9 @@ for (const check of [
       "COPY services/retention-worker/package.json",
       "npm ci --omit=dev --ignore-scripts --workspace @swarmcast/tracker --workspace @swarmcast/config",
       "COPY packages/config/src",
-      "WORKDIR /app/services/tracker"
+      "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
+      "COPY --from=build --chown=65532:65532 /app /app",
+      'CMD ["services/tracker/src/index.js"]'
     ]
   },
   {
@@ -909,8 +915,9 @@ for (const check of [
       "npm ci --omit=dev --ignore-scripts --workspace @swarmcast/retention-worker --workspace @swarmcast/config",
       "COPY packages/config/src",
       "COPY services/retention-worker/src",
-      "COPY test-fixtures/retention",
-      "WORKDIR /app/services/retention-worker"
+      "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
+      "COPY --from=build --chown=65532:65532 /app /app",
+      'CMD ["services/retention-worker/src/index.js"]'
     ]
   }
 ]) {
@@ -2316,7 +2323,7 @@ for (const required of [
   "sudo apt-get update && sudo apt-get install -y ffmpeg",
   "docker compose -f infra/docker-compose.yml config",
   "docker compose -f infra/edge/docker-compose.yml config",
-  "docker pull nginx:1.27",
+  "docker pull nginx:1.29.8-alpine3.23-slim@sha256:c9366b8c560169b101ca0e5422ed063b20779e6454c2326b9c9704225c9b0c08",
   "npm run smoke:nginx-config",
   "npm run smoke:nginx-origin-playback",
   "npm run smoke:nginx-edge-cache"
@@ -3513,9 +3520,9 @@ if (failed) process.exit(1);
 const dependencyInventory = JSON.parse(readFileSync("config/dependency-inventory.json", "utf8"));
 const dependencyReviewText = readFileSync("docs/dependency-review.md", "utf8");
 for (const required of [
-  "Review date: 2026-07-14",
+  "Review date: 2026-07-16",
   "Node.js runtime",
-  "`>=22 <24`",
+  "Digest-pinned Node 22 builder / distroless runtime",
   "Node 24 is not approved",
   "`jose`",
   "`uWebSockets.js`",
@@ -4755,6 +4762,70 @@ for (const check of androidTextChecks) {
   for (const required of check.required) {
     if (!text.includes(required)) {
       console.error(`${check.file}: missing required Android scaffold text: ${required}`);
+      failed = true;
+    }
+  }
+}
+
+for (const check of [
+  {
+    file: "infra/monitoring/Dockerfile.alertmanager",
+    required: [
+      "golang:1.26.5-alpine3.23@sha256:622e56dbc11a8cfe87cafa2331e9a201877271cbff918af53d3be315f3da88cc",
+      "gcr.io/distroless/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6",
+      "ARG ALERTMANAGER_COMMIT=2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5",
+      "test \"$(git rev-parse HEAD)\" = \"${ALERTMANAGER_COMMIT}\"",
+      "golang.org/x/crypto@v0.53.0",
+      "ARG TARGETOS\nARG TARGETARCH\n",
+      "GOOS=\"${TARGETOS}\" GOARCH=\"${TARGETARCH}\""
+    ],
+    forbidden: ["ARG TARGETOS=", "ARG TARGETARCH="]
+  },
+  {
+    file: "infra/monitoring/Dockerfile.grafana",
+    required: [
+      "golang:1.26.5-alpine3.23@sha256:622e56dbc11a8cfe87cafa2331e9a201877271cbff918af53d3be315f3da88cc",
+      "grafana/grafana:13.1.0-distroless-slim@sha256:0dc2ccd5cb5bc09ce8d77817faf51a7958c2dd59f29db95854f97ba8a4dd69e2",
+      "ARG GRAFANA_COMMIT=b309c9bb3b81a748c3a75289236a27309ed2566a",
+      "test \"$(git rev-parse HEAD)\" = \"${GRAFANA_COMMIT}\"",
+      "COPY infra/monitoring/grafana-no-tempo.patch /tmp/grafana-no-tempo.patch",
+      "git apply --check /tmp/grafana-no-tempo.patch",
+      "ARG TARGETOS\nARG TARGETARCH\n",
+      "GOOS=\"${TARGETOS}\" GOARCH=\"${TARGETARCH}\""
+    ],
+    forbidden: ["ARG TARGETOS=", "ARG TARGETARCH="]
+  },
+  {
+    file: "infra/monitoring/grafana-no-tempo.patch",
+    required: [
+      "pkg/server/wire.go",
+      "pkg/services/pluginsintegration/coreplugin/coreplugins.go",
+      "-\ttempo.ProvideService",
+      "-\t\tsvc = tempo.ProvideService"
+    ],
+    forbidden: []
+  },
+  {
+    file: ".github/workflows/release.yml",
+    required: [
+      "dockerfile: infra/monitoring/Dockerfile.alertmanager",
+      "dockerfile: infra/monitoring/Dockerfile.grafana",
+      "prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80",
+      "prom/node-exporter:v1.12.0-distroless@sha256:843ed23bb564f897ddcc6b6b9b605e398779487a561aae36fddd2933394836cd"
+    ],
+    forbidden: []
+  }
+]) {
+  const text = readFileSync(check.file, "utf8");
+  for (const required of check.required) {
+    if (!text.includes(required)) {
+      console.error(`${check.file}: missing hardened monitoring build text: ${required}`);
+      failed = true;
+    }
+  }
+  for (const forbidden of check.forbidden) {
+    if (text.includes(forbidden)) {
+      console.error(`${check.file}: forbidden hardened monitoring build text: ${forbidden}`);
       failed = true;
     }
   }

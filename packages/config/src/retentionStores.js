@@ -1,8 +1,12 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-function readJsonlRecords(recordsFile) {
-  if (!existsSync(recordsFile)) throw new Error(`retention records file not found: ${recordsFile}`);
+function readJsonlRecords(recordsFile, { initializeIfMissing = false } = {}) {
+  if (!existsSync(recordsFile)) {
+    if (!initializeIfMissing) throw new Error(`retention records file not found: ${recordsFile}`);
+    mkdirSync(dirname(recordsFile), { recursive: true });
+    writeFileSync(recordsFile, "", { flag: "a", mode: 0o600 });
+  }
   const text = readFileSync(recordsFile, "utf8");
   return text
     .split(/\r?\n/)
@@ -17,8 +21,8 @@ function readJsonlRecords(recordsFile) {
     });
 }
 
-export function createJsonlRetentionStore({ recordsFile, actionLogFile }) {
-  const records = readJsonlRecords(recordsFile);
+export function createJsonlRetentionStore({ recordsFile, actionLogFile, initializeIfMissing = false }) {
+  const records = readJsonlRecords(recordsFile, { initializeIfMissing });
 
   return {
     async listRetentionRecords({ classId }) {

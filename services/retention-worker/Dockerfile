@@ -1,4 +1,7 @@
-FROM node:22-slim
+ARG NODE_BUILDER_IMAGE=node:22-trixie-slim@sha256:e6d9a389d34ff9678438af985c9913fbd1eb6ed36e80fea56644f4b4f6dd70ba
+ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:a2723a2817c5b01b8e7b98d567bc8b5a6b0e713e25bfb0a82b6ade4b9db06f50
+
+FROM ${NODE_BUILDER_IMAGE} AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/config/package.json packages/config/package.json
@@ -12,8 +15,10 @@ RUN npm ci --omit=dev --ignore-scripts --workspace @swarmcast/retention-worker -
 COPY packages/config/src packages/config/src
 COPY scripts/retention-http-store.js scripts/retention-http-store.js
 COPY services/retention-worker/src services/retention-worker/src
-COPY test-fixtures/retention test-fixtures/retention
-RUN mkdir -p /data && chown -R node:node /data
-WORKDIR /app/services/retention-worker
-USER node
-CMD ["node", "src/index.js"]
+RUN mkdir -p /data
+
+FROM ${NODE_RUNTIME_IMAGE}
+WORKDIR /app
+COPY --from=build --chown=65532:65532 /app /app
+COPY --from=build --chown=65532:65532 /data /data
+CMD ["services/retention-worker/src/index.js"]

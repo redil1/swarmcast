@@ -7,13 +7,13 @@ const releaseImages = [
   ["tracker", "SWARMCAST_TRACKER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["control-plane", "SWARMCAST_CONTROL_PLANE_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["retention-worker", "SWARMCAST_RETENTION_WORKER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
-  ["nginx", "SWARMCAST_NGINX_IMAGE", () => "nginx:1.27"],
-  ["prometheus", "SWARMCAST_PROMETHEUS_IMAGE", () => "prom/prometheus:v2.53.0"],
-  ["alertmanager", "SWARMCAST_ALERTMANAGER_IMAGE", () => "prom/alertmanager:v0.27.0"],
-  ["grafana", "SWARMCAST_GRAFANA_IMAGE", () => "grafana/grafana:11.1.0"],
-  ["edge-nginx", "SWARMCAST_EDGE_NGINX_IMAGE", () => "nginx:1.27"],
-  ["edge-metrics", "SWARMCAST_EDGE_METRICS_IMAGE", () => "node:22-slim"],
-  ["node-exporter", "SWARMCAST_NODE_EXPORTER_IMAGE", () => "prom/node-exporter:v1.8.0"]
+  ["nginx", "SWARMCAST_NGINX_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["prometheus", "SWARMCAST_PROMETHEUS_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["alertmanager", "SWARMCAST_ALERTMANAGER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["grafana", "SWARMCAST_GRAFANA_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["edge-nginx", "SWARMCAST_EDGE_NGINX_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["edge-metrics", "SWARMCAST_EDGE_METRICS_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["node-exporter", "SWARMCAST_NODE_EXPORTER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`]
 ];
 
 const args = process.argv.slice(2);

@@ -115,7 +115,7 @@ services:
     build:
       context: ..
       dockerfile: infra/nginx/Dockerfile
-    image: ${SWARMCAST_NGINX_IMAGE:-nginx:1.27}
+    image: ${SWARMCAST_NGINX_IMAGE:-swarmcast-nginx:local}
     restart: unless-stopped
     ports:
       - "443:443"
@@ -127,7 +127,7 @@ services:
     networks: [internal]
 
   prometheus:
-    image: ${SWARMCAST_PROMETHEUS_IMAGE:-prom/prometheus:v2.53.0}
+    image: ${SWARMCAST_PROMETHEUS_IMAGE:-prom/prometheus:v3.13.1-distroless}
     restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -136,7 +136,10 @@ services:
     networks: [internal]
 
   alertmanager:
-    image: ${SWARMCAST_ALERTMANAGER_IMAGE:-prom/alertmanager:v0.27.0}
+    build:
+      context: ..
+      dockerfile: infra/monitoring/Dockerfile.alertmanager
+    image: ${SWARMCAST_ALERTMANAGER_IMAGE:-swarmcast-alertmanager:local}
     restart: unless-stopped
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
@@ -147,7 +150,10 @@ services:
     networks: [internal]
 
   grafana:
-    image: ${SWARMCAST_GRAFANA_IMAGE:-grafana/grafana:11.1.0}
+    build:
+      context: ..
+      dockerfile: infra/monitoring/Dockerfile.grafana
+    image: ${SWARMCAST_GRAFANA_IMAGE:-swarmcast-grafana:local}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"

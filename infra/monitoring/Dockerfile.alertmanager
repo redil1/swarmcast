@@ -1,0 +1,43 @@
+ARG GO_BUILDER_IMAGE=golang:1.26.5-alpine3.23@sha256:622e56dbc11a8cfe87cafa2331e9a201877271cbff918af53d3be315f3da88cc
+ARG RUNTIME_IMAGE=gcr.io/distroless/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6
+
+FROM ${GO_BUILDER_IMAGE} AS build
+ARG ALERTMANAGER_VERSION=0.33.1
+ARG ALERTMANAGER_COMMIT=2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5
+ARG ALERTMANAGER_UI_SHA256=1f63344e196e47ba7bfe27276f44c1da77e39fb76493e42b2cf0a50ca8f04321
+RUN apk add --no-cache ca-certificates curl git tar
+WORKDIR /src
+RUN git init \
+    && git remote add origin https://github.com/prometheus/alertmanager.git \
+    && git fetch --depth=1 origin "${ALERTMANAGER_COMMIT}" \
+    && git checkout --detach FETCH_HEAD \
+    && test "$(git rev-parse HEAD)" = "${ALERTMANAGER_COMMIT}"
+RUN curl --fail --location --retry 5 \
+      --output /tmp/alertmanager-web-ui.tar.gz \
+      "https://github.com/prometheus/alertmanager/releases/download/v${ALERTMANAGER_VERSION}/alertmanager-web-ui-${ALERTMANAGER_VERSION}.tar.gz" \
+    && echo "${ALERTMANAGER_UI_SHA256}  /tmp/alertmanager-web-ui.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/alertmanager-web-ui.tar.gz -C ui/app
+RUN go get golang.org/x/crypto@v0.53.0 \
+    && test "$(go list -m -f '{{.Version}}' golang.org/x/crypto)" = "v0.53.0"
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" \
+      go build -buildvcs=false -trimpath \
+      -ldflags="-s -w -X github.com/prometheus/common/version.Version=${ALERTMANAGER_VERSION}-swarmcast.1" \
+      -o /out/bin/alertmanager ./cmd/alertmanager \
+    && CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" \
+      go build -buildvcs=false -trimpath \
+      -ldflags="-s -w -X github.com/prometheus/common/version.Version=${ALERTMANAGER_VERSION}-swarmcast.1" \
+      -o /out/bin/amtool ./cmd/amtool \
+    && mkdir -p /out/etc/alertmanager /out/alertmanager \
+    && cp examples/ha/alertmanager.yml /out/etc/alertmanager/alertmanager.yml \
+    && touch /out/alertmanager/.keep
+
+FROM ${RUNTIME_IMAGE}
+COPY --from=build --chown=65532:65532 /out/bin /bin
+COPY --from=build --chown=65532:65532 /out/etc/alertmanager /etc/alertmanager
+COPY --from=build --chown=65532:65532 /out/alertmanager /alertmanager
+EXPOSE 9093
+WORKDIR /alertmanager
+ENTRYPOINT ["/bin/alertmanager"]
+CMD ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]

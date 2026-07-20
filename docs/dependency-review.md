@@ -1,6 +1,6 @@
 # Dependency Review
 
-Review date: 2026-07-14
+Review date: 2026-07-16
 
 This review records the production dependency posture for SwarmCast. It does not approve launch by itself; it defines the dependency gates that must be closed before launch readiness can pass.
 
@@ -8,15 +8,15 @@ This review records the production dependency posture for SwarmCast. It does not
 
 | Area | Dependency | Current Project Version | Launch Decision | Release Gate |
 |---|---|---:|---|---|
-| Server | Node.js runtime | `node:22-slim` / `>=22 <24` | Staging only | Pin service images by digest and keep Node 22/23 until `uWebSockets.js` is upgraded or Node 24 native binary support is validated. |
+| Server | Node.js runtime | Digest-pinned Node 22 builder / distroless runtime | Staging candidate | Complete clean signed image publication and keep Node 22 until `uWebSockets.js` Node 24 support is validated. |
 | Server | `jose` | `^5.9.0`, lockfile `5.10.0` | Staging only | Pin exact version or complete `jose` 6 migration review with auth/token regression tests. |
 | Server | `uWebSockets.js` | `v20.51.0` git tag | Staging only | Validate Node native binary compatibility and tracker WebSocket soak. |
-| Ingest | `ffmpeg` | Debian apt package in image | Blocked | Pin base image digest or package snapshot and rerun packaging/playback smokes. |
-| Edge | `nginx` | `nginx:1.27` | Blocked | Move to a supported stable tag, pin by digest, and rerun origin/edge smokes. |
-| Monitoring | Prometheus | `v2.53.0` | Staging only | Review Prometheus 3 migration or document v2 support choice, then pin image digest. |
-| Monitoring | Alertmanager | `v0.27.0` | Staging only | Upgrade review and receiver fire-drill, then pin image digest. |
-| Monitoring | Grafana | `11.1.0` | Staging only | Review major-version upgrade path and pin image digest. |
-| Monitoring | node_exporter | `v1.8.0` | Staging only | Review latest exporter version and pin image digest. |
+| Ingest | `ffmpeg` | Alpine 3.23 package in digest-pinned Node 22 image | Staging candidate | Pass clean image scan and production-image packaging/playback smokes. |
+| Edge | `nginx` | `1.29.8-alpine3.23-slim`, digest-pinned and upgraded during build | Staging candidate | Pass clean scans, origin/edge smokes, and real TLS evidence. |
+| Monitoring | Prometheus | `v3.13.1-distroless`, digest-pinned | Staging candidate | Pass clean scan, alert validation, and monitoring smoke. |
+| Monitoring | Alertmanager | `v0.33.1` source rebuild with Go `1.26.5` and `x/crypto v0.53.0` | Staging candidate | Pass clean scan and receiver fire-drill. |
+| Monitoring | Grafana | `13.1.0` source rebuild with Go `1.26.5`; unused Tempo backend excluded | Staging candidate | Pass clean scan and dashboard/health smokes. |
+| Monitoring | node_exporter | `v1.12.0-distroless`, digest-pinned | Staging candidate | Pass clean scan and edge metrics scrape. |
 | Android | Android Gradle Plugin | `8.7.3` | Staging only | Local wrapper-based debug/release assembly passes; review AGP 9.x before production. |
 | Android | Kotlin Gradle plugins | `2.0.21` | Staging only | Local wrapper-based debug/release assembly passes; review Kotlin 2.4 migration before production. |
 | Android | AndroidX Media3 | `1.6.0` | Blocked | Run playback soak on real devices and evaluate current stable Media3. |
@@ -29,10 +29,10 @@ This review records the production dependency posture for SwarmCast. It does not
 - Node.js: official release table shows Node 22 is still LTS, with newer Node 24 LTS and Node 26 current lines available. Local Node 24 is not approved for tracker runtime because `uWebSockets.js` v20.51.0 does not ship the needed native binary.
 - `jose`: npm lists `6.2.3` as the latest package while this repo is locked to `5.10.0`.
 - `uWebSockets.js`: GitHub release listings show newer `v20.65.0` after the repo's `v20.51.0` tag.
-- `nginx`: nginx.org lists newer stable/mainline releases than `1.27`; Docker Hub shows the current `nginx:1.27` tag is old and tag-only.
-- Prometheus: official downloads list Prometheus `3.13.0` as latest, while this repo uses `2.53.0`.
-- Alertmanager: GitHub release listings show `0.33.1` newer than this repo's `0.27.0`.
-- Grafana: Grafana download pages list `13.1.0`, while this repo uses `11.1.0`.
+- `nginx`: the production candidate now builds from the immutable `1.29.8-alpine3.23-slim` digest and upgrades Alpine packages during the build.
+- Prometheus: the production candidate uses the immutable `v3.13.1-distroless` digest.
+- Alertmanager: the production candidate rebuilds exact release commit `2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5` with fixed Go and `x/crypto` versions.
+- Grafana: the production candidate rebuilds exact release commit `b309c9bb3b81a748c3a75289236a27309ed2566a` with fixed Go; the unused Tempo backend is excluded from the binary instead of waiving its findings.
 - AndroidX Media3: Maven listings show stable releases newer than this repo's `1.6.0`.
 - OkHttp: official docs show OkHttp 5.x artifacts available while this repo uses `4.12.0`.
 - Stream WebRTC Android: Maven listings show `1.3.10` newer than this repo's `1.3.8`.

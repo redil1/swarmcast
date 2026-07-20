@@ -35,7 +35,8 @@ export async function createRetentionStoreFromConfig(config, env = process.env) 
 
   return createJsonlRetentionStore({
     recordsFile: config.recordsFile,
-    actionLogFile: config.actionLogFile
+    actionLogFile: config.actionLogFile,
+    initializeIfMissing: true
   });
 }
 

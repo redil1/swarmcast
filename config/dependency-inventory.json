@@ -1,15 +1,15 @@
 {
-  "reviewDate": "2026-07-14",
+  "reviewDate": "2026-07-16",
   "items": [
     {
       "id": "node-runtime",
       "area": "server",
       "name": "Node.js runtime",
-      "current": "node:22-slim / engines >=22",
+      "current": "node:22-trixie-slim builder and distroless Node.js 22 Debian 13 runtime, both digest-pinned / engines >=22",
       "source": "services/*/Dockerfile and package.json",
-      "pinning": "major tag only",
+      "pinning": "immutable OCI digests",
       "launchDecision": "allowed for staging",
-      "releaseGate": "Pin service images by digest and either validate Node 24 LTS or explicitly keep Node 22 LTS before production."
+      "releaseGate": "Complete the clean signed 12-image staging release and tracker soak; retain Node 22 until uWebSockets.js Node 24 compatibility is proven."
     },
     {
       "id": "jose",
@@ -35,61 +35,61 @@
       "id": "ffmpeg",
       "area": "ingest",
       "name": "ffmpeg",
-      "current": "installed from Debian apt in node:22-slim image",
+      "current": "Alpine 3.23 ffmpeg in digest-pinned node:22-alpine3.23 runtime after apk upgrade",
       "source": "services/ingest/Dockerfile",
-      "pinning": "not pinned",
-      "launchDecision": "blocked for production",
-      "releaseGate": "Pin base image digest or package snapshot and run packaging/playback smokes on the production image."
+      "pinning": "immutable base digest; packages upgraded at image build",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass clean image scan, production-image packaging/playback smokes, and the signed staging release."
     },
     {
       "id": "nginx",
       "area": "edge",
       "name": "nginx",
-      "current": "nginx:1.27",
-      "source": "infra/docker-compose.yml and infra/edge/docker-compose.yml",
-      "pinning": "version tag only",
-      "launchDecision": "blocked for production",
-      "releaseGate": "Move to a supported stable tag, pin by digest, and rerun origin/edge nginx config and playback smokes."
+      "current": "nginx:1.29.8-alpine3.23-slim custom image after apk upgrade",
+      "source": "infra/nginx/Dockerfile and infra/edge/Dockerfile.nginx",
+      "pinning": "immutable base digest",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass origin/edge config and playback smokes, clean scans, real TLS evidence, and the signed staging release."
     },
     {
       "id": "prometheus",
       "area": "monitoring",
       "name": "Prometheus",
-      "current": "prom/prometheus:v2.53.0",
-      "source": "infra/docker-compose.yml",
-      "pinning": "version tag only",
-      "launchDecision": "allowed for staging",
-      "releaseGate": "Review Prometheus 3 migration or document v2 support choice, then pin image digest."
+      "current": "prom/prometheus:v3.13.1-distroless",
+      "source": ".github/workflows/release.yml and infra/docker-compose.yml",
+      "pinning": "immutable upstream digest in release workflow",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass clean scan, alert validation, monitoring smoke, and the signed staging release."
     },
     {
       "id": "alertmanager",
       "area": "monitoring",
       "name": "Alertmanager",
-      "current": "prom/alertmanager:v0.27.0",
-      "source": "infra/docker-compose.yml",
-      "pinning": "version tag only",
-      "launchDecision": "allowed for staging",
-      "releaseGate": "Upgrade review and receiver fire-drill before production; pin image digest."
+      "current": "Alertmanager v0.33.1 source at commit 2c8da51 with Go 1.26.5 and golang.org/x/crypto v0.53.0",
+      "source": "infra/monitoring/Dockerfile.alertmanager",
+      "pinning": "immutable source commit, UI checksum, builder digest, and runtime digest",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass clean scan, receiver fire-drill, and the signed staging release."
     },
     {
       "id": "grafana",
       "area": "monitoring",
       "name": "Grafana",
-      "current": "grafana/grafana:11.1.0",
-      "source": "infra/docker-compose.yml",
-      "pinning": "version tag only",
-      "launchDecision": "allowed for staging",
-      "releaseGate": "Review major-version upgrade path and pin image digest before production."
+      "current": "Grafana v13.1.0 source at commit b309c9b rebuilt with Go 1.26.5; unused Tempo backend excluded",
+      "source": "infra/monitoring/Dockerfile.grafana and infra/monitoring/grafana-no-tempo.patch",
+      "pinning": "immutable source commit, builder digest, and runtime digest",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass clean scan, dashboard/health smokes, and the signed staging release."
     },
     {
       "id": "node-exporter",
       "area": "monitoring",
       "name": "node_exporter",
-      "current": "prom/node-exporter:v1.8.0",
-      "source": "infra/edge/docker-compose.yml",
-      "pinning": "version tag only",
-      "launchDecision": "allowed for staging",
-      "releaseGate": "Review latest exporter version and pin image digest before production."
+      "current": "prom/node-exporter:v1.12.0-distroless",
+      "source": ".github/workflows/release.yml and infra/edge/docker-compose.yml",
+      "pinning": "immutable upstream digest in release workflow",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass clean scan, edge metrics scrape, and the signed staging release."
     },
     {
       "id": "android-gradle-plugin",
