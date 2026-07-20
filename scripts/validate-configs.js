@@ -2700,7 +2700,9 @@ for (const required of [
   "swarmcast-image-sboms-signatures",
   "swarmcast-sbom",
   "docker push",
-  "12 digest-pinned GHCR images"
+  "13 digest-pinned GHCR images",
+  "13 real Trivy JSON reports with no blocked findings",
+  "source SBOM plus 13 CycloneDX image SBOMs"
 ]) {
   if (!releaseWorkflowText.includes(required)) {
     console.error(`.github/workflows/release.yml: missing release workflow text: ${required}`);
