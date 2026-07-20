@@ -68,6 +68,55 @@ expectFailure(
   /selfSustainingSweep is required/
 );
 expectFailure(
+  "missing 100K single-channel cell stage",
+  writeVariant("missing-100k-cell-stage", (record) => {
+    record.stages = record.stages.filter((candidate) => candidate.id !== "1-channel-100000-cell-peers");
+    return record;
+  }),
+  /missing required load ladder stage 1-channel-100000-cell-peers/
+);
+expectFailure(
+  "cell exceeds configured ceiling",
+  writeVariant("cell-over-ceiling", (record) => {
+    const value = stage(record, "1-channel-100000-cell-peers");
+    value.cellPeerCounts = [20001, 19999, 20000, 20000, 20000];
+    return record;
+  }),
+  /cellPeerCounts\[0\] must be between 1 and 20000/
+);
+expectFailure(
+  "cell peer totals do not reconcile",
+  writeVariant("cell-peer-total-drift", (record) => {
+    stage(record, "1-channel-1000-cell-peers").cellPeerCounts = [499, 500];
+    return record;
+  }),
+  /cellPeerCounts must sum to peerCount/
+);
+expectFailure(
+  "segment fanout misses a cell",
+  writeVariant("cell-fanout-missing", (record) => {
+    stage(record, "1-channel-100000-cell-peers").segmentFanoutCells = 4;
+    return record;
+  }),
+  /segmentFanoutCells must be between 5 and 5/
+);
+expectFailure(
+  "cell failure does not retain edge fallback",
+  writeVariant("cell-failure-no-edge", (record) => {
+    stage(record, "1-channel-10000-cell-peers").cellFailureEdgeFallback = false;
+    return record;
+  }),
+  /cellFailureEdgeFallback must be true/
+);
+expectFailure(
+  "cell backpressure drops present",
+  writeVariant("cell-backpressure-drops", (record) => {
+    stage(record, "1-channel-10000-cell-peers").backpressureDrops = 1;
+    return record;
+  }),
+  /backpressureDrops must be between 0 and 0/
+);
+expectFailure(
   "edge fallback after flatten",
   writeVariant("edge-fallback-after-flatten", (record) => {
     const row = record.selfSustainingSweep.edgeFallbackPackets.find((candidate) => candidate.superPeerFraction === 0.2);
@@ -142,4 +191,4 @@ expectFailure(
   /1-channel-200-peers\.evidence evidence reference looks like it may contain sensitive material/
 );
 
-console.log("load ladder evidence validation smoke OK: pass=1 failures=12");
+console.log("load ladder evidence validation smoke OK: pass=1 failures=18");

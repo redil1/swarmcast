@@ -391,6 +391,7 @@ for (const required of [
   "`npm run smoke:tracker-ws-load`",
   "`npm run smoke:tracker-ws-multichannel`",
   "`npm run smoke:tracker-ws-restart`",
+  "`npm run smoke:tracker-ws-cells`",
   "`uWebSockets.js` v20.51.0",
   "Node 18, 20, 22, or 23",
   "`TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws`",
@@ -421,6 +422,11 @@ for (const required of [
   "test-fixtures/load/load-ladder-complete.synthetic.json",
   "1 channel / 200 mixed headless peers through real tracker WebSockets and WebRTC DataChannels",
   "50 channels / 2000 peers",
+  "1 channel / 1000 peers partitioned across at least 2 tracker cells",
+  "1 channel / 10000 peers partitioned across at least 2 tracker cells",
+  "1 channel / 100000 peers partitioned across at least 5 tracker cells",
+  "exact per-cell peer counts",
+  "The committed synthetic fixture proves only",
   "VM/WebRTC ladder"
 ]) {
   if (!loadTestingText.includes(required)) {
@@ -443,6 +449,15 @@ for (const required of [
   "1-channel-200-peers",
   "50-channels-2000-peers",
   "zipf-catalog",
+  "1-channel-1000-cell-peers",
+  "1-channel-10000-cell-peers",
+  "1-channel-100000-cell-peers",
+  "configuredCellMaxPeers",
+  "cellPeerCounts",
+  "segmentFanoutCells",
+  "cellFailureEdgeFallback",
+  "cellFailureRejoin",
+  "sameCellSignalViolations",
   "androidStallRateMax",
   "trackerCpuMsPerMessageP95",
   "webrtc-datachannel",
@@ -473,6 +488,14 @@ for (const required of [
   "\"id\": \"1-channel-200-peers\"",
   "\"id\": \"50-channels-2000-peers\"",
   "\"id\": \"zipf-catalog\"",
+  "\"id\": \"1-channel-1000-cell-peers\"",
+  "\"id\": \"1-channel-10000-cell-peers\"",
+  "\"id\": \"1-channel-100000-cell-peers\"",
+  "\"configuredCellMaxPeers\": 20000",
+  "\"cellPeerCounts\"",
+  "\"segmentFanoutCells\"",
+  "\"cellFailureEdgeFallback\": true",
+  "\"cellFailureRejoin\": true",
   "\"peerCount\": 2000",
   "\"transport\": \"webrtc-datachannel\"",
   "\"signalingPath\": \"tracker-signaling-relay\"",
@@ -492,6 +515,12 @@ for (const required of [
   "scripts/validate-load-ladder-evidence.js",
   "synthetic load ladder evidence requires --allow-synthetic",
   "missing self sustaining sweep",
+  "missing 100K single-channel cell stage",
+  "cell exceeds configured ceiling",
+  "cell peer totals do not reconcile",
+  "segment fanout misses a cell",
+  "cell failure does not retain edge fallback",
+  "cell backpressure drops present",
   "edge fallback after flatten",
   "missing helper bootstrap accounting",
   "edge access reconciliation drift",
@@ -502,7 +531,7 @@ for (const required of [
   "dataChannelTransfer = false",
   "alertState = \"firing\"",
   "token=synthetic-secret",
-  "load ladder evidence validation smoke OK: pass=1 failures=12"
+  "load ladder evidence validation smoke OK: pass=1 failures=18"
 ]) {
   if (!loadLadderSmokeText.includes(required)) {
     console.error(`scripts/smoke-load-ladder-evidence-validation.js: missing load ladder smoke text: ${required}`);

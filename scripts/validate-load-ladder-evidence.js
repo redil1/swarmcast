@@ -15,7 +15,10 @@ const stageExpectations = new Map([
   ["1-channel-3-devices", { channels: 1, peers: 3, offload: 0.5 }],
   ["1-channel-200-peers", { channels: 1, peers: 200, offload: 0.9 }],
   ["50-channels-2000-peers", { channels: 50, peers: 2000, offload: 0.9 }],
-  ["zipf-catalog", { channels: 50, peers: 2000, offload: 0.9 }]
+  ["zipf-catalog", { channels: 50, peers: 2000, offload: 0.9 }],
+  ["1-channel-1000-cell-peers", { channels: 1, peers: 1000, offload: 0.9, minCells: 2 }],
+  ["1-channel-10000-cell-peers", { channels: 1, peers: 10000, offload: 0.9, minCells: 2 }],
+  ["1-channel-100000-cell-peers", { channels: 1, peers: 100000, offload: 0.9, minCells: 5 }]
 ]);
 const sensitiveEvidencePatterns = [
   /token=/i,
@@ -119,6 +122,29 @@ function validateStage(stage) {
   const joinedEvidence = stage.evidence.join("\n");
   for (const marker of ["webrtc-datachannel", "tracker-signaling-relay", "edge-access-reconciled"]) {
     if (!joinedEvidence.includes(marker)) fail(`${id}.evidence must include ${marker}`);
+  }
+  if (expected.minCells) {
+    if (stage.channelCount !== 1) fail(`${id}.channelCount must equal 1 for a single-channel cell stage`);
+    const trackerCellCount = integerField(`${id}.trackerCellCount`, stage.trackerCellCount, { min: expected.minCells });
+    integerField(`${id}.trackerProcessCount`, stage.trackerProcessCount, { min: trackerCellCount });
+    const configuredCellMaxPeers = integerField(`${id}.configuredCellMaxPeers`, stage.configuredCellMaxPeers, { min: 2, max: 20000 });
+    if (!Array.isArray(stage.cellPeerCounts) || stage.cellPeerCounts.length !== trackerCellCount) {
+      fail(`${id}.cellPeerCounts must contain one count per tracker cell`);
+    }
+    const assignedPeers = stage.cellPeerCounts.reduce((total, value, index) => (
+      total + integerField(`${id}.cellPeerCounts[${index}]`, value, { min: 1, max: configuredCellMaxPeers })
+    ), 0);
+    if (assignedPeers !== stage.peerCount) fail(`${id}.cellPeerCounts must sum to peerCount`);
+    integerField(`${id}.segmentFanoutCells`, stage.segmentFanoutCells, { min: trackerCellCount, max: trackerCellCount });
+    integerField(`${id}.backpressureDrops`, stage.backpressureDrops, { min: 0, max: 0 });
+    integerField(`${id}.cellCapacityRejections`, stage.cellCapacityRejections, { min: 0, max: 0 });
+    integerField(`${id}.sameCellSignalViolations`, stage.sameCellSignalViolations, { min: 0, max: 0 });
+    if (stage.cellFailureEdgeFallback !== true) fail(`${id}.cellFailureEdgeFallback must be true`);
+    if (stage.cellFailureRejoin !== true) fail(`${id}.cellFailureRejoin must be true`);
+    numberField(`${id}.cellFailureRecoveryMsP95`, stage.cellFailureRecoveryMsP95, { min: 0, max: 30000 });
+    for (const marker of ["tracker-cells", "segment-fanout-all-cells", "cell-failure-edge-fallback", "cell-rejoin", "same-cell-signaling"]) {
+      if (!joinedEvidence.includes(marker)) fail(`${id}.evidence must include ${marker}`);
+    }
   }
   return id;
 }

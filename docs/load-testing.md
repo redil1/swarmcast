@@ -24,7 +24,8 @@ The load ladder must move from deterministic local smokes to VM/WebRTC tests bef
 - `npm run smoke:tracker-ws-load`: opens 200 real WebSocket clients against the tracker, verifies demand calls, `rho >= 0.90`, rolling offload, P2P peer-list activation, and replacement-candidate recovery after closing 30% of clients.
 - `npm run smoke:tracker-ws-multichannel`: opens 200 real WebSocket clients across 5 channels and verifies per-channel demand size, aggregate `rho`, rolling offload, and P2P peer-list activation.
 - `npm run smoke:tracker-ws-restart`: starts auth, fake ingest, and tracker, connects an active WebSocket swarm, stops the tracker, confirms sockets close, restarts the tracker on the same ports, and verifies clients can rejoin with Delivery Fleet playlist URLs, demand calls, `rho >= 0.90`, rolling offload, and P2P peer-list activation.
-- `npm run smoke:load-ladder-evidence-validation`: proves the load-ladder evidence gate rejects missing stages, low offload, high stall rate, high tracker CPU, firing alerts, sensitive evidence references, and synthetic evidence without an explicit flag.
+- `npm run smoke:tracker-ws-cells`: starts two tracker processes, proves one channel is split into two process-owned cells, fans one segment announcement to both cells, kills one cell, verifies the client retains its owned-edge fallback, and verifies stable cell rejoin after restart.
+- `npm run smoke:load-ladder-evidence-validation`: proves the load-ladder evidence gate rejects missing stages, low offload, high stall rate, high tracker CPU, firing alerts, sensitive evidence references, invalid single-channel cell accounting, incomplete cell fanout, cell failure without edge fallback, tracker backpressure drops, and synthetic evidence without an explicit flag.
 
 `smoke:tracker-ws` requires a Node version supported by `uWebSockets.js` v20.51.0: Node 18, 20, 22, or 23. The CI and service Docker runtime use Node 22.
 On a local Node 24 shell, build the tracker image and run `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws` to execute the smoke through Docker.
@@ -35,7 +36,10 @@ Use the same `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local` prefix for `npm r
 1. 1 channel / 3 Android devices on WiFi.
 2. 1 channel / 200 mixed headless peers through real tracker WebSockets and WebRTC DataChannels.
 3. 50 channels / 2000 peers across multiple VMs with WebRTC DataChannel transfer.
-4. Zipf-distributed catalog test using the committed distribution fixtures with WebRTC DataChannel transfer.
+4. 1 channel / 1000 peers partitioned across at least 2 tracker cells.
+5. 1 channel / 10000 peers partitioned across at least 2 tracker cells.
+6. 1 channel / 100000 peers partitioned across at least 5 tracker cells, with no cell above 20000 peers.
+7. Zipf-distributed catalog test using the committed distribution fixtures with WebRTC DataChannel transfer.
 
 ## Launch Evidence
 
@@ -46,6 +50,7 @@ Each staging run must record:
 - WebRTC DataChannel transport, tracker-signaling relay path, and successful DataChannel transfer
 - rolling `rho` computed as direct P2P bytes divided by direct P2P, edge, origin-bootstrap, and relay bytes; stall rate, startup latency, buffer health, tracker p95 message cost, and memory per peer
 - separate client P2P/edge/origin-bootstrap/relay byte counters reconciled within 5% of edge, origin, and relay access-log egress; cache hit ratio and alert state
+- for each single-channel cell stage: tracker process/cell counts, configured cell ceiling, exact per-cell peer counts, all-cell segment fanout, zero backpressure drops, zero capacity rejections, zero cross-cell signaling, owned-edge fallback during one cell failure, stable cell rejoin, and p95 recovery within 30 seconds
 - self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, every preloaded helper charged as bootstrap packets, and packet-derived model `rho` per fraction
 
 Validate the final ladder evidence before launch:
@@ -60,4 +65,4 @@ Synthetic fixtures must be validated explicitly:
 npm run load:ladder:validate -- --allow-synthetic test-fixtures/load/load-ladder-complete.synthetic.json
 ```
 
-Production launch remains blocked until the VM/WebRTC ladder has stored results and regressions are tied to the release gate.
+The committed synthetic fixture proves only that the validator accepts the required record shape. It is not capacity, device, network, or launch evidence. Production launch remains blocked until the VM/WebRTC ladder has stored non-synthetic results and regressions are tied to the release gate.
