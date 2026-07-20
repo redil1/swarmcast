@@ -20,4 +20,5 @@ COPY services/tracker/src services/tracker/src
 FROM ${NODE_RUNTIME_IMAGE}
 WORKDIR /app
 COPY --from=build --chown=65532:65532 /app /app
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:7002/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 CMD ["services/tracker/src/index.js"]

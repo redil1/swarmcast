@@ -2931,3 +2931,13 @@ Results:
 - Remote CI run `29781121582` exposed a startup race in the tracker-cell WebSocket smoke: its readiness probe observed the internal metrics listener before the separate viewer listener was accepting connections.
 - The smoke now waits for both tracker listeners with bounded retries before opening viewer WebSockets.
 - Thirty consecutive executions pass under Node 22.23.1. Corrected remote CI runs `29781658533` and `29781661084` pass Node, Android, and deployment-shape jobs on the implementation commit.
+
+## Build Slice 309 In Progress
+
+- Added shared service lifecycle control with bounded, idempotent SIGINT/SIGTERM handling and explicit readiness state.
+- Auth, control-plane, ingest, retention-worker, tracker, and edge metrics now expose readiness independently of liveness; HTTP services drain connections, retention waits for an active policy run, and tracker shutdown clears timers/listeners and closes viewers with restart code `1012`.
+- Core Node containers now use an init process, 15-second stop grace, read-only roots, temporary scratch mounts, all capabilities dropped, no-new-privileges, and Docker health checks. Tracker and nginx declare health-based startup dependencies.
+- Focused lifecycle/readiness tests, the Node 22 tracker-cell restart smoke, edge metrics server smoke, configuration validation, and default/production/release/edge/TURN compose rendering pass.
+- The repeatable lifecycle container smoke now proves Docker health convergence, hardening controls, bounded SIGTERM shutdown, zero exit status, and structured shutdown completion across auth, control-plane, ingest, retention-worker, tracker, and edge metrics.
+- Added the critical `SwarmcastServiceTargetDown` launch alert, a core-service availability dashboard panel, a lifecycle incident runbook, and explicit liveness/readiness endpoint inventory.
+- Slice 309 is about 90% complete. Full repository verification passes 179 tests; Node 22 tracker restart, 27-alert/14-runbook validation, 20-panel dashboard validation, zero-vulnerability npm audit, and real health-to-graceful-shutdown execution across six containers pass. Protected remote CI, signed image scans, and signed release evidence remain open.

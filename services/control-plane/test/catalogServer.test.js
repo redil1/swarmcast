@@ -67,6 +67,22 @@ test("catalog server returns groups and search results", async () => {
   });
 });
 
+test("catalog readiness reflects lifecycle state", async () => {
+  let ready = false;
+  const server = createCatalogServer({ store: new CatalogStore([]), isReady: () => ready });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/health`)).status, 200);
+    assert.equal((await fetch(`${base}/ready`)).status, 503);
+    ready = true;
+    assert.equal((await fetch(`${base}/ready`)).status, 200);
+  } finally {
+    server.close();
+  }
+});
+
 test("catalog server gzips public catalog responses when requested", async () => {
   await withCatalogServer(async (base) => {
     const response = await rawGet(`${base}/channels?pageSize=2`, {

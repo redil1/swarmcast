@@ -109,8 +109,8 @@ async function stopTracker(tracker) {
 async function waitTracker(shard, tracker) {
   await waitFor(async () => {
     if (tracker.child.exitCode !== null) throw new Error(`tracker ${shard.id} exited:\n${tracker.diagnostics()}`);
-    const metricsReady = (await fetch(`${shard.internalUrl}/metrics`)).ok;
-    if (!metricsReady) return false;
+    const serviceReady = (await fetch(`${shard.internalUrl}/ready`)).ok;
+    if (!serviceReady) return false;
     return waitForPort(shard.port);
   });
 }
@@ -144,7 +144,7 @@ async function connectClient({ shard, assignmentKey, token }) {
 
 function waitForClose(ws) {
   return new Promise((resolve) => {
-    if (ws.readyState === WebSocket.CLOSED) return resolve();
+    if (ws.readyState === WebSocket.CLOSED) return resolve({ code: 1006, reason: "already closed" });
     ws.addEventListener("close", resolve, { once: true });
   });
 }
@@ -201,7 +201,8 @@ try {
   const failedClient = clients[1];
   const closed = waitForClose(failedClient.ws);
   await stopTracker(running.get(failedShard.id));
-  await closed;
+  const closeEvent = await closed;
+  if (closeEvent.code !== 1012) throw new Error(`expected service restart close code 1012, got ${closeEvent.code}`);
   if (!failedClient.joined.edgeUrlTemplate.startsWith("https://edge.example.tv/")) {
     throw new Error("failed cell client did not retain an owned edge fallback template");
   }

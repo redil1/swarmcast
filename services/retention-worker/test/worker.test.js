@@ -60,3 +60,50 @@ test("retention worker runs a dry-run job and exposes metrics", async () => {
     worker.server.close();
   }
 });
+
+test("retention readiness reflects lifecycle state", async () => {
+  let ready = false;
+  const worker = createRetentionWorker({
+    policy: policyFixture(),
+    store: { async listRetentionRecords() { return []; }, async applyRetentionAction() {} },
+    isReady: () => ready
+  });
+  const base = await listen(worker.server);
+  try {
+    assert.equal((await fetch(`${base}/health`)).status, 200);
+    assert.equal((await fetch(`${base}/ready`)).status, 503);
+    ready = true;
+    assert.equal((await fetch(`${base}/ready`)).status, 200);
+  } finally {
+    worker.server.close();
+  }
+});
+
+test("retention shutdown can wait for an in-flight job", async () => {
+  let releaseList;
+  const listReleased = new Promise((resolve) => { releaseList = resolve; });
+  let listStarted;
+  const started = new Promise((resolve) => { listStarted = resolve; });
+  const worker = createRetentionWorker({
+    policy: policyFixture(),
+    store: {
+      async listRetentionRecords() {
+        listStarted();
+        await listReleased;
+        return [];
+      },
+      async applyRetentionAction() {}
+    }
+  });
+
+  const run = worker.runOnce();
+  await started;
+  let idle = false;
+  const waiting = worker.waitForIdle().then(() => { idle = true; });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(idle, false);
+  releaseList();
+  await Promise.all([run, waiting]);
+  assert.equal(idle, true);
+  assert.equal(worker.state.running, false);
+});

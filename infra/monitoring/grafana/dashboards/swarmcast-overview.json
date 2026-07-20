@@ -233,6 +233,28 @@
       "targets": [
         { "expr": "sum by (instance, region) (rate(turn_total_traffic_sentb[5m]) + rate(turn_total_traffic_rcvb[5m])) * 8", "legendFormat": "{{region}} {{instance}} bits/s" }
       ]
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "Core Service Availability",
+      "gridPos": { "x": 0, "y": 72, "w": 24, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        { "expr": "up{job=~\"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker)|edge-cache-metrics)\"}", "legendFormat": "{{job}} {{instance}}" }
+      ]
     }
   ]
 }

@@ -8,6 +8,7 @@
     "./errors": "./src/errors.js",
     "./flags": "./src/flags.js",
     "./image-refs": "./src/imageRefs.js",
+    "./lifecycle": "./src/lifecycle.js",
     "./logging": "./src/logging.js",
     "./media-urls": "./src/mediaUrls.js",
     "./performance-budgets": "./src/performanceBudgets.js",

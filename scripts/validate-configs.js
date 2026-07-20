@@ -129,6 +129,15 @@ const checks = [
     forbidden: ["cloudfront", "akamai", "fastly"]
   },
   {
+    file: "infra/edge/Dockerfile.metrics",
+    required: [
+      "packages/config/src/lifecycle.js",
+      "HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3",
+      "http://127.0.0.1:9101/ready"
+    ],
+    forbidden: []
+  },
+  {
     file: "infra/host/sysctl.d/99-swarmcast.conf",
     required: [
       "fs.file-max = 2097152",
@@ -307,6 +316,15 @@ const checks = [
 
 let failed = false;
 
+function serviceBlock(text, service) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === `  ${service}:`);
+  if (start === -1) return "";
+  const endOffset = lines.slice(start + 1).findIndex((line) => /^  [A-Za-z0-9_-]+:\s*$/.test(line));
+  const end = endOffset === -1 ? lines.length : start + 1 + endOffset;
+  return lines.slice(start, end).join("\n");
+}
+
 for (const check of checks) {
   const text = readFileSync(check.file, "utf8").toLowerCase();
 
@@ -322,6 +340,41 @@ for (const check of checks) {
       console.error(`${check.file}: contains forbidden CDN/provider text: ${forbidden}`);
       failed = true;
     }
+  }
+}
+
+const coreComposeText = readFileSync("infra/docker-compose.yml", "utf8");
+for (const service of ["ingest", "tracker", "auth", "control-plane", "retention-worker"]) {
+  const block = serviceBlock(coreComposeText, service);
+  for (const required of [
+    "init: true",
+    "stop_grace_period: 15s",
+    "read_only: true",
+    "cap_drop: [\"ALL\"]",
+    "security_opt: [\"no-new-privileges:true\"]",
+    "healthcheck:",
+    "/ready"
+  ]) {
+    if (!block.includes(required)) {
+      console.error(`infra/docker-compose.yml: ${service} missing lifecycle control: ${required}`);
+      failed = true;
+    }
+  }
+}
+
+const edgeMetricsBlock = serviceBlock(readFileSync("infra/edge/docker-compose.yml", "utf8"), "edge-metrics");
+for (const required of [
+  "init: true",
+  "stop_grace_period: 15s",
+  "read_only: true",
+  "cap_drop: [\"ALL\"]",
+  "security_opt: [\"no-new-privileges:true\"]",
+  "healthcheck:",
+  "/ready"
+]) {
+  if (!edgeMetricsBlock.includes(required)) {
+    console.error(`infra/edge/docker-compose.yml: edge-metrics missing lifecycle control: ${required}`);
+    failed = true;
   }
 }
 
@@ -771,6 +824,10 @@ for (const check of [
     required: ["parseM3uText", "sourcePolicy", "privateRejected=true", "allowlistRejected=true"]
   },
   {
+    file: "scripts/smoke-service-lifecycle-containers.js",
+    required: ["waitHealthy", "ReadonlyRootfs", "CapDrop", "no-new-privileges", "service_shutdown_completed", "docker", "stop", "service lifecycle container smoke OK"]
+  },
+  {
     file: "scripts/smoke-production-env-validation.js",
     required: ["missing auth key path", "temporary catalog database path", "missing retention HTTP token", "relative retention store module", "tag-only infrastructure image", "missing Alertmanager config path", "production env validation smoke OK"]
   },
@@ -868,7 +925,7 @@ for (const check of [
   },
   {
     file: "package.json",
-    required: ["alertmanager:fire-drill:validate", "alertmanager:receivers:validate", "android:accessibility:validate", "android:attestation:evidence:validate", "android:ci:evidence:validate", "android:p2p:evidence:validate", "android:playback:evidence:validate", "android:rlnc:decision:validate", "canary:metrics:validate", "canary:rollout:evidence:validate", "capacity:plan:validate", "catalog:import:validate", "chaos:staging:validate", "dependency:review:validate", "deployment:evidence:validate", "edge:metrics", "env:production:validate", "grafana:dashboard:validate", "host:provisioning:evidence:validate", "image:scan:bundle:validate", "launch:evidence:validate", "legal:approval:validate", "load:ladder:validate", "nginx:tls:evidence:validate", "privacy:store:validate", "production:smoke:evidence:validate", "prometheus:alerts:validate", "restore:evidence:validate", "rollback:evidence:validate", "retention:approval:validate", "retention:execution:evidence:validate", "secrets:evidence:validate", "security:review:validate", "smoke:alertmanager-fire-drill-validation", "smoke:alertmanager-receivers-validation", "smoke:alertmanager-routing", "smoke:android-accessibility-evidence-validation", "smoke:android-attestation-evidence-validation", "smoke:android-ci-evidence-validation", "smoke:android-p2p-evidence-validation", "smoke:android-playback-evidence-validation", "smoke:android-rlnc-decision-validation", "smoke:canary-metrics-validation", "smoke:canary-rollout-evidence-validation", "smoke:capacity-plan-validation", "smoke:catalog-import-validation", "smoke:catalog-source-preflight", "smoke:catalog-sqlite", "smoke:catalog-sqlite-20k", "smoke:compose-production-env", "smoke:control-plane-placement-restart", "smoke:control-plane-placement-sqlite", "smoke:dependency-review-validation", "smoke:deployment-evidence-validation", "smoke:edge-cache-metrics", "smoke:edge-cache-metrics-server", "smoke:headless-super-peer-sweep", "smoke:host-provisioning-evidence-validation", "smoke:image-scan-bundle-validation", "smoke:image-scan-report-validation", "smoke:ingest-demand-playlist", "smoke:ingest-ffmpeg-chaos", "smoke:ingest-tail-admission", "smoke:ingest-tail-downscale", "smoke:launch-evidence-validation", "smoke:legal-approval-validation", "smoke:load-ladder-evidence-validation", "smoke:multi-ingest-routing", "smoke:nginx-edge-cache", "smoke:nginx-origin-playback", "smoke:nginx-tls-evidence-validation", "smoke:placement-movement", "smoke:privacy-store-compliance-validation", "smoke:production-env-validation", "smoke:production-smoke-evidence-validation", "smoke:prometheus-alerts-validation", "smoke:grafana-dashboard-validation", "smoke:release-images-validation", "smoke:release-manifest-production", "smoke:restore-evidence-validation", "smoke:retention-approval-validation", "smoke:retention-execute", "smoke:retention-execution-evidence-validation", "smoke:retention-http-store", "smoke:retention-redaction", "smoke:rollback-evidence-validation", "smoke:secrets-evidence-validation", "smoke:security-review-validation", "smoke:source-allowlist-evidence-validation", "smoke:source-policy", "smoke:sqlite-backup-restore", "smoke:staging-chaos-evidence-validation", "smoke:threat-model-review-validation", "smoke:tracker-load", "smoke:tracker-sharding", "smoke:tracker-ws", "smoke:tracker-ws-load", "smoke:tracker-ws-multichannel", "smoke:tracker-ws-restart", "source:allowlist:evidence:validate", "source:preflight", "threat:model:validate"]
+    required: ["alertmanager:fire-drill:validate", "alertmanager:receivers:validate", "android:accessibility:validate", "android:attestation:evidence:validate", "android:ci:evidence:validate", "android:p2p:evidence:validate", "android:playback:evidence:validate", "android:rlnc:decision:validate", "canary:metrics:validate", "canary:rollout:evidence:validate", "capacity:plan:validate", "catalog:import:validate", "chaos:staging:validate", "dependency:review:validate", "deployment:evidence:validate", "edge:metrics", "env:production:validate", "grafana:dashboard:validate", "host:provisioning:evidence:validate", "image:scan:bundle:validate", "launch:evidence:validate", "legal:approval:validate", "load:ladder:validate", "nginx:tls:evidence:validate", "privacy:store:validate", "production:smoke:evidence:validate", "prometheus:alerts:validate", "restore:evidence:validate", "rollback:evidence:validate", "retention:approval:validate", "retention:execution:evidence:validate", "secrets:evidence:validate", "security:review:validate", "smoke:alertmanager-fire-drill-validation", "smoke:alertmanager-receivers-validation", "smoke:alertmanager-routing", "smoke:android-accessibility-evidence-validation", "smoke:android-attestation-evidence-validation", "smoke:android-ci-evidence-validation", "smoke:android-p2p-evidence-validation", "smoke:android-playback-evidence-validation", "smoke:android-rlnc-decision-validation", "smoke:canary-metrics-validation", "smoke:canary-rollout-evidence-validation", "smoke:capacity-plan-validation", "smoke:catalog-import-validation", "smoke:catalog-source-preflight", "smoke:catalog-sqlite", "smoke:catalog-sqlite-20k", "smoke:compose-production-env", "smoke:control-plane-placement-restart", "smoke:control-plane-placement-sqlite", "smoke:dependency-review-validation", "smoke:deployment-evidence-validation", "smoke:edge-cache-metrics", "smoke:edge-cache-metrics-server", "smoke:headless-super-peer-sweep", "smoke:host-provisioning-evidence-validation", "smoke:image-scan-bundle-validation", "smoke:image-scan-report-validation", "smoke:ingest-demand-playlist", "smoke:ingest-ffmpeg-chaos", "smoke:ingest-tail-admission", "smoke:ingest-tail-downscale", "smoke:launch-evidence-validation", "smoke:legal-approval-validation", "smoke:load-ladder-evidence-validation", "smoke:multi-ingest-routing", "smoke:nginx-edge-cache", "smoke:nginx-origin-playback", "smoke:nginx-tls-evidence-validation", "smoke:placement-movement", "smoke:privacy-store-compliance-validation", "smoke:production-env-validation", "smoke:production-smoke-evidence-validation", "smoke:prometheus-alerts-validation", "smoke:grafana-dashboard-validation", "smoke:release-images-validation", "smoke:release-manifest-production", "smoke:restore-evidence-validation", "smoke:retention-approval-validation", "smoke:retention-execute", "smoke:retention-execution-evidence-validation", "smoke:retention-http-store", "smoke:retention-redaction", "smoke:rollback-evidence-validation", "smoke:secrets-evidence-validation", "smoke:security-review-validation", "smoke:service-lifecycle-containers", "smoke:source-allowlist-evidence-validation", "smoke:source-policy", "smoke:sqlite-backup-restore", "smoke:staging-chaos-evidence-validation", "smoke:threat-model-review-validation", "smoke:tracker-load", "smoke:tracker-sharding", "smoke:tracker-ws", "smoke:tracker-ws-load", "smoke:tracker-ws-multichannel", "smoke:tracker-ws-restart", "source:allowlist:evidence:validate", "source:preflight", "threat:model:validate"]
   },
   {
     file: "package.json",
@@ -1053,6 +1110,8 @@ for (const check of [
       "COPY packages/config/src",
       "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
       "COPY --from=build --chown=65532:65532 /app /app",
+      "HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3",
+      "http://127.0.0.1:7003/ready",
       'CMD ["services/auth/src/index.js"]'
     ]
   },
@@ -1066,6 +1125,8 @@ for (const check of [
       "COPY services/ingest/src/catalog.js",
       "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
       "COPY --from=build --chown=65532:65532 /app /app",
+      "HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3",
+      "http://127.0.0.1:7010/ready",
       'CMD ["services/control-plane/src/index.js"]'
     ]
   },
@@ -1078,7 +1139,9 @@ for (const check of [
       "npm ci --omit=dev --ignore-scripts --workspace @swarmcast/ingest --workspace @swarmcast/config",
       "COPY packages/config/src",
       "chown -R node:node /var/hls",
-      "WORKDIR /app/services/ingest"
+      "WORKDIR /app/services/ingest",
+      "HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3",
+      "http://127.0.0.1:7001/ready"
     ]
   },
   {
@@ -1091,6 +1154,8 @@ for (const check of [
       "COPY packages/config/src",
       "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
       "COPY --from=build --chown=65532:65532 /app /app",
+      "HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3",
+      "http://127.0.0.1:7002/ready",
       'CMD ["services/tracker/src/index.js"]'
     ]
   },
@@ -1104,6 +1169,8 @@ for (const check of [
       "COPY services/retention-worker/src",
       "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
       "COPY --from=build --chown=65532:65532 /app /app",
+      "HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3",
+      "http://127.0.0.1:7020/ready",
       'CMD ["services/retention-worker/src/index.js"]'
     ]
   }
@@ -1350,11 +1417,32 @@ for (const metric of [
   "swarmcast_control_catalog_backend_info",
   "swarmcast_control_placement_backend_info",
   "Control Plane Storage Backends",
+  "Core Service Availability",
+  "up{job=~\\\"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker)|edge-cache-metrics)\\\"}",
   "Active Alerts",
   "ALERTS{alertstate=\\\"firing\\\",alertname=~\\\"Swarmcast.*\\\"}"
 ]) {
   if (!dashboardText.includes(metric)) {
     console.error(`infra/monitoring/grafana/dashboards/swarmcast-overview.json: missing metric ${metric}`);
+    failed = true;
+  }
+}
+
+if (failed) process.exit(1);
+const serviceLifecycleRunbookText = readFileSync("docs/runbooks/service-lifecycle.md", "utf8");
+for (const required of [
+  "Service Lifecycle Incident",
+  "SwarmcastServiceTargetDown",
+  "`/health`",
+  "`/ready`",
+  "service_shutdown_completed",
+  "WebSocket restart code `1012`",
+  "docker inspect",
+  "docker stop --time 15",
+  "Do not restore traffic"
+]) {
+  if (!serviceLifecycleRunbookText.includes(required)) {
+    console.error(`docs/runbooks/service-lifecycle.md: missing service lifecycle text: ${required}`);
     failed = true;
   }
 }
@@ -2570,6 +2658,9 @@ for (const required of [
   "sudo apt-get update && sudo apt-get install -y ffmpeg",
   "docker compose -f infra/docker-compose.yml config",
   "docker compose -f infra/edge/docker-compose.yml config",
+  "docker compose -f infra/docker-compose.yml build auth control-plane ingest retention-worker tracker",
+  "docker compose -f infra/edge/docker-compose.yml build edge-metrics",
+  "npm run smoke:service-lifecycle-containers",
   "docker pull nginx:1.29.8-alpine3.23-slim@sha256:c9366b8c560169b101ca0e5422ed063b20779e6454c2326b9c9704225c9b0c08",
   "npm run smoke:nginx-config",
   "npm run smoke:nginx-origin-playback",
@@ -2731,6 +2822,8 @@ for (const required of [
   "retention-worker",
   "edge-metrics",
   "Image Ref/Digest",
+  "`/health` is the process liveness endpoint",
+  "`/ready` is the traffic admission endpoint",
   "retention worker `/metrics` scrape evidence",
   "Edge Nodes",
   "Durable Control-Plane State",

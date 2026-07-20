@@ -30,7 +30,7 @@ function errorJson(req, res, code, message = "", headers = {}) {
   return json(req, res, httpStatusForError(code), publicError(code, message), headers);
 }
 
-export function createCatalogServer({ store, logger = null }) {
+export function createCatalogServer({ store, logger = null, isReady = () => true }) {
   if (!store) throw new Error("store is required");
 
   return http.createServer((req, res) => {
@@ -39,6 +39,11 @@ export function createCatalogServer({ store, logger = null }) {
 
     if (url.pathname === "/health") {
       return json(req, res, 200, { ok: true });
+    }
+
+    if (url.pathname === "/ready") {
+      const ready = isReady();
+      return json(req, res, ready ? 200 : 503, { ok: ready }, { "cache-control": "no-store" });
     }
 
     if (url.pathname === "/channels" && req.method === "GET") {
@@ -78,8 +83,14 @@ export function createCatalogServer({ store, logger = null }) {
   });
 }
 
-export function createControlPlaneServer({ store, placementService = null, internalToken = "", logger = null }) {
-  const catalogServer = createCatalogServer({ store });
+export function createControlPlaneServer({
+  store,
+  placementService = null,
+  internalToken = "",
+  logger = null,
+  isReady = () => true
+}) {
+  const catalogServer = createCatalogServer({ store, isReady });
 
   return http.createServer((req, res) => {
     logHttpRequest(req, res, logger);

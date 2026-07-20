@@ -3,6 +3,7 @@ import { createPrivateKey, generateKeyPairSync, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { loadAuthConfig } from "@swarmcast/config/env";
 import { ERROR_CODES, httpStatusForError, publicError } from "@swarmcast/config/errors";
+import { closeHttpServer, createServiceLifecycle } from "@swarmcast/config/lifecycle";
 import { createLogger, logHttpRequest } from "@swarmcast/config/logging";
 import { createLocalJWKSet, exportJWK, jwtVerify, SignJWT } from "jose";
 import { createAuthMetrics, formatAuthMetrics } from "./metrics.js";
@@ -102,6 +103,7 @@ export async function createAuthServer({
   tokenRateLimiter = new IpRateLimiter(),
   attestationChallengeRateLimiter = new IpRateLimiter(),
   nowSeconds = () => Math.floor(Date.now() / 1000),
+  isReady = () => true,
   logger = null
 } = {}) {
   if (!appApiKey) throw new Error("APP_API_KEY is required");
@@ -127,6 +129,10 @@ export async function createAuthServer({
     const url = new URL(req.url, "http://auth.local");
 
     if (url.pathname === "/health") return json(res, 200, { ok: true });
+    if (url.pathname === "/ready") {
+      const ready = isReady();
+      return json(res, ready ? 200 : 503, { ok: ready });
+    }
     if (url.pathname === "/metrics") {
       res.writeHead(200, { "content-type": "text/plain; version=0.0.4; charset=utf-8" });
       res.end(formatAuthMetrics(metrics));
@@ -235,6 +241,7 @@ export async function createAuthServer({
 if (import.meta.url === `file://${process.argv[1]}`) {
   const runtimeConfig = loadAuthConfig(process.env, { requireSecrets: true });
   const logger = createLogger({ service: "auth" });
+  const lifecycle = createServiceLifecycle({ service: "auth", logger });
   const server = await createAuthServer({
     keyPath: runtimeConfig.keyPath,
     keyId: runtimeConfig.keyId,
@@ -260,9 +267,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     turnSharedSecret: runtimeConfig.turnSharedSecret,
     turnCredentialTtlSeconds: runtimeConfig.turnCredentialTtlSeconds,
     appApiKey: runtimeConfig.appApiKey,
+    isReady: lifecycle.isReady,
     logger
   });
+  lifecycle.install(() => closeHttpServer(server));
   server.listen(runtimeConfig.port, () => {
+    lifecycle.markReady();
     logger.info("service_started", { node_id: "auth", port: runtimeConfig.port }, "auth listening");
   });
 }

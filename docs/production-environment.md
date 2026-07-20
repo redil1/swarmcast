@@ -6,16 +6,18 @@ This template records the production deployment shape. Fill every value before l
 
 | Service | Host/Node | Image Ref/Digest | Port | Health Check | Owner |
 |---|---|---|---|---|---|
-| auth | TBD | TBD | 7003 | `/metrics` and `/jwks` | TBD |
-| ingest | TBD | TBD | 7001 | `/metrics` | TBD |
-| tracker | TBD | TBD | 7000/7002 | `/metrics` | TBD |
-| control-plane | TBD | TBD | 7010 | `/metrics` | TBD |
-| retention-worker | TBD | TBD | 7020 | `/health` and `/metrics` | TBD |
+| auth | TBD | TBD | 7003 | `/health`, `/ready`, `/metrics`, and `/jwks` | TBD |
+| ingest | TBD | TBD | 7001 | `/health`, `/ready`, and `/metrics` | TBD |
+| tracker | TBD | TBD | 7000/7002 | `/health`, `/ready`, and `/metrics` on 7002 | TBD |
+| control-plane | TBD | TBD | 7010 | `/health`, `/ready`, and `/metrics` | TBD |
+| retention-worker | TBD | TBD | 7020 | `/health`, `/ready`, and `/metrics` | TBD |
 | prometheus | TBD | TBD | 9090 | `/-/ready` | TBD |
 | alertmanager | TBD | TBD | 9093 | `/-/ready` | TBD |
 | grafana | TBD | TBD | 3000 | `/api/health` | TBD |
-| edge-metrics | TBD | TBD | 9101 | `/health` and `/metrics` | TBD |
+| edge-metrics | TBD | TBD | 9101 | `/health`, `/ready`, and `/metrics` | TBD |
 | turn | TBD | TBD | 3478/5349 plus relay range | STUN probe and `/metrics` on 9641 | TBD |
+
+`/health` is the process liveness endpoint. `/ready` is the traffic admission endpoint and must return `503` during startup and shutdown. Prometheus continues to scrape `/metrics`; Docker and deployment orchestration use `/ready`. A core service is not restored to traffic until readiness returns `200` and its dependency checks pass.
 
 ## Edge Nodes
 

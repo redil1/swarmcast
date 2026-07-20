@@ -21,4 +21,5 @@ FROM ${NODE_RUNTIME_IMAGE}
 WORKDIR /app
 COPY --from=build --chown=65532:65532 /app /app
 COPY --from=build --chown=65532:65532 /data /data
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:7010/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 CMD ["services/control-plane/src/index.js"]
