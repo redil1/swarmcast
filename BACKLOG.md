@@ -63,6 +63,8 @@ Last updated: 2026-07-20
 | Item | Status | Evidence |
 |---|---|---|
 | Overall production readiness | 78% | Core implementation and local verification are mature; signed clean image publication, physical-device evidence, real infrastructure, external approvals, production load/drill evidence, and owner sign-off remain hard gates |
+| Architecture review 298 | Complete | Verified the 1M-viewer critique against runtime code and blueprint and converted every finding into `docs/architecture-remediation-plan.md`, with acceptance gates for client topology, seed bootstrap, honest offload, intra-channel swarm cells, capacity, and production proof |
+| Build slice 297 | In progress | Hardened commit `1f97f45` passed remote CI run `29756616628`; staging candidate `v0.1.0-rc2` passed all ten built-image jobs and clean scans for both mirrored images, but mirror signing selected upstream Docker Hub references. A tested owned-digest selector now rejects that condition; replacement CI/staging is pending |
 | Build slice 296 | Done | Hardened all 12 release images without waivers; current Trivy 0.72.0 scans report zero HIGH/CRITICAL findings for every image, Grafana and Alertmanager exact-source rebuilds pass runtime/config checks, service/edge/nginx probes pass, fresh retention volumes initialize safely, architecture follows the target platform, immutable monitoring pins are enforced by repository validation, actionlint/compose/SBOM checks pass, `npm audit` reports zero findings, and `npm run verify` passes 144 tests; remote signed staging publication is the next gate |
 | Build slice 1 | Done | `npm ci --ignore-scripts && npm run verify`, `npm run smoke:ingest`, and `npm audit --audit-level=moderate` passed |
 | Build slice 2 | Done | Added auth endpoint tests, segment watcher tests, tracker message/stats tests, and config validation; `npm run verify`, `npm run smoke:ingest`, and audit passed |
@@ -614,13 +616,13 @@ Last updated: 2026-07-20
 - Acceptance: decoded segment passes SHA-256 and is stored once verified.
 
 ### P6-005 Deficit-Only Seeding
-- Status: Partial. Tracker segment announcements elect a bounded rotating seed tier from super-peer eligible WiFi uploaders, and tests prove cellular peers are excluded; origin/edge seed-pull stop logic remains open.
+- Status: Partial. Tracker segment announcements elect a bounded rotating seed tier from super-peer eligible WiFi uploaders, and tests prove cellular peers are excluded; Android parses `seedTier` and stores `originTemplate` but the scheduler consumes neither, so designated seed pulls and deficit-stop behavior are not implemented end to end. Origin/edge seed-pull policy and measured bootstrap egress remain open.
 - Tracker elects minimal seed-tier super-peers per segment.
 - Origin/edge seed pulls stop once swarm supply is sufficient.
 - Acceptance: origin egress per popular channel does not scale linearly with viewer count.
 
 ### P6-006 Contribution Enforcement
-- Status: Partial. Tracker contribution tiers exempt cellular clients, candidate selection prioritizes super-peers for cellular viewers, and normal peer ordering now deprioritizes throttled WiFi free riders behind full contributors; load-test threshold tuning remains open.
+- Status: Partial. Tracker contribution tiers exempt cellular clients, candidate selection prioritizes super-peers for cellular viewers, and normal peer ordering now deprioritizes throttled WiFi free riders behind full contributors. Android currently derives all P2P eligibility from `uploadAllowed`, so cellular, metered-WiFi, Ethernet, and low-battery clients do not connect for receive-only P2P; download eligibility must be separated from upload eligibility before the cellular guest policy is real. Load-test threshold tuning remains open.
 - Track upload/download ratio and apply priority tiers.
 - Deprioritize WiFi free riders while exempting cellular guests from upload.
 - Acceptance: low-contribution WiFi peer gets fewer/busier peers under load.
@@ -636,7 +638,7 @@ Last updated: 2026-07-20
 - Acceptance: churn events are absorbed without edge spikes in normal conditions.
 
 ### P6-009 Self-Sustaining Drill
-- Status: Partial. `smoke:headless-super-peer-sweep` now runs a deterministic 500-peer coded-transfer model across 5%, 10%, 15%, 20%, and 25% super-peer fractions with a 150-packet helper budget; the local sweep reconstructs every viewer and identifies 15% as the first zero edge-fallback point, while real VM/WebRTC validation remains open.
+- Status: Partial. `smoke:headless-super-peer-sweep` runs a deterministic 500-peer coded-transfer model across 5%, 10%, 15%, 20%, and 25% super-peer fractions with a 150-packet helper budget; it reconstructs every modeled viewer and identifies 15% as the first zero edge-fallback point. The model preloads every super-peer with the full segment while counting only one bootstrap segment, so its offload result is protocol-shape evidence, not a valid production `rho` measurement. A corrected bootstrap accounting model plus real VM/WebRTC and physical-device validation remain open.
 - Run 500 headless peers and vary super-peer fraction from 5% to 25%.
 - Acceptance: identify measured point where edge egress flattens.
 
@@ -669,7 +671,7 @@ Last updated: 2026-07-20
 - Acceptance: channels on different ingest nodes play through the same app flow.
 
 ### P7-006 Tracker Sharding
-- Status: Partial. Tracker shards can now be declared with `TRACKER_SHARD_ID` and `TRACKER_SHARDS`; joins are routed by deterministic channel hash, wrong-shard joins receive a `redirect` before placement/demand state is created, Android can parse/reconnect on redirect, and `smoke:tracker-sharding` proves only the owning shard creates swarm state; full Docker/WebSocket sharded-fleet validation remains open.
+- Status: Partial. Tracker shards can be declared with `TRACKER_SHARD_ID` and `TRACKER_SHARDS`; joins are routed by deterministic channel hash, wrong-shard joins receive a `redirect` before placement/demand state is created, Android can parse/reconnect on redirect, and `smoke:tracker-sharding` proves only the owning shard creates swarm state. This partitions channels, not viewers within one channel: one mega-channel is limited by one process, whose segment broadcast is O(N), candidate selection and seeder election sort channel peers, and metrics scrapes aggregate peer windows. Add intra-channel swarm cells, cross-cell seed distribution, and incremental indexes/metrics before claiming single-channel 1M support; full sharded-fleet validation remains open.
 - Route WebSocket joins by channel hash.
 - Acceptance: one swarm lives on one shard; cross-shard media signaling is not required.
 

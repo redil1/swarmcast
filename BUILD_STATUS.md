@@ -2796,3 +2796,28 @@ Results:
    - Execute a clean signed staging release with all 12 locally remediated digest-pinned images, SBOMs, and zero-blocked-finding scan evidence.
    - Run physical-device playback/P2P/RLNC/accessibility evidence when hardware is attached; emulator evidence remains regression-only.
 2. Remaining hard gates are clean signed 12-image publication, signed legal/privacy/security/threat/dependency/RLNC/retention approvals, physical Android device validation, real host provisioning/DNS/TLS/secrets, signed catalog import, real production/staging smokes, VM/WebRTC load ladder, Alertmanager/chaos/restore/rollback/canary drills, and final owner go/no-go.
+
+## Build Slice 297 In Progress
+
+- Hardened commit `1f97f45` passed remote CI run `29756616628`.
+- The Node job passed `npm run verify` and the moderate-severity audit gate.
+- The Android job passed unit tests, assembled debug and unsigned release APKs, computed checksums, and uploaded both artifacts.
+- The deployment-shape job passed base/edge compose rendering and all pinned-nginx configuration, authenticated origin, and edge-cache smokes.
+- Clean signed staging candidate `v0.1.0-rc2` is the active release gate.
+- Candidate `v0.1.0-rc2` exposed a mirror-only publication defect: Docker retained both upstream and GHCR repository digests, and the workflow selected the upstream digest for Prometheus/node_exporter signing.
+- Release digest resolution now filters for the exact owned GHCR image prefix and validates that prefix before scan, SBOM, signing, and evidence generation; repository validation protects the behavior.
+- All ten built-image jobs in run `29756836844` passed, including the exact-source Grafana and Alertmanager builds; both mirrored images passed their unchanged vulnerability gate before failing only at upstream-reference signing.
+- Added a tested owned-digest parser covering upstream-first, normalization, missing, malformed, ambiguous, and unsafe input cases; `npm run verify` passes 148 tests.
+
+## Architecture Review 298
+
+- Confirmed tracker sharding assigns an entire channel to one process; it does not partition a channel's viewers.
+- Identified mega-channel hot paths: per-segment O(N) WebSocket broadcast, O(N log N) candidate/seeder selection, per-peer rolling sample retention, and O(N) metrics aggregation every scrape.
+- Confirmed the runtime connection cap defaults to 100,000 even though the blueprint estimates 300,000-500,000 idle sessions per box; neither figure proves the active segment-fanout workload.
+- Confirmed Android parses `seedTier` and configures `originTemplate` but does not use either in scheduling, so bounded designated seeding is not active end to end.
+- Confirmed cellular receive-only P2P is currently disabled because peer connectivity and upload permission share one `p2pAllowed` flag.
+- Confirmed peers receive candidates only on join; there is no `need_peers` refresh or server-pushed replacement topology when links close.
+- Confirmed Android RLNC is now implemented and wired behind `SWARMCAST_RLNC_ENABLED`, correcting the stale claim that RLNC exists only in JavaScript simulation; production enablement and real-device evidence remain blocked.
+- Confirmed the deterministic 500-peer sweep preloads every super-peer with the segment but counts only one bootstrap segment, so its reported offload cannot be used for fleet economics.
+- Recorded the unresolved capacity mismatch: the blueprint and standard AX41 uplink premise use about 0.8 Gbps usable per box, while `config/capacity-plan.json` assumes 8 Gbps without host evidence.
+- Added `docs/architecture-remediation-plan.md` with phased deliverables and evidence gates for release repair, receive-only/topology repair, bounded bootstrap, intra-channel swarm cells, honest offload, capacity, devices, load, and final production proof.

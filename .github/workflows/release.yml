@@ -136,8 +136,8 @@ jobs:
           docker push "$IMAGE:$GITHUB_SHA"
           docker image rm "$IMAGE:$RELEASE_VERSION" "$IMAGE:$GITHUB_SHA" >/dev/null
           docker pull "$IMAGE:$RELEASE_VERSION"
-          IMAGE_REF=$(docker image inspect --format '{{ index .RepoDigests 0 }}' "$IMAGE:$RELEASE_VERSION")
-          [[ "$IMAGE_REF" =~ @sha256:[a-f0-9]{64}$ ]]
+          IMAGE_REF=$(docker image inspect --format '{{ json .RepoDigests }}' "$IMAGE:$RELEASE_VERSION" | node scripts/select-owned-image-ref.js "$IMAGE")
+          [[ "$IMAGE_REF" =~ ^${IMAGE}@sha256:[a-f0-9]{64}$ ]]
           mkdir -p var/image-evidence var/scans var/image-sboms
           printf '%s=%s\n' "$IMAGE_ENV_NAME" "$IMAGE_REF" > "var/image-evidence/$SERVICE.env"
           printf '%s\n' "$IMAGE_REF" > "var/image-evidence/$SERVICE.digest"

@@ -2344,7 +2344,8 @@ for (const required of [
   "mode: build",
   "mode: mirror",
   "docker build --pull -f \"$DOCKERFILE\"",
-  "docker image inspect --format '{{ index .RepoDigests 0 }}'",
+  "docker image inspect --format '{{ json .RepoDigests }}'",
+  "node scripts/select-owned-image-ref.js \"$IMAGE\"",
   "npm run sbom:generate -- --output var/sbom/swarmcast-sbom.json",
   "npm run sbom:generate -- --check",
   "npm run release:images:check",
@@ -4811,7 +4812,9 @@ for (const check of [
       "dockerfile: infra/monitoring/Dockerfile.alertmanager",
       "dockerfile: infra/monitoring/Dockerfile.grafana",
       "prom/prometheus:v3.13.1-distroless@sha256:214f8427c8fba80c327bb94a75feb802ae12f2d6ca30812aa6e7d22f09bbea80",
-      "prom/node-exporter:v1.12.0-distroless@sha256:843ed23bb564f897ddcc6b6b9b605e398779487a561aae36fddd2933394836cd"
+      "prom/node-exporter:v1.12.0-distroless@sha256:843ed23bb564f897ddcc6b6b9b605e398779487a561aae36fddd2933394836cd",
+      "node scripts/select-owned-image-ref.js \"$IMAGE\"",
+      "^${IMAGE}@sha256:[a-f0-9]{64}$"
     ],
     forbidden: []
   }
