@@ -2903,7 +2903,7 @@ Results:
 - Staging release `v0.1.0-rc4` run `29775245373` passed all jobs. Independently downloaded evidence confirms 13 immutable image digests, 13 non-empty Cosign verifications, 13 CycloneDX image SBOMs, 13 Trivy scans with zero HIGH/CRITICAL findings, and a release manifest bound to commit `cb1a5ae76a6e24604bcaae561780fe1fe2f41296`.
 - Physical relay proof across two WiFi networks and two carriers, measured relay capacity and egress reconciliation, production provisioning, and the real single-channel 1K/10K/100K cell ladder remain external launch gates.
 
-## Build Slice 306 In Progress
+## Build Slice 306 Complete
 
 - Added request-bound Google Play Integrity standard attestation before auth issues viewer JWTs or short-lived TURN credentials.
 - Auth now signs short-lived stateless challenges, accepts one bounded previous challenge secret during rotation, verifies decoded request hash and freshness, and requires the configured package, approved signing certificate, `PLAY_RECOGNIZED`, `LICENSED`, and `MEETS_DEVICE_INTEGRITY` verdicts.
@@ -2911,4 +2911,6 @@ Results:
 - Production and Android release validation fail closed when attestation is disabled or incomplete; the Google service-account JSON is mounted read-only into auth.
 - Added attestation metrics, alerting, dashboard coverage, ADR/runbooks, secrets inventory, synthetic evidence shape, and a final launch gate requiring real package/certificate/request binding, replay rejection, and token issuance proof without raw token retention.
 - Local verification passes: 171 repository tests, Android unit/debug/release builds and release lint, 84-component SBOM consistency, zero npm audit findings, 12 attestation evidence failure cases, 16 production config failure cases, and 40 final launch-bundle failure cases.
-- Remote CI, signed staging release evidence, and real Play Console/Play-installed physical-device evidence remain open before Slice 306 is complete.
+- Commit `e2bfb23` passed remote CI run `29778720168` across Node, deployment-shape, and Android jobs.
+- Staging release `v0.1.0-rc5` run `29778917995` passed all jobs. Independently downloaded evidence confirms 13 immutable digest bindings, 13 matching non-empty Cosign verification records, 13 CycloneDX image SBOMs, 13 Trivy reports with zero HIGH/CRITICAL findings, an 84-component source SBOM, and a release manifest bound to `e2bfb23157f0ba46c33d2f2f76ac6387710a16fa`.
+- Real Play Console linkage, Play-installed physical-device verdicts, request binding, and replay rejection remain external launch gates.
