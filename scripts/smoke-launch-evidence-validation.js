@@ -384,6 +384,33 @@ expectFailure(
   /turn-relay evidence must mention turn-tls-relay/
 );
 expectFailure(
+  "missing Android relay candidate launch evidence",
+  writeVariant("missing-android-relay-candidate", (record) => {
+    const turnRelay = gate(record, "turn-relay");
+    turnRelay.evidence = turnRelay.evidence.filter((evidence) => !evidence.includes("android-relay-candidate-selected"));
+    return record;
+  }),
+  /turn-relay evidence must mention android-relay-candidate-selected/
+);
+expectFailure(
+  "missing direct relay attribution launch evidence",
+  writeVariant("missing-direct-relay-attribution", (record) => {
+    const turnRelay = gate(record, "turn-relay");
+    turnRelay.evidence = turnRelay.evidence.filter((evidence) => !evidence.includes("direct-relay-payload-attribution"));
+    return record;
+  }),
+  /turn-relay evidence must mention direct-relay-payload-attribution/
+);
+expectFailure(
+  "missing relay egress reconciliation launch evidence",
+  writeVariant("missing-relay-egress-reconciliation", (record) => {
+    const turnRelay = gate(record, "turn-relay");
+    turnRelay.evidence = turnRelay.evidence.filter((evidence) => !evidence.includes("relay-egress-reconciled"));
+    return record;
+  }),
+  /turn-relay evidence must mention relay-egress-reconciled/
+);
+expectFailure(
   "missing rollback drill launch evidence",
   writeVariant("missing-rollback-evidence", (record) => {
     const rollbackDrill = gate(record, "rollback-drill");
@@ -419,4 +446,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=41");
+console.log("launch evidence validation smoke OK: pass=1 failures=44");

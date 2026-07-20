@@ -92,6 +92,7 @@ Deliverables:
 - Replace the unproven 8 Gbps edge-node capacity with measured sustained TLS delivery throughput or document/provision the exact 10 Gbps shape and traffic cost.
 - Record ICE success by network class and selected candidate type.
 - Treat TURN/relay traffic as owned delivery egress, not P2P offload.
+- Bind Android peer-delivery counters to the selected ICE path so relay or unclassified DataChannel bytes cannot inflate direct-P2P `rho`.
 - Size edge, tracker, ingest, and monitoring fleets from measured p95/p99 load with node-loss and regional headroom.
 
 Required ladder:

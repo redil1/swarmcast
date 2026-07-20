@@ -28,6 +28,24 @@ data class SchedulerStats(
     val peerDisconnects: Long = 0
 )
 
+internal data class PeerDownloadAttribution(
+    val directP2pBytes: Long,
+    val relayBytes: Long
+)
+
+internal fun peerDownloadAttribution(
+    deliveredBytes: Long,
+    directWeight: Long,
+    relayWeight: Long
+): PeerDownloadAttribution {
+    require(deliveredBytes >= 0L && directWeight >= 0L && relayWeight >= 0L)
+    if (deliveredBytes == 0L) return PeerDownloadAttribution(0L, 0L)
+    val totalWeight = directWeight + relayWeight
+    if (totalWeight <= 0L) return PeerDownloadAttribution(0L, deliveredBytes)
+    val directBytes = deliveredBytes * directWeight / totalWeight
+    return PeerDownloadAttribution(directBytes, deliveredBytes - directBytes)
+}
+
 class SegmentScheduler(
     private val store: SegmentStore,
     private val http: OkHttpClient = OkHttpClient(),
@@ -175,16 +193,20 @@ class SegmentScheduler(
             decoderFactory.create(seq, meta.k, meta.size.toInt())
         }
         val acceptedPeers = LinkedHashSet<String>()
+        var acceptedDirectWeight = 0L
+        var acceptedRelayWeight = 0L
         for (packet in collectCodedPackets(seq, urgencyMs)) {
             if (decoder.accept(packet)) {
                 acceptedPeers += packet.peerId
+                val packetWeight = (packet.coeffs.size + packet.data.size).toLong()
+                if (packet.directP2p) acceptedDirectWeight += packetWeight else acceptedRelayWeight += packetWeight
                 links.values.forEach { it.sendRank(seq, decoder.rank) }
             }
             if (decoder.complete) {
                 val bytes = decoder.decode()
                 if (store.putVerified(seq, bytes, meta.sha256)) {
                     acceptedPeers.forEach { reputation.record(it, PeerReputationEvent.SUCCESS) }
-                    downloadedFromPeersCounter.addAndGet(bytes.size.toLong())
+                    recordPeerDownload(bytes.size.toLong(), acceptedDirectWeight, acceptedRelayWeight)
                     activeDecoders.remove(seq)
                     encoders.remove(seq)
                     links.values.forEach { it.sendBitfield(store.heldSeqs()) }
@@ -249,7 +271,11 @@ class SegmentScheduler(
             }
 
             recordPeerEvent(link, PeerReputationEvent.SUCCESS)
-            downloadedFromPeersCounter.addAndGet(bytes.size.toLong())
+            recordPeerDownload(
+                bytes.size.toLong(),
+                directWeight = if (link.directP2p) bytes.size.toLong() else 0L,
+                relayWeight = if (link.directP2p) 0L else bytes.size.toLong()
+            )
             links.values.forEach { it.sendBitfield(store.heldSeqs()) }
             links.values.forEach { it.sendRank(seq, meta.k) }
             return bytes
@@ -277,6 +303,12 @@ class SegmentScheduler(
             peerDisconnectsCounter.incrementAndGet()
         }
         link.close()
+    }
+
+    private fun recordPeerDownload(deliveredBytes: Long, directWeight: Long, relayWeight: Long) {
+        val attribution = peerDownloadAttribution(deliveredBytes, directWeight, relayWeight)
+        downloadedFromPeersCounter.addAndGet(attribution.directP2pBytes)
+        downloadedFromRelayCounter.addAndGet(attribution.relayBytes)
     }
 
     private suspend fun tryPeerPaths(seq: Int, budgetMs: Long, waitForSupply: Boolean): ByteArray? {

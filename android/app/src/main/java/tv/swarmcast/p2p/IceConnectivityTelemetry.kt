@@ -38,6 +38,9 @@ internal fun selectedIceCandidateType(stats: Collection<IceStat>): String {
 internal fun selectedIceCandidateType(report: RTCStatsReport): String =
     selectedIceCandidateType(report.statsMap.values.map { IceStat(it.id, it.type, it.members) })
 
+internal fun isDirectP2pCandidateType(candidateType: String): Boolean =
+    candidateType == "host" || candidateType == "srflx" || candidateType == "prflx"
+
 class IceConnectivityTelemetry {
     private var current = IceConnectivityDelta()
 

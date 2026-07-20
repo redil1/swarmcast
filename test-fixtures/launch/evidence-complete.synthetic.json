@@ -83,6 +83,7 @@
         "verified-segment-hash cellular-no-upload synthetic-pass",
         "ice-network-class synthetic-pass",
         "ice-selected-candidate-type synthetic-pass",
+        "direct-relay-payload-attribution relay-egress-reconciled synthetic-pass",
         "device-lab/webrtc-datachannel-transfer/synthetic-report"
       ]
     },
@@ -203,6 +204,9 @@
         "turn-tls-relay synthetic-pass",
         "turn-prometheus synthetic-pass",
         "turn-private-peer-deny synthetic-pass",
+        "android-relay-candidate-selected synthetic-pass",
+        "direct-relay-payload-attribution synthetic-pass",
+        "relay-egress-reconciled synthetic-pass",
         "relay-egress-included synthetic-pass"
       ]
     },

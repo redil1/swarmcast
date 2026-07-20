@@ -18,6 +18,7 @@ The plan converts measured launch inputs into owned infrastructure counts:
 
 - `peakConcurrentViewers * averageBitrateMbps` estimates gross viewer traffic.
 - `directP2pOffloadRatio` reduces owned delivery load only after direct P2P transfer; origin bootstrap, edge HTTPS, and any TURN/relay bytes remain in the owned-delivery denominator.
+- Android counts a peer payload as direct only after the selected ICE pair is classified as host, server-reflexive, or peer-reflexive. Relay and unclassified paths fail closed into owned relay delivery; mixed coded reconstruction is attributed proportionally by accepted packet weight.
 - `offloadMeasurementStatus` and `offloadMeasurementEvidence` distinguish a model from completed physical-device and VM/WebRTC measurement.
 - `selfSustainingSuperPeerFraction` records the measured super-peer fraction where edge fallback flattens.
 - `helperUploadPacketsPerSegment` records the helper upload budget used for that sweep.

@@ -44,7 +44,7 @@ const requiredGates = [
   { id: "android-device-playback", requiredEvidence: ["android:playback:evidence:validate", "delivery-fleet-only", "30m-soak", "wifi", "cellular"] },
   {
     id: "android-p2p-transfer",
-    requiredEvidence: ["android:p2p:evidence:validate", "webrtc-datachannel", "tracker-signaling-relay", "verified-segment-hash", "cellular-no-upload", "ice-network-class", "ice-selected-candidate-type"]
+    requiredEvidence: ["android:p2p:evidence:validate", "webrtc-datachannel", "tracker-signaling-relay", "verified-segment-hash", "cellular-no-upload", "ice-network-class", "ice-selected-candidate-type", "direct-relay-payload-attribution", "relay-egress-reconciled"]
   },
   { id: "android-rlnc-decision", requiredEvidence: ["android:rlnc:decision:validate"] },
   { id: "threat-model-signoff", requiredEvidence: ["threat:model:validate"] },
@@ -110,6 +110,9 @@ const requiredGates = [
       "turn-tls-relay",
       "turn-prometheus",
       "turn-private-peer-deny",
+      "android-relay-candidate-selected",
+      "direct-relay-payload-attribution",
+      "relay-egress-reconciled",
       "relay-egress-included"
     ]
   },

@@ -20,7 +20,8 @@ const requiredChecks = [
   "edge-fallback",
   "tracker-stats",
   "p2p-disable-closes-peers",
-  "cellular-receive-only"
+  "cellular-receive-only",
+  "relay-accounting"
 ];
 const requiredDeviceNetworks = ["wifi", "cellular"];
 const requiredTransferEvidence = [
@@ -29,7 +30,9 @@ const requiredTransferEvidence = [
   "verified-segment-hash",
   "edge-fallback",
   "p2p-disable-closes-peers",
-  "cellular-no-upload"
+  "cellular-no-upload",
+  "direct-relay-payload-attribution",
+  "relay-egress-reconciled"
 ];
 const sensitiveEvidencePatterns = [
   /token=/i,
@@ -69,6 +72,12 @@ function integerField(name, value, { min = Number.NEGATIVE_INFINITY, max = Numbe
   if (!Number.isInteger(value)) fail(`${name} must be an integer`);
   if (value < min || value > max) fail(`${name} must be between ${min} and ${max}`);
   return value;
+}
+
+function assertReconciled(name, clientBytes, accessBytes, tolerance) {
+  if (clientBytes === 0 && accessBytes === 0) return;
+  const relativeError = Math.abs(clientBytes - accessBytes) / Math.max(clientBytes, accessBytes, 1);
+  if (relativeError > tolerance) fail(`${name} is not reconciled within tolerance`);
 }
 
 function validateEvidenceList(name, evidence) {
@@ -136,11 +145,21 @@ function validateTransfer(record, devices) {
   if (devices.get(transfer.sourceDeviceId).network !== "wifi") fail("transfer source device must be wifi for upload evidence");
   if (devices.get(transfer.sinkDeviceId).network !== "cellular") fail("transfer sink device must be cellular for receive-only evidence");
   integerField("transfer.verifiedSegments", transfer.verifiedSegments, { min: 1 });
-  integerField("transfer.peerBytes", transfer.peerBytes, { min: 1 });
-  integerField("transfer.edgeBytes", transfer.edgeBytes, { min: 0 });
+  const directP2pBytes = integerField("transfer.directP2pBytes", transfer.directP2pBytes, { min: 1 });
+  const edgeBytes = integerField("transfer.edgeBytes", transfer.edgeBytes, { min: 0 });
+  const bootstrapOriginBytes = integerField("transfer.bootstrapOriginBytes", transfer.bootstrapOriginBytes, { min: 0 });
+  const relayBytes = integerField("transfer.relayBytes", transfer.relayBytes, { min: 0 });
+  const relayAccessEgressBytes = integerField("transfer.relayAccessEgressBytes", transfer.relayAccessEgressBytes, { min: 0 });
+  const reconciliationTolerance = numberField("transfer.reconciliationTolerance", transfer.reconciliationTolerance, { min: 0, max: 0.05 });
   integerField("transfer.hashFailures", transfer.hashFailures, { min: 0, max: 0 });
   integerField("transfer.disconnects", transfer.disconnects, { min: 0, max: 0 });
-  numberField("transfer.offloadRatio", transfer.offloadRatio, { min: 0.01, max: 1 });
+  const offloadRatio = numberField("transfer.offloadRatio", transfer.offloadRatio, { min: 0.01, max: 1 });
+  const totalDeliveryBytes = directP2pBytes + edgeBytes + bootstrapOriginBytes + relayBytes;
+  const computedOffload = directP2pBytes / totalDeliveryBytes;
+  if (Math.abs(computedOffload - offloadRatio) > 0.001) {
+    fail("transfer.offloadRatio does not match direct P2P over all delivery bytes");
+  }
+  assertReconciled("transfer relay egress", relayBytes, relayAccessEgressBytes, reconciliationTolerance);
   numberField("transfer.stallRate", transfer.stallRate, { min: 0, max: budgets.androidStallRateMax });
   numberField("transfer.bufferMsMin", transfer.bufferMsMin, { min: budgets.androidBufferMsMin });
   validateEvidenceList("transfer.evidence", transfer.evidence);

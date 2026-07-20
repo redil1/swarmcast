@@ -22,7 +22,7 @@ class PeerConnectionManager(
     private val tracker: TrackerClient,
     private val maxPeers: Int = 12,
     iceServerConfigs: List<IceServerConfig> = emptyList(),
-    private val onOpen: (peerId: String, channel: DataChannel, closePeer: () -> Unit) -> Unit = { _, _, _ -> },
+    private val onOpen: (peerId: String, channel: DataChannel, closePeer: () -> Unit, directP2p: Boolean) -> Unit = { _, _, _, _ -> },
     private val onMessage: (peerId: String, bytes: ByteArray) -> Unit = { _, _ -> },
     private val onClosed: (peerId: String) -> Unit = {},
     private val onCapacityAvailable: (activePeerIds: Set<String>) -> Unit = {}
@@ -207,8 +207,12 @@ class PeerConnectionManager(
                 when (channel.state()) {
                     DataChannel.State.OPEN -> if (!opened) {
                         opened = true
-                        recordIceSuccess(peerId)
-                        onOpen(peerId, channel) { close(peerId) }
+                        recordIceSuccess(peerId) { candidateType ->
+                            val activeChannel = channels[peerId]
+                            if (activeChannel?.state() == DataChannel.State.OPEN && peers.containsKey(peerId)) {
+                                onOpen(peerId, activeChannel, { close(peerId) }, isDirectP2pCandidateType(candidateType))
+                            }
+                        }
                     }
                     DataChannel.State.CLOSED -> close(peerId)
                     else -> Unit
@@ -230,7 +234,7 @@ class PeerConnectionManager(
             this == PeerConnection.PeerConnectionState.CLOSED ||
             this == PeerConnection.PeerConnectionState.DISCONNECTED
 
-    private fun recordIceSuccess(peerId: String) {
+    private fun recordIceSuccess(peerId: String, onClassified: (String) -> Unit) {
         val peer = peers[peerId] ?: return
         val attemptId = synchronized(iceAttempts) {
             val attempt = iceAttempts[peerId] ?: return
@@ -247,7 +251,11 @@ class PeerConnectionManager(
                     true
                 }
             }
-            if (shouldRecord) iceTelemetry.recordSuccess(selectedIceCandidateType(report))
+            if (shouldRecord) {
+                val candidateType = selectedIceCandidateType(report)
+                iceTelemetry.recordSuccess(candidateType)
+                onClassified(candidateType)
+            }
         }
     }
 

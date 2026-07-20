@@ -88,6 +88,13 @@
       "owner": "android",
       "deviceIds": ["pixel-8-a", "pixel-8-b"],
       "evidence": ["device-lab/p2p/cellular-receive-only.cellular-no-upload.synthetic.json", "android/app/src/main/java/tv/swarmcast/p2p/NetworkPolicy.kt"]
+    },
+    {
+      "id": "relay-accounting",
+      "status": "pass",
+      "owner": "android",
+      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "evidence": ["device-lab/p2p/direct-relay-payload-attribution.relay-egress-reconciled.synthetic.json", "android/app/src/main/java/tv/swarmcast/p2p/SegmentScheduler.kt"]
     }
   ],
   "connectivity": {
@@ -117,16 +124,21 @@
     "sourceDeviceId": "pixel-8-a",
     "sinkDeviceId": "pixel-8-b",
     "verifiedSegments": 24,
-    "peerBytes": 6291456,
+    "directP2pBytes": 6291456,
     "edgeBytes": 1048576,
+    "bootstrapOriginBytes": 0,
+    "relayBytes": 0,
+    "relayAccessEgressBytes": 0,
+    "reconciliationTolerance": 0.05,
     "hashFailures": 0,
     "disconnects": 0,
-    "offloadRatio": 0.86,
+    "offloadRatio": 0.857143,
     "stallRate": 0.002,
     "bufferMsMin": 28000,
     "evidence": [
       "device-lab/p2p/transfer-summary.webrtc-datachannel.tracker-signaling-relay.synthetic.json",
       "device-lab/p2p/verified-segment-hash.edge-fallback.p2p-disable-closes-peers.cellular-no-upload.synthetic.json",
+      "device-lab/p2p/direct-relay-payload-attribution.relay-egress-reconciled.synthetic.json",
       "tracker-metrics/p2p-transfer.synthetic.prom"
     ]
   }
