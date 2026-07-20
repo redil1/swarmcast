@@ -265,10 +265,10 @@ jobs:
           {
             echo "## SwarmCast $RELEASE_VERSION"
             echo "- Environment: $RELEASE_ENVIRONMENT"
-            echo "- Images: 12 digest-pinned GHCR images"
+            echo "- Images: 13 digest-pinned GHCR images"
             echo "- Signatures: keyless Cosign signatures verified for every digest"
-            echo "- Scans: 12 real Trivy JSON reports with no blocked findings"
-            echo "- SBOMs: source SBOM plus 12 CycloneDX image SBOMs"
+            echo "- Scans: 13 real Trivy JSON reports with no blocked findings"
+            echo "- SBOMs: source SBOM plus 13 CycloneDX image SBOMs"
             echo "- Release manifest artifact: swarmcast-release-manifest"
             echo "- SBOM artifact: swarmcast-sbom"
             echo "- Commit: $GITHUB_SHA"

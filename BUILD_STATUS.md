@@ -2932,7 +2932,7 @@ Results:
 - The smoke now waits for both tracker listeners with bounded retries before opening viewer WebSockets.
 - Thirty consecutive executions pass under Node 22.23.1. Corrected remote CI runs `29781658533` and `29781661084` pass Node, Android, and deployment-shape jobs on the implementation commit.
 
-## Build Slice 309 In Progress
+## Build Slice 309 Complete
 
 - Added shared service lifecycle control with bounded, idempotent SIGINT/SIGTERM handling and explicit readiness state.
 - Auth, control-plane, ingest, retention-worker, tracker, and edge metrics now expose readiness independently of liveness; HTTP services drain connections, retention waits for an active policy run, and tracker shutdown clears timers/listeners and closes viewers with restart code `1012`.
@@ -2940,4 +2940,7 @@ Results:
 - Focused lifecycle/readiness tests, the Node 22 tracker-cell restart smoke, edge metrics server smoke, configuration validation, and default/production/release/edge/TURN compose rendering pass.
 - The repeatable lifecycle container smoke now proves Docker health convergence, hardening controls, bounded SIGTERM shutdown, zero exit status, and structured shutdown completion across auth, control-plane, ingest, retention-worker, tracker, and edge metrics.
 - Added the critical `SwarmcastServiceTargetDown` launch alert, a core-service availability dashboard panel, a lifecycle incident runbook, and explicit liveness/readiness endpoint inventory.
-- Slice 309 is about 90% complete. Full repository verification passes 179 tests; Node 22 tracker restart, 27-alert/14-runbook validation, 20-panel dashboard validation, zero-vulnerability npm audit, and real health-to-graceful-shutdown execution across six containers pass. Protected remote CI, signed image scans, and signed release evidence remain open.
+- Remote CI exposed that the shutdown deadline timer was unreferenced, which could let a process with permanently pending cleanup exit naturally before the timeout produced a failure. The deadline now remains referenced; all 179 tests pass under Node 22 with zero cancellations, and freshly rebuilt service images pass the six-container lifecycle smoke.
+- Protected PR #3 passed duplicate Node, Android, and deployment-shape checks and merged as `3af4119`. Main CI run `29784199843` passed all three jobs, including clean image builds and real lifecycle container execution.
+- Staging release `v0.1.0-rc6` run `29784363993` passed all jobs. Independently downloaded evidence verifies 13 immutable digest bindings, 13 non-empty Cosign verification records, 13 CycloneDX image SBOMs, 13 Trivy reports with zero HIGH/CRITICAL findings, an 84-component source SBOM, and a manifest bound to commit `3af41195fb635d01b5b0f343ee6ac56133ecd7c0`.
+- Overall production readiness is now 92%. Remaining gates require real infrastructure, devices, networks, capacity, approvals, drills, and owner sign-off; repository-only evidence cannot legitimately replace them.
