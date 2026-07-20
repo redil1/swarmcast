@@ -28,6 +28,22 @@ async function freePort() {
   return port;
 }
 
+function waitForPort(port) {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host: "127.0.0.1", port });
+    socket.setTimeout(1000);
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", reject);
+    socket.once("timeout", () => {
+      socket.destroy();
+      reject(new Error(`port ${port} did not become ready`));
+    });
+  });
+}
+
 async function waitFor(fn, timeoutMs = 15_000) {
   const started = Date.now();
   let lastError;
@@ -93,7 +109,9 @@ async function stopTracker(tracker) {
 async function waitTracker(shard, tracker) {
   await waitFor(async () => {
     if (tracker.child.exitCode !== null) throw new Error(`tracker ${shard.id} exited:\n${tracker.diagnostics()}`);
-    return (await fetch(`${shard.internalUrl}/metrics`)).ok;
+    const metricsReady = (await fetch(`${shard.internalUrl}/metrics`)).ok;
+    if (!metricsReady) return false;
+    return waitForPort(shard.port);
   });
 }
 

@@ -1,0 +1,44 @@
+{
+  "evidenceId": "repository-governance-main-20260720",
+  "repository": "redil1/swarmcast",
+  "branch": "main",
+  "commit": "0d79d193ce3007961fe72d07762c8a0eeec0bccc",
+  "checkedAt": "2026-07-20T21:38:42Z",
+  "synthetic": false,
+  "branchProtection": {
+    "enabled": true,
+    "enforceAdmins": true,
+    "strictRequiredChecks": true,
+    "requiredChecks": [
+      "android",
+      "deployment-shape",
+      "node"
+    ],
+    "pullRequestRequired": true,
+    "requiredApprovingReviewCount": 0,
+    "dismissStaleReviews": true,
+    "conversationResolution": true,
+    "linearHistory": true,
+    "forcePushesAllowed": false,
+    "deletionsAllowed": false
+  },
+  "security": {
+    "dependabotSecurityUpdates": true,
+    "secretScanning": true,
+    "pushProtection": true
+  },
+  "repositoryFiles": {
+    "codeowners": true,
+    "dependabotConfig": true
+  },
+  "evidence": [
+    "branch-protection-enabled and strict-required-checks verified through the GitHub API on 2026-07-20",
+    "pull-request-required and admin-enforcement verified through the GitHub API on 2026-07-20",
+    "force-push-disabled and deletion-disabled verified through the GitHub API on 2026-07-20",
+    "codeowners: .github/CODEOWNERS",
+    "dependabot-version-updates: .github/dependabot.yml",
+    "dependabot-security-updates verified through the GitHub API on 2026-07-20",
+    "secret-scanning and push-protection verified through the GitHub API on 2026-07-20",
+    "protected pull-request merge: https://github.com/redil1/swarmcast/pull/1"
+  ]
+}

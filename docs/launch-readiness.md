@@ -108,7 +108,7 @@ Each staged rollout record must carry per-cohort peer-health evidence from the m
 | Alert receiver fire-drill | TBD | Partial | `npm run alertmanager:fire-drill:validate` enforces fire-drill evidence shape with receiver validation, routing smoke, warning, critical, resolved-critical, receiver, and acknowledgment markers; real receiver notification evidence remains open |
 | Capacity review | TBD | Blocked | No VM/WebRTC load ladder results |
 | Dependency review | TBD | Blocked | `npm run dependency:review:validate` enforces audit/SBOM/image/Android/inventory decision evidence, required reviewer roles, and waiver expiry shape; `docs/dependency-review.md` still records real open image, Android, and RLNC gates |
-| Repository governance | Release Engineering | Partial | CODEOWNERS, Dependabot version updates, branch protection, required checks, secret scanning, and push protection are machine-gated; live enforcement evidence remains open |
+| Repository governance | Release Engineering | Ready | GitHub enforcement and protected PR #1 are recorded in `evidence/security/repository-governance-main-20260720.json` and pass the repository-governance evidence validator |
 | Threat model sign-off | TBD | Blocked | `docs/threat-model.md` records open Android, edge, dependency, retention, and chaos gates |
 | Data retention approval | TBD | Partial | `npm run retention:approval:validate` and `npm run retention:execution:evidence:validate` enforce approval/execution evidence shape; real scoped execution remains open |
 | Accessibility/UX baseline | TBD | Blocked | 200% font, small-screen, TalkBack, and touch-target evidence are shape-gated; Android device pass is not run |
