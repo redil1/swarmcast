@@ -1,0 +1,74 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      node-production:
+        dependency-type: production
+      node-development:
+        dependency-type: development
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: /services/auth
+    schedule: &weekly_docker
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /services/ingest
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /services/tracker
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /services/control-plane
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /services/retention-worker
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /infra/nginx
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /infra/edge
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /infra/monitoring
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /infra/turn
+    schedule: *weekly_docker
+    open-pull-requests-limit: 3

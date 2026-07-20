@@ -116,6 +116,19 @@
       "evidence": ["security:review:validate synthetic-pass", "docs/security-review.md#synthetic-signoff"]
     },
     {
+      "id": "repository-governance",
+      "owner": "release",
+      "status": "complete",
+      "evidence": [
+        "repository:governance:evidence:validate synthetic-pass",
+        "branch-protection-enabled strict-required-checks synthetic-pass",
+        "pull-request-required admin-enforcement synthetic-pass",
+        "force-push-disabled deletion-disabled synthetic-pass",
+        "codeowners dependabot-version-updates synthetic-pass",
+        "dependabot-security-updates secret-scanning push-protection synthetic-pass"
+      ]
+    },
+    {
       "id": "image-scan-reports",
       "owner": "security",
       "status": "complete",

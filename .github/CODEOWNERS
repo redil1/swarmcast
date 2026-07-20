@@ -1,0 +1,8 @@
+# Default ownership for production code, release automation, and evidence gates.
+* @redil1
+
+/.github/ @redil1
+/infra/ @redil1
+/services/auth/ @redil1
+/scripts/validate-* @redil1
+/BACKLOG.md @redil1

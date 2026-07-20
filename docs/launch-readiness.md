@@ -15,6 +15,7 @@ This document is the release go/no-go checklist. A production launch is blocked 
 - Threat model sign-off evidence passes `npm run threat:model:validate -- path/to/threat-model-review.json` for auth, tracker, control plane, ingest, retention worker, edge, Android P2P, RLNC, release, and dependency supply chain; local guard coverage remains `npm run smoke:threat-model-review-validation`.
 - Security review evidence passes `npm run security:review:validate -- path/to/security-review.json`; local guard coverage remains `npm run smoke:security-review-validation`.
 - Dependency review evidence passes `npm run dependency:review:validate -- path/to/dependency-review.json`; evidence must cover npm audit, SBOM, release image refs, image scans, Android debug/release builds, inventory decisions, reviewer roles, and waiver expiry; local guard coverage remains `npm run smoke:dependency-review-validation`.
+- Repository governance evidence passes `npm run repository:governance:evidence:validate -- path/to/repository-governance-evidence.json` with protected `main`, strict required CI checks, pull-request-only changes, admin enforcement, disabled force-push/deletion, CODEOWNERS, Dependabot version/security updates, secret scanning, and push protection; local guard coverage remains `npm run smoke:repository-governance-evidence-validation`.
 - Release artifact evidence includes the `swarmcast-release-manifest` and `swarmcast-sbom` artifacts, plus `npm run smoke:release-manifest-production` output proving the production env can generate a digest-required 12-image manifest.
 - Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 13 expected service and infrastructure scan report paths.
 - Owned TURN packaging passes `npm run smoke:turn`; production evidence must additionally prove short-lived REST credentials, UDP and TLS relay from external networks, Prometheus scraping, private-peer denial, Android relay candidate selection, and relay egress reconciliation.
@@ -107,6 +108,7 @@ Each staged rollout record must carry per-cohort peer-health evidence from the m
 | Alert receiver fire-drill | TBD | Partial | `npm run alertmanager:fire-drill:validate` enforces fire-drill evidence shape with receiver validation, routing smoke, warning, critical, resolved-critical, receiver, and acknowledgment markers; real receiver notification evidence remains open |
 | Capacity review | TBD | Blocked | No VM/WebRTC load ladder results |
 | Dependency review | TBD | Blocked | `npm run dependency:review:validate` enforces audit/SBOM/image/Android/inventory decision evidence, required reviewer roles, and waiver expiry shape; `docs/dependency-review.md` still records real open image, Android, and RLNC gates |
+| Repository governance | Release Engineering | Partial | CODEOWNERS, Dependabot version updates, branch protection, required checks, secret scanning, and push protection are machine-gated; live enforcement evidence remains open |
 | Threat model sign-off | TBD | Blocked | `docs/threat-model.md` records open Android, edge, dependency, retention, and chaos gates |
 | Data retention approval | TBD | Partial | `npm run retention:approval:validate` and `npm run retention:execution:evidence:validate` enforce approval/execution evidence shape; real scoped execution remains open |
 | Accessibility/UX baseline | TBD | Blocked | 200% font, small-screen, TalkBack, and touch-target evidence are shape-gated; Android device pass is not run |
@@ -140,6 +142,7 @@ Required gate IDs:
 - `threat-model-signoff` with `threat:model:validate`
 - `security-review` with `security:review:validate`
 - `dependency-review` with `dependency:review:validate`, `npm-audit`, `sbom`, `release-image-refs`, `image-scans`, `android-debug-build`, `android-release-build`, `inventory-decisions`, and `waiver-expiry`
+- `repository-governance` with `repository:governance:evidence:validate`, `branch-protection-enabled`, `strict-required-checks`, `pull-request-required`, `admin-enforcement`, `force-push-disabled`, `deletion-disabled`, `codeowners`, `dependabot-version-updates`, `dependabot-security-updates`, `secret-scanning`, and `push-protection`
 - `image-scan-reports`
 - `data-retention-approval`
 - `accessibility-ux-baseline` with `android:accessibility:validate`, `talkback-focus-order`, `large-font-200`, `small-screen-layout`, and `touch-targets`
