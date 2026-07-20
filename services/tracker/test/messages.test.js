@@ -6,19 +6,21 @@ import {
   createTrackerState,
   handlePeerMessage,
   reapIdleTrackerPeers,
+  removePeerFromState,
   sendDemandHeartbeats
 } from "../src/index.js";
 import { selectTrackerShard } from "../src/sharding.js";
 import { Swarm } from "../src/swarm.js";
 
-function fakeWs() {
+function fakeWs(peer = null) {
   const sent = [];
   const ended = [];
   return {
     sent,
     ended,
     send: (msg) => sent.push(JSON.parse(msg)),
-    end: (code, reason) => ended.push({ code, reason })
+    end: (code, reason) => ended.push({ code, reason }),
+    getUserData: peer ? () => peer : undefined
   };
 }
 
@@ -149,11 +151,101 @@ test("join sends peer list when P2P mode is enabled by policy", async () => {
   assert.equal(ws.sent[1].peers[0].id, "existing");
 });
 
+test("crossing the P2P threshold updates existing peers and refreshes topology", async () => {
+  const state = createTrackerState();
+  const existing = createPeer();
+  existing.id = "existing";
+  existing.channelId = "demo";
+  const existingWs = fakeWs(existing);
+  state.peersById.set(existing.id, existingWs);
+  const swarm = new Swarm("demo");
+  swarm.addPeer(existing);
+  swarm.mode = "edge-only";
+  state.swarms.set("demo", swarm);
+
+  const joining = createPeer();
+  await handlePeerMessage({
+    state,
+    peer: joining,
+    ws: fakeWs(joining),
+    policy: { minP2pPeers: 2, edgeOnlyMode: false, p2pEnabled: true },
+    raw: Buffer.from(JSON.stringify({
+      t: "join",
+      channelId: "demo",
+      caps: { transport: "wifi", upload: true, uplinkKbps: 20_000 }
+    })),
+    fetchFn: async () => ({ ok: true })
+  });
+
+  assert.deepEqual(existingWs.sent[0], { t: "swarm_mode", swarmMode: "p2p", swarmSize: 2 });
+  assert.equal(existingWs.sent[1].t, "peers");
+  assert.equal(existingWs.sent[1].peers[0].id, joining.id);
+});
+
+test("leaving the P2P threshold updates remaining peers to edge-only", () => {
+  const state = createTrackerState();
+  const staying = createPeer();
+  staying.id = "staying";
+  staying.channelId = "demo";
+  const leaving = createPeer();
+  leaving.id = "leaving";
+  leaving.channelId = "demo";
+  const stayingWs = fakeWs(staying);
+  state.peersById.set(staying.id, stayingWs);
+  state.peersById.set(leaving.id, fakeWs(leaving));
+  const swarm = new Swarm("demo");
+  swarm.addPeer(staying);
+  swarm.addPeer(leaving);
+  swarm.mode = "p2p";
+  state.swarms.set("demo", swarm);
+
+  removePeerFromState(state, leaving, {
+    policy: { minP2pPeers: 2, edgeOnlyMode: false, p2pEnabled: true }
+  });
+
+  assert.deepEqual(stayingWs.sent, [{ t: "swarm_mode", swarmMode: "edge-only", swarmSize: 1 }]);
+});
+
+test("need_peers excludes active links when returning replacements", async () => {
+  const state = createTrackerState();
+  const requester = createPeer();
+  requester.id = "requester";
+  requester.channelId = "demo";
+  const excluded = createPeer();
+  excluded.id = "excluded";
+  excluded.channelId = "demo";
+  const replacement = createPeer();
+  replacement.id = "replacement";
+  replacement.channelId = "demo";
+  const swarm = new Swarm("demo");
+  [requester, excluded, replacement].forEach((peer) => swarm.addPeer(peer));
+  swarm.mode = "p2p";
+  state.swarms.set("demo", swarm);
+  const ws = fakeWs(requester);
+
+  await handlePeerMessage({
+    state,
+    peer: requester,
+    ws,
+    policy: { minP2pPeers: 2, edgeOnlyMode: false, p2pEnabled: true },
+    raw: Buffer.from(JSON.stringify({ t: "need_peers", exclude: [excluded.id] }))
+  });
+
+  assert.deepEqual(ws.sent, [{
+    t: "peers",
+    peers: [{ id: replacement.id, transport: "cell", superPeer: false }]
+  }]);
+});
+
 test("signal relays opaque payload to target peer", async () => {
   const state = createTrackerState();
   const fromPeer = createPeer();
   fromPeer.id = "from";
-  const targetWs = fakeWs();
+  fromPeer.channelId = "demo";
+  const targetPeer = createPeer();
+  targetPeer.id = "to";
+  targetPeer.channelId = "demo";
+  const targetWs = fakeWs(targetPeer);
   state.peersById.set("to", targetWs);
 
   await handlePeerMessage({
@@ -172,6 +264,31 @@ test("signal relays opaque payload to target peer", async () => {
     from: "from",
     data: { kind: "offer", sdp: "v=0" }
   });
+});
+
+test("signal relay rejects targets outside the sender swarm", async () => {
+  const state = createTrackerState();
+  const fromPeer = createPeer();
+  fromPeer.id = "from";
+  fromPeer.channelId = "demo";
+  const targetPeer = createPeer();
+  targetPeer.id = "to";
+  targetPeer.channelId = "other";
+  const targetWs = fakeWs(targetPeer);
+  state.peersById.set(targetPeer.id, targetWs);
+
+  await handlePeerMessage({
+    state,
+    peer: fromPeer,
+    ws: fakeWs(fromPeer),
+    raw: Buffer.from(JSON.stringify({
+      t: "signal",
+      to: targetPeer.id,
+      data: { kind: "offer", sdp: "v=0" }
+    }))
+  });
+
+  assert.deepEqual(targetWs.sent, []);
 });
 
 test("stats accumulates peer counters", async () => {

@@ -9,6 +9,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import tv.swarmcast.data.AuthRepository
 import tv.swarmcast.data.NetworkPolicy
+import tv.swarmcast.data.p2pPermissions
 import tv.swarmcast.p2p.PeerConnectionManager
 import tv.swarmcast.p2p.PeerInfo
 import tv.swarmcast.p2p.PeerLink
@@ -42,21 +43,25 @@ class PlaybackSessionCoordinator(
                     store = store,
                     uploadBudget = uploadBudget,
                     scope = scope,
+                    uploadAllowed = { uploadAllowed },
                     codedPacketProvider = scheduler::codedPacket,
                     onClosed = { closePeer() },
                     onUploaded = { _, bytes -> scheduler.recordUploaded(bytes) }
                 )
             )
         },
-        onClosed = { peerId -> scheduler.removeLink(peerId) }
+        onClosed = { peerId -> scheduler.removeLink(peerId) },
+        onCapacityAvailable = { peerIds -> schedulePeerReplenishment(peerIds) }
     )
 
     private var eventsJob: Job? = null
     private var statsJob: Job? = null
     private var token: String = ""
     private var p2pEnabled = true
-    private var p2pAllowed = false
+    private var p2pDownloadAllowed = false
+    private var uploadAllowed = false
     private var swarmMode = "edge-only"
+    private var peerRefreshJob: Job? = null
     private var lastStats = SchedulerStats(0, 0, 0)
     private var lastStalls = 0
     private var playbackStartMs = 0L
@@ -66,7 +71,9 @@ class PlaybackSessionCoordinator(
         stop()
         token = authRepository.token()
         val networkSnapshot = networkPolicy.snapshot()
-        p2pAllowed = p2pEnabled && networkSnapshot.uploadAllowed
+        val permissions = p2pPermissions(p2pEnabled, networkSnapshot)
+        p2pDownloadAllowed = permissions.downloadAllowed
+        uploadAllowed = permissions.uploadAllowed
 
         eventsJob = scope.launch {
             tracker.events.collect { handleTrackerEvent(it) }
@@ -81,24 +88,34 @@ class PlaybackSessionCoordinator(
         tracker.connect(
             channelId = channelId,
             wifi = networkSnapshot.transport == "wifi" && !networkSnapshot.metered,
-            uploadEnabled = p2pAllowed,
+            uploadEnabled = uploadAllowed,
             uplinkKbps = networkSnapshot.uplinkKbps
         )
     }
 
     fun setP2pEnabled(enabled: Boolean) {
         p2pEnabled = enabled
-        p2pAllowed = enabled && networkPolicy.uploadAllowed()
-        if (!p2pAllowed) {
+        val snapshot = networkPolicy.snapshot()
+        val permissions = p2pPermissions(enabled, snapshot)
+        p2pDownloadAllowed = permissions.downloadAllowed
+        uploadAllowed = permissions.uploadAllowed
+        if (!p2pDownloadAllowed) {
+            peerRefreshJob?.cancel()
             peerManager.closeAll()
+        } else if (swarmMode == "p2p") {
+            schedulePeerReplenishment(peerManager.peerIds, immediate = true)
         }
     }
 
     fun stop() {
         eventsJob?.cancel()
         statsJob?.cancel()
+        peerRefreshJob?.cancel()
         eventsJob = null
         statsJob = null
+        peerRefreshJob = null
+        p2pDownloadAllowed = false
+        uploadAllowed = false
         peerManager.closeAll()
         tracker.close()
         playerHolder.stop()
@@ -129,24 +146,43 @@ class PlaybackSessionCoordinator(
                 )
             }
             is TrackerEvent.Peers -> {
-                if (p2pAllowed && swarmMode != "edge-only") {
+                if (p2pDownloadAllowed && swarmMode != "edge-only") {
                     event.peers.forEach(::connectPeer)
+                    schedulePeerReplenishment(peerManager.peerIds)
                 }
             }
             is TrackerEvent.Signal -> {
-                if (p2pAllowed && swarmMode != "edge-only") {
+                if (p2pDownloadAllowed && swarmMode != "edge-only") {
                     peerManager.onSignal(event)
+                }
+            }
+            is TrackerEvent.SwarmMode -> {
+                swarmMode = event.swarmMode
+                if (swarmMode == "edge-only") {
+                    peerRefreshJob?.cancel()
+                    peerManager.closeAll()
+                } else if (p2pDownloadAllowed) {
+                    schedulePeerReplenishment(peerManager.peerIds, immediate = true)
                 }
             }
             is TrackerEvent.Segment -> scheduler.onSegmentAnnounce(event)
             is TrackerEvent.Redirect -> Unit
             is TrackerEvent.Error -> Unit
-            TrackerEvent.Disconnected -> Unit
+            TrackerEvent.Disconnected -> peerManager.closeAll()
         }
     }
 
     private fun connectPeer(peer: PeerInfo) {
         if (peer.id.isNotBlank()) peerManager.connectTo(peer)
+    }
+
+    private fun schedulePeerReplenishment(peerIds: Set<String>, immediate: Boolean = false) {
+        if (!p2pDownloadAllowed || swarmMode != "p2p" || peerIds.size >= TARGET_PEERS) return
+        peerRefreshJob?.cancel()
+        peerRefreshJob = scope.launch {
+            if (!immediate) delay(PEER_REFRESH_DELAY_MS)
+            tracker.requestPeers(peerIds)
+        }
     }
 
     private fun flushStats() {
@@ -178,5 +214,7 @@ class PlaybackSessionCoordinator(
 
     companion object {
         private const val STATS_FLUSH_MS = 10_000L
+        private const val PEER_REFRESH_DELAY_MS = 5_000L
+        private const val TARGET_PEERS = 12
     }
 }

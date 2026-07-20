@@ -14,6 +14,7 @@ class PeerLink(
     private val store: SegmentStore,
     private val uploadBudget: UploadBudget,
     private val scope: CoroutineScope,
+    private val uploadAllowed: () -> Boolean = { true },
     private val codedPacketProvider: (seq: Int) -> Wire.CodedPayload? = { null },
     private val onBitfield: (peerId: String, seqs: Set<Int>) -> Unit = { _, _ -> },
     private val onClosed: (peerId: String) -> Unit = {},
@@ -84,7 +85,7 @@ class PeerLink(
     }
 
     fun sendCoded(seq: Int, coeffs: ByteArray, data: ByteArray) {
-        if (sendFrame(Wire.CODED, seq, Wire.codedPayload(coeffs, data))) {
+        if (uploadAllowed() && sendFrame(Wire.CODED, seq, Wire.codedPayload(coeffs, data))) {
             onUploaded(peerId, (coeffs.size + data.size).toLong())
         }
     }
@@ -170,6 +171,7 @@ class PeerLink(
     private fun serve(seq: Int) {
         val entry = store.get(seq)
         when {
+            !uploadAllowed() -> sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_POLICY))
             entry == null -> sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_MISSING))
             !uploadBudget.tryReserve(entry.bytes.size.toLong()) ->
                 sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_QUOTA))
@@ -193,6 +195,7 @@ class PeerLink(
     private fun serveCoded(seq: Int) {
         val packet = codedPacketProvider(seq)
         when {
+            !uploadAllowed() -> sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_POLICY))
             packet == null -> sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_MISSING))
             !uploadBudget.tryReserve((packet.coeffs.size + packet.data.size).toLong()) ->
                 sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_QUOTA))
@@ -212,6 +215,7 @@ class PeerLink(
     companion object {
         const val REJECT_MISSING: Byte = 1
         const val REJECT_QUOTA: Byte = 3
+        const val REJECT_POLICY: Byte = 4
         private const val MAX_BUFFERED_BYTES = 1_000_000L
     }
 }

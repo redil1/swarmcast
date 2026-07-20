@@ -62,9 +62,10 @@ Last updated: 2026-07-20
 
 | Item | Status | Evidence |
 |---|---|---|
-| Overall production readiness | 78% | Core implementation and local verification are mature; signed clean image publication, physical-device evidence, real infrastructure, external approvals, production load/drill evidence, and owner sign-off remain hard gates |
+| Overall production readiness | 80% | Clean signed staging publication is proven and client topology repair is locally verified; physical-device evidence, seed-bootstrap economics, intra-channel swarm cells, real infrastructure, external approvals, production load/drill evidence, and owner sign-off remain hard gates |
+| Build slice 299 | In progress | Implemented tracker replacement-peer requests, same-swarm signaling enforcement, P2P/edge-only transition broadcasts, Android tracker reconnect with capped jittered backoff and close handshake, topology replenishment, and cellular receive-only P2P with policy-level upload rejection. Android policy/reconnect JVM tests and 41 tracker tests pass; real WebSocket smokes recover 20 sampled topologies after closing 60/200 clients in both one-channel and five-channel shapes. Repository-wide verification passes 153 tests; remote CI and physical-device proof remain pending |
 | Architecture review 298 | Complete | Verified the 1M-viewer critique against runtime code and blueprint and converted every finding into `docs/architecture-remediation-plan.md`, with acceptance gates for client topology, seed bootstrap, honest offload, intra-channel swarm cells, capacity, and production proof |
-| Build slice 297 | In progress | Hardened commit `1f97f45` passed remote CI run `29756616628`; staging candidate `v0.1.0-rc2` passed all ten built-image jobs and clean scans for both mirrored images, but mirror signing selected upstream Docker Hub references. A tested owned-digest selector now rejects that condition; replacement CI/staging is pending |
+| Build slice 297 | Done | Owned-digest fix commit `2d7ab7b` passed remote CI run `29761475940`; staging `v0.1.0-rc3` run `29761660544` passed all 12 image jobs and final evidence assembly. Downloaded artifacts independently verify 12 owned GHCR digests, 12 non-empty Cosign verification records, 12 CycloneDX image SBOMs, 12 Trivy scans with zero HIGH/CRITICAL findings, a valid release manifest, and a 55-component source SBOM |
 | Build slice 296 | Done | Hardened all 12 release images without waivers; current Trivy 0.72.0 scans report zero HIGH/CRITICAL findings for every image, Grafana and Alertmanager exact-source rebuilds pass runtime/config checks, service/edge/nginx probes pass, fresh retention volumes initialize safely, architecture follows the target platform, immutable monitoring pins are enforced by repository validation, actionlint/compose/SBOM checks pass, `npm audit` reports zero findings, and `npm run verify` passes 144 tests; remote signed staging publication is the next gate |
 | Build slice 1 | Done | `npm ci --ignore-scripts && npm run verify`, `npm run smoke:ingest`, and `npm audit --audit-level=moderate` passed |
 | Build slice 2 | Done | Added auth endpoint tests, segment watcher tests, tracker message/stats tests, and config validation; `npm run verify`, `npm run smoke:ingest`, and audit passed |
@@ -546,13 +547,13 @@ Last updated: 2026-07-20
 - Acceptance: cellular never uploads; low-battery WiFi upload is disabled.
 
 ### P4-007 P2P Toggle And Privacy Surface
-- Status: Partial. Compose screen exposes a P2P switch and privacy disclosure dialog; MainActivity forwards toggle changes into the active PlaybackSessionCoordinator, which now recomputes network-policy eligibility, clears `p2pAllowed` when disabled or unsafe, closes peer connections, and keeps Delivery-Fleet playback available; Android device verification remains open.
+- Status: Partial. Compose screen exposes a P2P switch and privacy disclosure dialog; MainActivity forwards toggle changes into the active PlaybackSessionCoordinator, which independently recomputes P2P download and upload permissions, closes peer connections when downloads are disabled, rejects uploads when upload policy is false, and keeps Delivery-Fleet playback available; Android device verification remains open.
 - Add settings toggle to disable P2P upload/participation.
 - Add privacy copy explaining peer IP visibility.
 - Acceptance: toggle forces Delivery-Fleet-only behavior.
 
 ### P4-008 Tracker Client Integration
-- Status: Partial. Android TrackerClient scaffold exists for join, peer list, signaling, segment announcements, error events, transfer stats, startup latency, and buffer-health reports; PlaybackSessionCoordinator wires join events, signals, segment announcements, startup timing, rebuffer deltas, buffer depth, peer upload-byte deltas, and stat flushes; local debug/release APK assembly passes, while device verification remains open.
+- Status: Partial. Android TrackerClient supports join, replacement peer requests, signaling, segment and swarm-mode events, transfer stats, startup latency, buffer health, redirect handling, and capped jittered reconnect with token refresh and rejoin; an actual MockWebServer socket-failure test proves a second authenticated join. PlaybackSessionCoordinator closes stale peers on tracker loss and replenishes topology after reconnect; physical-device verification remains open.
 - Connect Android playback state to tracker join/leave and stats reporting.
 - Acceptance: app can join a channel swarm, receive peer candidates, and handle segment announcements without blocking playback.
 
@@ -569,12 +570,12 @@ Last updated: 2026-07-20
 - Acceptance: bad segment bytes are never stored or served.
 
 ### P5-003 PeerConnection Manager
-- Status: Partial. Android PeerConnectionManager creates direct WebRTC PeerConnections, opens ordered `sc-data` channels, relays offer/answer/ICE through the tracker, exposes send/close hooks, idempotently closes failed links, disposes stale DataChannels/PeerConnections, and ignores incoming P2P signals while policy forces Delivery-Fleet-only mode. SegmentScheduler now closes removed/replaced PeerLinks without removing a newly installed link, and PeerLink completes pending whole/coded requests on close; local debug/release APK assembly passes; `npm run android:p2p:evidence:validate` now enforces WebRTC offer/answer, ICE connected, DataChannel open, tracker-signaling relay evidence, WiFi/cellular device coverage, P2P-disable closure, and cellular receive-only/no-upload evidence shape; `smoke:android-p2p-evidence-validation` protects missing/failed/duplicate P2P checks, unknown check devices, missing cellular evidence, cellular upload source, missing DataChannel marker, sensitive check evidence, and synthetic-flag failures in `npm run check`; real-device DataChannel/leak verification remains open.
+- Status: Partial. Android PeerConnectionManager creates direct WebRTC PeerConnections, opens ordered `sc-data` channels, relays offer/answer/ICE through same-swarm validated tracker signaling, exposes active peer IDs, cleans failed links, and triggers replacement discovery below target degree. Tracker mode transitions close or rebuild topology, and real 200-client WebSocket smokes recover sampled peer degree after 30% client loss in one- and five-channel shapes. Real-device ICE/DataChannel/leak verification remains open.
 - Establish peer connections, manage DataChannels, reconnect under minimum peer count, and clean up closed links.
 - Acceptance: no leaked connections after repeated channel changes.
 
 ### P5-004 PeerLink Whole-Segment Serve
-- Status: Partial. Android PeerLink handles REQUEST, DATA, DATA_END, CANCEL, BITFIELD, REJECT, CODED, and RANK frames with upload-budget guarded whole-segment serving, coded request/rank hooks, close-safe pending request cleanup, and upload-byte accounting for whole-segment plus coded-packet sends; local debug/release APK assembly passes; `npm run android:p2p:evidence:validate` now requires verified peer segment transfer, hash verification, tracker stats, zero hash-failure evidence, WiFi upload source, cellular sink receive-only behavior, and transfer evidence for verified segment hashes plus cellular no-upload; `smoke:android-p2p-evidence-validation` protects missing verified segments, hash failures, disconnects, disabled P2P, same source/sink, cellular upload source, missing transfer evidence markers, sensitive transfer evidence, and parser coverage for omitted `--budgets`; real-device transfer validation remains open.
+- Status: Partial. Android PeerLink handles REQUEST, DATA, DATA_END, CANCEL, BITFIELD, REJECT, CODED, and RANK frames with upload-budget guards, close-safe pending cleanup, and upload accounting. Upload policy is now independent from download policy: receive-only peers retain direct P2P downloads while whole and coded upload requests receive an explicit policy rejection. JVM policy tests prove the cellular receive-only state; real-device transfer validation remains open.
 - Request and serve whole segments with backpressure and upload budget.
 - Acceptance: two real devices exchange a verified segment.
 
@@ -622,7 +623,7 @@ Last updated: 2026-07-20
 - Acceptance: origin egress per popular channel does not scale linearly with viewer count.
 
 ### P6-006 Contribution Enforcement
-- Status: Partial. Tracker contribution tiers exempt cellular clients, candidate selection prioritizes super-peers for cellular viewers, and normal peer ordering now deprioritizes throttled WiFi free riders behind full contributors. Android currently derives all P2P eligibility from `uploadAllowed`, so cellular, metered-WiFi, Ethernet, and low-battery clients do not connect for receive-only P2P; download eligibility must be separated from upload eligibility before the cellular guest policy is real. Load-test threshold tuning remains open.
+- Status: Partial. Tracker contribution tiers exempt cellular clients, candidate selection prioritizes super-peers for cellular viewers, backfills target peer degree when normal candidates are scarce, and deprioritizes throttled WiFi free riders. Android now separates direct P2P download eligibility from upload eligibility, allowing cellular/metered receive-only peers while rejecting their uploads. Physical cellular proof and load-test threshold tuning remain open.
 - Track upload/download ratio and apply priority tiers.
 - Deprioritize WiFi free riders while exempting cellular guests from upload.
 - Acceptance: low-contribution WiFi peer gets fewer/busier peers under load.

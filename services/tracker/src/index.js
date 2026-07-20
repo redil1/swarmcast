@@ -55,20 +55,47 @@ export function canAcceptTrackerConnection(state, maxConnections = DEFAULT_CONFI
   return state.peersById.size < maxConnections;
 }
 
-export function removePeerFromState(state, peer) {
+function sendToPeer(state, peer, message, send = null) {
+  if (send) {
+    send(peer, message);
+    return;
+  }
+  state.peersById.get(peer.id)?.send?.(JSON.stringify(message));
+}
+
+function broadcastSwarmMode(state, swarm, policy, send = null, excludedPeerId = null) {
+  const swarmMode = swarmModeForSize(swarm.size, policy);
+  swarm.mode = swarmMode;
+  for (const member of swarm.peers.values()) {
+    if (member.id === excludedPeerId) continue;
+    sendToPeer(state, member, { t: "swarm_mode", swarmMode, swarmSize: swarm.size }, send);
+    if (swarmMode === "p2p") {
+      sendToPeer(state, member, { t: "peers", peers: swarm.peersFor(member) }, send);
+    }
+  }
+}
+
+export function removePeerFromState(state, peer, { policy = TRACKER_POLICY, send = null } = {}) {
   if (!peer?.id) return;
   state.peersById.delete(peer.id);
   if (peer.channelId) {
     const swarm = state.swarms.get(peer.channelId);
+    const previousMode = swarm?.mode || (swarm ? swarmModeForSize(swarm.size, policy) : null);
     swarm?.removePeer(peer.id);
-    if (swarm?.size === 0) state.swarms.delete(peer.channelId);
+    if (swarm?.size === 0) {
+      state.swarms.delete(peer.channelId);
+    } else if (previousMode !== swarmModeForSize(swarm.size, policy)) {
+      broadcastSwarmMode(state, swarm, policy, send);
+    }
   }
 }
 
 export function reapIdleTrackerPeers({
   state,
   nowMs = Date.now(),
-  idleTimeoutMs = DEFAULT_CONFIG.idleTimeoutSeconds * 1000
+  idleTimeoutMs = DEFAULT_CONFIG.idleTimeoutSeconds * 1000,
+  policy = TRACKER_POLICY,
+  send = null
 }) {
   if (idleTimeoutMs <= 0) return 0;
 
@@ -77,7 +104,7 @@ export function reapIdleTrackerPeers({
     const peer = ws.getUserData?.() || ws.peer || ws;
     if (!peer?.lastSeenMs || nowMs - peer.lastSeenMs <= idleTimeoutMs) continue;
     ws.end?.(1001, "idle timeout");
-    removePeerFromState(state, peer);
+    removePeerFromState(state, peer, { policy, send });
     closed += 1;
   }
   return closed;
@@ -116,6 +143,7 @@ export async function handlePeerMessage({
   originBase = DEFAULT_CONFIG.originBase,
   edgeBase = DEFAULT_CONFIG.edgeBase,
   policy = TRACKER_POLICY,
+  send = null,
   trackerShardConfig = {
     selfShardId: DEFAULT_CONFIG.trackerShardId,
     shards: DEFAULT_CONFIG.trackerShards
@@ -196,9 +224,11 @@ export async function handlePeerMessage({
       const demandUrl = media.demandUrl || ingestUrl;
 
       const swarm = swarmFor(state, peer.channelId);
+      const previousMode = swarm.mode || swarmModeForSize(swarm.size, policy);
       swarm.demandUrl = demandUrl;
       swarm.addPeer(peer);
       const swarmMode = swarmModeForSize(swarm.size, policy);
+      swarm.mode = swarmMode;
       logger?.info("tracker_joined", {
         peer_id: peer.id,
         channel_id: peer.channelId,
@@ -226,6 +256,9 @@ export async function handlePeerMessage({
       if (swarmMode === "p2p") {
         ws.send(JSON.stringify({ t: "peers", peers: swarm.peersFor(peer) }));
       }
+      if (previousMode !== swarmMode) {
+        broadcastSwarmMode(state, swarm, policy, send, peer.id);
+      }
       return;
     }
     case "have":
@@ -236,9 +269,27 @@ export async function handlePeerMessage({
     case "stats":
       recordPeerStats(peer, msg);
       return;
+    case "need_peers": {
+      if (!peer.channelId) return;
+      const swarm = state.swarms.get(peer.channelId);
+      if (!swarm || swarmModeForSize(swarm.size, policy) !== "p2p") {
+        ws.send(JSON.stringify({ t: "peers", peers: [] }));
+        return;
+      }
+      const excludedPeerIds = new Set(
+        Array.isArray(msg.exclude) ? msg.exclude.slice(0, 64).map(String) : []
+      );
+      ws.send(JSON.stringify({
+        t: "peers",
+        peers: swarm.peersFor(peer, 12, excludedPeerIds)
+      }));
+      return;
+    }
     case "signal": {
-      const target = state.peersById.get(String(msg.to));
-      if (target) {
+      const targetId = String(msg.to || "");
+      const target = targetId.length <= 128 ? state.peersById.get(targetId) : null;
+      const targetPeer = target?.getUserData?.() || target?.peer;
+      if (target && peer.channelId && targetPeer?.channelId === peer.channelId) {
         target.send?.(JSON.stringify({ t: "signal", from: peer.id, data: msg.data || {} }));
         logger?.debug("tracker_signal_relayed", {
           peer_id: peer.id,
@@ -319,6 +370,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           state,
           peer: ws.getUserData(),
           ws,
+          send,
           raw,
           rateLimiter,
           controlPlaneUrl: runtimeConfig.controlPlaneUrl,
@@ -330,7 +382,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         });
       },
       close: (ws) => {
-        removePeerFromState(state, ws.getUserData());
+        removePeerFromState(state, ws.getUserData(), { policy: TRACKER_POLICY, send });
       }
     })
     .listen(runtimeConfig.port, (ok) => logger.info(ok ? "service_started" : "service_start_failed", {
@@ -396,7 +448,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (runtimeConfig.idleTimeoutSeconds > 0) {
     const idleTimeoutMs = runtimeConfig.idleTimeoutSeconds * 1000;
     setInterval(() => {
-      const closed = reapIdleTrackerPeers({ state, idleTimeoutMs });
+      const closed = reapIdleTrackerPeers({ state, idleTimeoutMs, policy: TRACKER_POLICY, send });
       if (closed > 0) {
         logger.info("tracker_idle_peers_closed", {
           error_class: null,

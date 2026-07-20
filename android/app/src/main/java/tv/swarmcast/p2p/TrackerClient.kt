@@ -1,6 +1,8 @@
 package tv.swarmcast.p2p
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -24,6 +26,8 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import tv.swarmcast.data.ErrorCodes
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
+import kotlin.random.Random
 
 sealed class TrackerEvent {
     data class Joined(
@@ -36,6 +40,7 @@ sealed class TrackerEvent {
     ) : TrackerEvent()
 
     data class Peers(val peers: List<PeerInfo>) : TrackerEvent()
+    data class SwarmMode(val swarmMode: String, val swarmSize: Int) : TrackerEvent()
     data class Signal(val from: String, val data: JsonObject) : TrackerEvent()
     data class Segment(val seq: Int, val sha256: String, val size: Long, val k: Int, val seedTier: Boolean) : TrackerEvent()
     data class Redirect(val channelId: String, val shardId: String, val trackerUrl: String) : TrackerEvent()
@@ -56,40 +61,92 @@ class TrackerClient(
     private var ws: WebSocket? = null
     private var activeJoin: JoinRequest? = null
     private var redirectHops = 0
-    private var suppressNextDisconnect = false
+    private var targetWsUrl = initialWsUrl
+    private var reconnectAttempt = 0
+    private var reconnectJob: Job? = null
+    private var connectionGeneration = 0L
+    private var closedByUser = true
 
     fun connect(channelId: String, wifi: Boolean, uploadEnabled: Boolean, uplinkKbps: Int = 0) {
+        connectionGeneration += 1
+        ws?.close(1000, "replaced")
+        ws = null
+        reconnectJob?.cancel()
+        reconnectJob = null
         activeJoin = JoinRequest(channelId, wifi, uploadEnabled, uplinkKbps)
         redirectHops = 0
+        reconnectAttempt = 0
+        targetWsUrl = initialWsUrl
+        closedByUser = false
         scope.launch {
-            openWebSocket(initialWsUrl, activeJoin ?: return@launch)
+            openWebSocket(targetWsUrl, activeJoin ?: return@launch)
         }
     }
 
     private suspend fun openWebSocket(targetWsUrl: String, join: JoinRequest) {
-        val token = tokenProvider()
+        if (closedByUser || activeJoin != join) return
+        val token = runCatching { tokenProvider() }.getOrElse {
+            scheduleReconnect()
+            return
+        }
         val request = Request.Builder().url("$targetWsUrl?token=$token").build()
+        val generation = ++connectionGeneration
         ws = http.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
+                    if (!isCurrent(generation)) return
                     webSocket.send(joinMessage(join).toString())
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
-                    when (val event = parseEvent(text)) {
+                    if (!isCurrent(generation)) return
+                    when (val event = runCatching { parseEvent(text) }.getOrNull()) {
                         is TrackerEvent.Redirect -> redirectTo(event)
+                        is TrackerEvent.Joined -> {
+                            reconnectAttempt = 0
+                            redirectHops = 0
+                            events.tryEmit(event)
+                        }
                         null -> Unit
                         else -> events.tryEmit(event)
                     }
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    if (suppressNextDisconnect) suppressNextDisconnect = false else events.tryEmit(TrackerEvent.Disconnected)
+                    handleDisconnect(generation)
+                }
+
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    webSocket.close(code, reason)
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    if (suppressNextDisconnect) suppressNextDisconnect = false else events.tryEmit(TrackerEvent.Disconnected)
+                    handleDisconnect(generation)
                 }
             })
+    }
+
+    private fun isCurrent(generation: Long): Boolean = !closedByUser && generation == connectionGeneration
+
+    private fun handleDisconnect(generation: Long) {
+        if (!isCurrent(generation)) return
+        connectionGeneration += 1
+        ws = null
+        events.tryEmit(TrackerEvent.Disconnected)
+        scheduleReconnect()
+    }
+
+    private fun scheduleReconnect() {
+        val join = activeJoin ?: return
+        if (closedByUser || reconnectJob?.isActive == true) return
+        val exponent = min(reconnectAttempt, MAX_RECONNECT_EXPONENT)
+        val baseDelayMs = min(MAX_RECONNECT_DELAY_MS, BASE_RECONNECT_DELAY_MS * (1L shl exponent))
+        val jitterMs = Random.nextLong(0L, (baseDelayMs / 4L) + 1L)
+        reconnectAttempt += 1
+        reconnectJob = scope.launch {
+            delay(baseDelayMs + jitterMs)
+            reconnectJob = null
+            openWebSocket(targetWsUrl, join)
+        }
     }
 
     private fun joinMessage(join: JoinRequest) = buildJsonObject {
@@ -109,10 +166,13 @@ class TrackerClient(
             return
         }
         redirectHops += 1
-        suppressNextDisconnect = true
-        ws?.close(1012, "tracker shard redirect")
+        targetWsUrl = event.trackerUrl
+        connectionGeneration += 1
+        val previous = ws
+        ws = null
+        previous?.close(1012, "tracker shard redirect")
         scope.launch {
-            openWebSocket(event.trackerUrl, join)
+            openWebSocket(targetWsUrl, join)
         }
     }
 
@@ -125,6 +185,17 @@ class TrackerClient(
         put("t", "signal")
         put("to", to)
         put("data", data)
+    })
+
+    fun requestPeers(excludePeerIds: Collection<String> = emptyList()) = sendJson(buildJsonObject {
+        put("t", "need_peers")
+        putJsonArray("exclude") {
+            excludePeerIds.asSequence()
+                .filter { it.isNotBlank() }
+                .distinct()
+                .take(MAX_EXCLUDED_PEERS)
+                .forEach { add(JsonPrimitive(it)) }
+        }
     })
 
     fun reportStats(
@@ -151,8 +222,14 @@ class TrackerClient(
     })
 
     fun close() {
-        ws?.close(1000, "closed")
+        closedByUser = true
+        activeJoin = null
+        reconnectJob?.cancel()
+        reconnectJob = null
+        connectionGeneration += 1
+        val previous = ws
         ws = null
+        previous?.close(1000, "closed")
     }
 
     private fun sendJson(obj: JsonObject) {
@@ -178,6 +255,10 @@ class TrackerClient(
                     superPeer = peer["superPeer"]?.jsonPrimitive?.boolean ?: false
                 )
             })
+            "swarm_mode" -> TrackerEvent.SwarmMode(
+                swarmMode = obj["swarmMode"]?.jsonPrimitive?.contentOrNull ?: "edge-only",
+                swarmSize = obj["swarmSize"]?.jsonPrimitive?.int ?: 0
+            )
             "signal" -> TrackerEvent.Signal(
                 from = obj["from"]!!.jsonPrimitive.content,
                 data = obj["data"]!!.jsonObject
@@ -211,5 +292,9 @@ class TrackerClient(
 
     companion object {
         private const val MAX_TRACKER_REDIRECTS = 3
+        private const val MAX_EXCLUDED_PEERS = 64
+        private const val BASE_RECONNECT_DELAY_MS = 1_000L
+        private const val MAX_RECONNECT_DELAY_MS = 30_000L
+        private const val MAX_RECONNECT_EXPONENT = 5
     }
 }

@@ -46,8 +46,10 @@ function shuffled(peers) {
   return copy;
 }
 
-export function candidatePeers(swarm, forPeer, count = 12) {
-  const others = [...swarm.peers.values()].filter((peer) => peer.id !== forPeer.id);
+export function candidatePeers(swarm, forPeer, count = 12, excludedPeerIds = new Set()) {
+  const others = [...swarm.peers.values()].filter((peer) =>
+    peer.id !== forPeer.id && !excludedPeerIds.has(peer.id)
+  );
   const supers = others.filter((peer) => peer.superPeer || isSuperPeer(peer)).sort((a, b) => score(b) - score(a));
   const normals = shuffled(others.filter((peer) => !(peer.superPeer || isSuperPeer(peer))))
     .sort((a, b) => score(b) - score(a));
@@ -55,6 +57,9 @@ export function candidatePeers(swarm, forPeer, count = 12) {
   const superTarget = forPeer.transport === "cell" ? Math.min(supers.length, count) : Math.min(supers.length, Math.ceil(count / 3));
   const picked = [...supers.slice(0, superTarget)];
   picked.push(...normals.slice(0, count - picked.length));
+  if (picked.length < count) {
+    picked.push(...supers.slice(superTarget, superTarget + count - picked.length));
+  }
 
   return picked.map((peer) => ({ id: peer.id, transport: peer.transport, superPeer: !!(peer.superPeer || isSuperPeer(peer)) }));
 }

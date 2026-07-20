@@ -60,6 +60,7 @@ dependencies {
     implementation("com.github.Backblaze:JavaReedSolomon:d3c481dc69471e0c47ff6f67f33d53bde941675e")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
 
 dependencyLocking {

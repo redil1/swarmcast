@@ -83,3 +83,23 @@ test("candidatePeers deprioritizes throttled wifi free riders", () => {
   assert.equal(peers[0].id, "full");
   assert.equal(peers[1].id, "throttled");
 });
+
+test("candidatePeers backfills requested degree from super peers", () => {
+  const swarm = {
+    peers: new Map()
+  };
+  const requester = { id: "requester", transport: "wifi", uploadEnabled: true };
+  swarm.peers.set(requester.id, requester);
+  for (let index = 0; index < 16; index += 1) {
+    const candidate = {
+      id: `super-${index}`,
+      transport: "wifi",
+      uploadEnabled: true,
+      uplinkKbps: 20_000,
+      superPeer: true
+    };
+    swarm.peers.set(candidate.id, candidate);
+  }
+
+  assert.equal(candidatePeers(swarm, requester, 12).length, 12);
+});

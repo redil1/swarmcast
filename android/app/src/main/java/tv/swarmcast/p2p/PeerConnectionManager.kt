@@ -27,7 +27,8 @@ class PeerConnectionManager(
     ),
     private val onOpen: (peerId: String, channel: DataChannel, closePeer: () -> Unit) -> Unit = { _, _, _ -> },
     private val onMessage: (peerId: String, bytes: ByteArray) -> Unit = { _, _ -> },
-    private val onClosed: (peerId: String) -> Unit = {}
+    private val onClosed: (peerId: String) -> Unit = {},
+    private val onCapacityAvailable: (activePeerIds: Set<String>) -> Unit = {}
 ) {
     private val appContext = context.applicationContext
     private val factory: PeerConnectionFactory
@@ -39,6 +40,9 @@ class PeerConnectionManager(
 
     val connectedCount: Int
         get() = channels.count { it.value.state() == DataChannel.State.OPEN }
+
+    val peerIds: Set<String>
+        get() = peers.keys.toSet()
 
     init {
         PeerConnectionFactory.initialize(
@@ -98,6 +102,7 @@ class PeerConnectionManager(
         channel?.let(::closeDataChannel)
         peer?.let(::closePeerConnection)
         onClosed(peerId)
+        onCapacityAvailable(peerIds)
     }
 
     fun closeAll() {

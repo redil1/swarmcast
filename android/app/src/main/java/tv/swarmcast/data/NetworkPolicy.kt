@@ -24,17 +24,21 @@ class NetworkPolicy(private val context: Context) {
         val batteryOk = charging || batteryPct > MIN_UPLOAD_BATTERY_PERCENT
         val isWifi = transport == "wifi"
         val uploadAllowed = isWifi && !metered && batteryOk
+        val p2pDownloadAllowed = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
         return NetworkPolicySnapshot(
             transport = transport,
             metered = metered,
             batteryPercent = batteryPct.coerceIn(0, 100),
             charging = charging,
             uplinkKbps = if (uploadAllowed) caps?.linkUpstreamBandwidthKbps ?: 0 else 0,
-            uploadAllowed = uploadAllowed
+            uploadAllowed = uploadAllowed,
+            p2pDownloadAllowed = p2pDownloadAllowed
         )
     }
 
     fun uploadAllowed(): Boolean = snapshot().uploadAllowed
+
+    fun p2pDownloadAllowed(): Boolean = snapshot().p2pDownloadAllowed
 
     fun isWifiUnmetered(): Boolean {
         val current = snapshot()
@@ -56,5 +60,17 @@ data class NetworkPolicySnapshot(
     val batteryPercent: Int,
     val charging: Boolean,
     val uplinkKbps: Int,
+    val uploadAllowed: Boolean,
+    val p2pDownloadAllowed: Boolean
+)
+
+data class P2pPermissions(
+    val downloadAllowed: Boolean,
     val uploadAllowed: Boolean
 )
+
+fun p2pPermissions(enabled: Boolean, snapshot: NetworkPolicySnapshot): P2pPermissions =
+    P2pPermissions(
+        downloadAllowed = enabled && snapshot.p2pDownloadAllowed,
+        uploadAllowed = enabled && snapshot.uploadAllowed
+    )

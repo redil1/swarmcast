@@ -134,6 +134,7 @@ async function createClient({ trackerPort, token, index }) {
   }));
   await waitFor(() => messages.some((message) => message.t === "joined"));
   const joinedAt = performance.now();
+  const joined = messages.find((message) => message.t === "joined");
   ws.send(JSON.stringify({
     t: "stats",
     dl_p2p: 9000,
@@ -143,6 +144,7 @@ async function createClient({ trackerPort, token, index }) {
   }));
   return {
     channelId,
+    peerId: joined.peerId,
     ws,
     messages,
     joinLatencyMs: joinedAt - openedAt
@@ -265,8 +267,48 @@ try {
     }
   }
 
+  const victims = clients.filter((_, index) => index % 10 < 3);
+  const victimIds = new Set(victims.map((client) => client.peerId));
+  await Promise.all(victims.map(({ ws }) => waitForClose(ws)));
+  const survivors = clients.filter((client) => !victimIds.has(client.peerId));
+  const survivorIds = new Set(survivors.map((client) => client.peerId));
+  await waitFor(async () => {
+    const metrics = await (await fetch(`http://127.0.0.1:${trackerInternalPort}/metrics`)).text();
+    return metricValue(metrics, "swarmcast_tracker_peers") === survivors.length;
+  });
+
+  const churnProbes = survivors.filter((client) => {
+    const initialPeers = client.messages.find((message) => message.t === "peers")?.peers || [];
+    return initialPeers.some((peer) => victimIds.has(peer.id));
+  }).slice(0, 20);
+  if (churnProbes.length === 0) throw new Error("expected churn probes with at least one departed neighbor");
+
+  await Promise.all(churnProbes.map(async (client) => {
+    const initialPeers = client.messages.find((message) => message.t === "peers")?.peers || [];
+    const excluded = initialPeers.map((peer) => peer.id);
+    const messageOffset = client.messages.length;
+    client.ws.send(JSON.stringify({ t: "need_peers", exclude: excluded }));
+    const replacement = await waitFor(() =>
+      client.messages.slice(messageOffset).find((message) => message.t === "peers")
+    );
+    const available = survivors.filter((candidate) =>
+      candidate.channelId === client.channelId &&
+      candidate.peerId !== client.peerId &&
+      !excluded.includes(candidate.peerId)
+    ).length;
+    const expectedDegree = Math.min(12, available);
+    if (replacement.peers.length !== expectedDegree) {
+      throw new Error(`expected replacement degree ${expectedDegree}, got ${replacement.peers.length}`);
+    }
+    for (const peer of replacement.peers) {
+      if (!survivorIds.has(peer.id) || excluded.includes(peer.id)) {
+        throw new Error(`replacement list contains stale or excluded peer ${peer.id}`);
+      }
+    }
+  }));
+
   const p95 = percentile(clients.map((client) => client.joinLatencyMs), 0.95);
-  console.log(`tracker websocket load smoke OK: peers=${PEERS} channels=${CHANNELS} demandCalls=${demandCalls.length} rho=${metricValue(text, "swarmcast_tracker_offload_ratio").toFixed(3)} joinP95=${p95.toFixed(1)}ms p2pPeerLists=${p2pPeerLists}`);
+  console.log(`tracker websocket load smoke OK: peers=${PEERS} channels=${CHANNELS} demandCalls=${demandCalls.length} rho=${metricValue(text, "swarmcast_tracker_offload_ratio").toFixed(3)} joinP95=${p95.toFixed(1)}ms p2pPeerLists=${p2pPeerLists} churnClosed=${victims.length} churnRecovered=${churnProbes.length}`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   if (tracker) {

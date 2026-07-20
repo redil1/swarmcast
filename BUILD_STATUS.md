@@ -1,6 +1,6 @@
 # Build Status
 
-Date: 2026-07-14
+Date: 2026-07-20
 
 ## Completed In Build Slice 1
 
@@ -2821,3 +2821,14 @@ Results:
 - Confirmed the deterministic 500-peer sweep preloads every super-peer with the segment but counts only one bootstrap segment, so its reported offload cannot be used for fleet economics.
 - Recorded the unresolved capacity mismatch: the blueprint and standard AX41 uplink premise use about 0.8 Gbps usable per box, while `config/capacity-plan.json` assumes 8 Gbps without host evidence.
 - Added `docs/architecture-remediation-plan.md` with phased deliverables and evidence gates for release repair, receive-only/topology repair, bounded bootstrap, intra-channel swarm cells, honest offload, capacity, devices, load, and final production proof.
+
+## Build Slice 299 In Progress
+
+- Closed the release-publication blocker: commit `2d7ab7b` passed CI run `29761475940`, and staging `v0.1.0-rc3` run `29761660544` passed all 12 image jobs and final release-evidence assembly.
+- Independently validated the downloaded release bundle: 12 owned GHCR digests, 12 non-empty Cosign verification records, 12 CycloneDX image SBOMs, 12 Trivy reports with zero HIGH/CRITICAL findings, a valid 12-image manifest, and a 55-component source SBOM.
+- Split Android P2P download and upload permissions so cellular/metered clients can receive directly while whole and coded upload requests are rejected by policy.
+- Added Android tracker reconnect with capped jittered backoff, token refresh, rejoin, redirect continuity, malformed-event isolation, and a complete WebSocket close handshake.
+- Added tracker `need_peers`, exclusion IDs, same-swarm signaling enforcement, swarm-mode transition broadcasts, client topology replenishment, and candidate backfill when normal peers are scarce.
+- Added Android JVM tests for cellular receive-only policy and a real two-connection MockWebServer reconnect, plus tracker regression tests for replacement peers, threshold transitions, cross-channel signal rejection, and candidate-degree backfill.
+- Extended real WebSocket load smokes to close 60 of 200 clients and prove 20 sampled topologies recover target candidate degree using only live same-channel replacements; both one-channel and five-channel shapes pass at `rho=0.900` with join p95 below 100 ms.
+- `npm run verify` passes 153 repository tests; Android unit tests and the tracker Docker build pass. Remote CI and physical-device connectivity/no-upload evidence remain open for this slice.

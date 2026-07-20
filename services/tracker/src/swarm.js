@@ -6,6 +6,7 @@ export class Swarm {
     this.peers = new Map();
     this.segments = new Map();
     this.seedRotation = 0;
+    this.mode = null;
   }
 
   addPeer(peer) {
@@ -20,8 +21,8 @@ export class Swarm {
     return this.peers.size;
   }
 
-  peersFor(peer, count = 12) {
-    return candidatePeers(this, peer, count);
+  peersFor(peer, count = 12, excludedPeerIds = new Set()) {
+    return candidatePeers(this, peer, count, excludedPeerIds);
   }
 
   announceSegment({ seq, sha256, size, k }, send) {
