@@ -9,7 +9,7 @@
       "source": "services/*/Dockerfile and package.json",
       "pinning": "immutable OCI digests",
       "launchDecision": "allowed for staging",
-      "releaseGate": "Complete the clean signed 12-image staging release and tracker soak; retain Node 22 until uWebSockets.js Node 24 compatibility is proven."
+      "releaseGate": "Complete the clean signed 13-image staging release and tracker soak; retain Node 22 until uWebSockets.js Node 24 compatibility is proven."
     },
     {
       "id": "jose",

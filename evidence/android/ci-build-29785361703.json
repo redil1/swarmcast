@@ -1,12 +1,12 @@
 {
-  "buildId": "android-ci-29327610922",
+  "buildId": "android-ci-29785361703",
   "environment": "github-actions",
   "workflow": "CI",
   "job": "android",
-  "commit": "8685f81207499c3e2f843f9755f1d0b5374ee7d6",
-  "runUrl": "https://github.com/redil1/swarmcast/actions/runs/29327610922",
-  "startedAt": "2026-07-14T11:04:31Z",
-  "completedAt": "2026-07-14T11:07:28Z",
+  "commit": "6ffcb8335108b18253280d7929d59ba15d6cd297",
+  "runUrl": "https://github.com/redil1/swarmcast/actions/runs/29785361703",
+  "startedAt": "2026-07-20T22:52:13Z",
+  "completedAt": "2026-07-20T22:54:15Z",
   "synthetic": false,
   "toolchain": {
     "javaDistribution": "temurin",
@@ -20,70 +20,70 @@
       "id": "checkout",
       "status": "pass",
       "evidence": [
-        "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 (v7.0.0), job 87067581505"
+        "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 (v7.0.0), job 88495625463"
       ]
     },
     {
       "id": "setup-java",
       "status": "pass",
       "evidence": [
-        "actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a (v5.5.0), Temurin 17, job 87067581505"
+        "actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a (v5.5.0), Temurin 17, job 88495625463"
       ]
     },
     {
       "id": "setup-android",
       "status": "pass",
       "evidence": [
-        "android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 (v4.0.1), platforms;android-35 build-tools;35.0.0, job 87067581505"
+        "android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 (v4.0.1), platforms;android-35 build-tools;35.0.0, job 88495625463"
       ]
     },
     {
       "id": "setup-gradle",
       "status": "pass",
       "evidence": [
-        "gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 (v6.2.0), wrapper 8.9, job 87067581505"
+        "gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 (v6.2.0), wrapper 8.9, job 88495625463"
       ]
     },
     {
       "id": "testDebugUnitTest",
       "status": "pass",
       "evidence": [
-        "GitHub job 87067581505 ran ./gradlew --no-daemon testDebugUnitTest"
+        "GitHub job 88495625463 ran ./gradlew --no-daemon testDebugUnitTest"
       ]
     },
     {
       "id": "assembleDebug",
       "status": "pass",
       "evidence": [
-        "GitHub job 87067581505 ran ./gradlew --no-daemon assembleDebug"
+        "GitHub job 88495625463 ran ./gradlew --no-daemon assembleDebug"
       ]
     },
     {
       "id": "assembleRelease",
       "status": "pass",
       "evidence": [
-        "GitHub job 87067581505 ran ./gradlew --no-daemon assembleRelease"
+        "GitHub job 88495625463 ran ./gradlew --no-daemon assembleRelease"
       ]
     },
     {
       "id": "computeApkChecksums",
       "status": "pass",
       "evidence": [
-        "GitHub job 87067581505 produced basename-relative SHA-256 sidecars; both downloaded sidecars passed sha256sum -c"
+        "GitHub job 88495625463 produced basename-relative SHA-256 sidecars; both downloaded sidecars passed sha256sum -c"
       ]
     },
     {
       "id": "uploadDebugArtifact",
       "status": "pass",
       "evidence": [
-        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a (v7.0.1), swarmcast-android-debug-apk artifact 8308636137"
+        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a (v7.0.1), swarmcast-android-debug-apk artifact 8478269815"
       ]
     },
     {
       "id": "uploadReleaseArtifact",
       "status": "pass",
       "evidence": [
-        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a (v7.0.1), swarmcast-android-release-unsigned-apk artifact 8308637239"
+        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a (v7.0.1), swarmcast-android-release-unsigned-apk artifact 8478270597"
       ]
     }
   ],
@@ -92,11 +92,11 @@
       "variant": "debug",
       "name": "app-debug.apk",
       "path": "android/app/build/outputs/apk/debug/app-debug.apk",
-      "sha256": "sha256:2f287e0b4a9830c0c536968cc8bf52782379febddf67c0575de589ee6abacc13",
-      "sizeBytes": 56876817,
+      "sha256": "sha256:be05aad177a2a9bd16df9b9f9d9b5c6d66913c7c7e5d163e506e119b4febbb88",
+      "sizeBytes": 57233779,
       "evidence": [
         "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a (v7.0.1)",
-        "swarmcast-android-debug-apk artifact 8308636137",
+        "swarmcast-android-debug-apk artifact 8478269815",
         "app-debug.apk.sha256 passed sha256sum -c after download"
       ]
     },
@@ -104,11 +104,11 @@
       "variant": "release",
       "name": "app-release-unsigned.apk",
       "path": "android/app/build/outputs/apk/release/app-release-unsigned.apk",
-      "sha256": "sha256:30ab1bcb2f9fda652dcdf93472f4ad6d48fdef8236d216995a1d6aca3394a6d8",
-      "sizeBytes": 53580884,
+      "sha256": "sha256:16e276718337615e811551239a7a48402fe245e90243098123efc2dcaeaf3c8c",
+      "sizeBytes": 53872299,
       "evidence": [
         "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a (v7.0.1)",
-        "swarmcast-android-release-unsigned-apk artifact 8308637239",
+        "swarmcast-android-release-unsigned-apk artifact 8478270597",
         "app-release-unsigned.apk.sha256 passed sha256sum -c after download"
       ]
     }
