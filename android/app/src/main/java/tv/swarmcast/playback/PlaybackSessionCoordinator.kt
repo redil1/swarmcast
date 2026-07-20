@@ -36,7 +36,7 @@ class PlaybackSessionCoordinator(
     private val peerManager = PeerConnectionManager(
         context = context,
         tracker = tracker,
-        onOpen = { peerId, channel, closePeer ->
+        onOpen = { peerId, channel, closePeer, directP2p ->
             scheduler.addLink(
                 PeerLink(
                     peerId = peerId,
@@ -44,6 +44,7 @@ class PlaybackSessionCoordinator(
                     store = store,
                     uploadBudget = uploadBudget,
                     scope = scope,
+                    directP2p = directP2p,
                     uploadAllowed = { uploadAllowed },
                     codedPacketProvider = scheduler::codedPacket,
                     onClosed = { closePeer() },

@@ -84,6 +84,14 @@ expectFailure(
   /missing required Android P2P check cellular-receive-only/
 );
 expectFailure(
+  "missing relay accounting check",
+  writeVariant("missing-relay-accounting", (record) => {
+    record.checks = record.checks.filter((candidate) => candidate.id !== "relay-accounting");
+    return record;
+  }),
+  /missing required Android P2P check relay-accounting/
+);
+expectFailure(
   "ICE check failed",
   writeVariant("ice-failed", (record) => {
     check(record, "ice-connected").status = "fail";
@@ -181,6 +189,31 @@ expectFailure(
   /transfer\.offloadRatio must be between 0.01 and 1/
 );
 expectFailure(
+  "missing direct P2P bytes",
+  writeVariant("missing-direct-p2p-bytes", (record) => {
+    delete record.transfer.directP2pBytes;
+    return record;
+  }),
+  /transfer\.directP2pBytes must be an integer/
+);
+expectFailure(
+  "offload ratio inconsistent with delivery categories",
+  writeVariant("offload-category-mismatch", (record) => {
+    record.transfer.offloadRatio = 0.9;
+    return record;
+  }),
+  /transfer\.offloadRatio does not match direct P2P over all delivery bytes/
+);
+expectFailure(
+  "relay egress does not reconcile",
+  writeVariant("relay-egress-mismatch", (record) => {
+    record.transfer.relayBytes = 1048576;
+    record.transfer.offloadRatio = 0.75;
+    return record;
+  }),
+  /transfer relay egress is not reconciled within tolerance/
+);
+expectFailure(
   "stall rate above budget",
   writeVariant("high-stall-rate", (record) => {
     record.transfer.stallRate = 0.02;
@@ -203,6 +236,14 @@ expectFailure(
     return record;
   }),
   /transfer\.evidence must mention webrtc-datachannel/
+);
+expectFailure(
+  "missing direct relay attribution evidence",
+  writeVariant("missing-direct-relay-attribution", (record) => {
+    record.transfer.evidence = record.transfer.evidence.filter((item) => !item.includes("direct-relay-payload-attribution"));
+    return record;
+  }),
+  /transfer\.evidence must mention direct-relay-payload-attribution/
 );
 expectFailure(
   "sensitive transfer evidence",
@@ -245,4 +286,4 @@ expectFailure(
   /connectivity\.evidence must mention ice-selected-candidate-type/
 );
 
-console.log("Android P2P evidence validation smoke OK: pass=1 failures=25");
+console.log("Android P2P evidence validation smoke OK: pass=1 failures=30");

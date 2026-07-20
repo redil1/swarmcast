@@ -26,4 +26,13 @@ class IceConnectivityTelemetryTest {
         assertEquals(IceConnectivityDelta(attempts = 2, successes = 1, failures = 1, srflxSuccesses = 1), telemetry.drain())
         assertEquals(IceConnectivityDelta(), telemetry.drain())
     }
+
+    @Test
+    fun onlyNonRelaySelectedCandidatesCountAsDirectP2p() {
+        assertEquals(true, isDirectP2pCandidateType("host"))
+        assertEquals(true, isDirectP2pCandidateType("srflx"))
+        assertEquals(true, isDirectP2pCandidateType("prflx"))
+        assertEquals(false, isDirectP2pCandidateType("relay"))
+        assertEquals(false, isDirectP2pCandidateType("unknown"))
+    }
 }

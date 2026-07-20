@@ -11,6 +11,14 @@ import java.security.MessageDigest
 
 class SegmentSchedulerTest {
     @Test
+    fun attributesPeerDeliveryWithoutCountingRelayBytesAsDirectP2p() {
+        assertEquals(PeerDownloadAttribution(1_000, 0), peerDownloadAttribution(1_000, 4, 0))
+        assertEquals(PeerDownloadAttribution(0, 1_000), peerDownloadAttribution(1_000, 0, 4))
+        assertEquals(PeerDownloadAttribution(750, 250), peerDownloadAttribution(1_000, 3, 1))
+        assertEquals(PeerDownloadAttribution(0, 1_000), peerDownloadAttribution(1_000, 0, 0))
+    }
+
+    @Test
     fun designatedSuperPeerBootstrapsFromOriginAndAccountsBytes() = withServer { server ->
         val bytes = "origin-segment".toByteArray()
         server.enqueue(MockResponse().setResponseCode(200).setBody(bytes.toString(Charsets.ISO_8859_1)))

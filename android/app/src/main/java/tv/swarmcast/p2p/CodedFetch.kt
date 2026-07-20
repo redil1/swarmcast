@@ -6,7 +6,8 @@ data class CodedPacketCandidate(
     val peerId: String,
     val seq: Int,
     val coeffs: ByteArray,
-    val data: ByteArray
+    val data: ByteArray,
+    val directP2p: Boolean = true
 )
 
 class CodedFetch(
@@ -45,7 +46,8 @@ class CodedFetch(
                 peerId = link.peerId,
                 seq = seq,
                 coeffs = payload.coeffs,
-                data = payload.data
+                data = payload.data,
+                directP2p = link.directP2p
             )
         }
 

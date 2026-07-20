@@ -14,6 +14,7 @@ class PeerLink(
     private val store: SegmentStore,
     private val uploadBudget: UploadBudget,
     private val scope: CoroutineScope,
+    val directP2p: Boolean = true,
     private val uploadAllowed: () -> Boolean = { true },
     private val codedPacketProvider: (seq: Int) -> Wire.CodedPayload? = { null },
     private val onBitfield: (peerId: String, seqs: Set<Int>) -> Unit = { _, _ -> },
