@@ -1330,7 +1330,7 @@ for (const required of [
   "Dependency review evidence passes `npm run dependency:review:validate -- path/to/dependency-review.json`; evidence must cover npm audit, SBOM, release image refs, image scans, Android debug/release builds, inventory decisions, reviewer roles, and waiver expiry; local guard coverage remains `npm run smoke:dependency-review-validation`",
   "Release artifact evidence includes the `swarmcast-release-manifest` and `swarmcast-sbom` artifacts, plus `npm run smoke:release-manifest-production` output",
   "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 12 expected service and infrastructure scan report paths",
-  "Capacity/load ladder evidence passes `npm run capacity:plan:validate -- config/capacity-plan.json` and `npm run load:ladder:validate -- path/to/load-ladder-evidence.json`, including the self-sustaining sweep result; local guard coverage remains `npm run smoke:capacity-plan-validation` and `npm run smoke:load-ladder-evidence-validation`",
+  "Capacity/load ladder evidence passes `npm run capacity:plan:validate -- config/capacity-plan.json` without `--allow-draft` and `npm run load:ladder:validate -- path/to/load-ladder-evidence.json`, including measured direct-P2P offload, measured sustained TLS edge throughput, approved provider traffic terms, relay egress accounting, the self-sustaining sweep, and 1K/10K/100K single-channel cell stages; local guard coverage remains `npm run smoke:capacity-plan-validation` and `npm run smoke:load-ladder-evidence-validation`",
   "Data retention approval evidence passes `npm run retention:approval:validate -- path/to/retention-approval.json`, retention execution evidence passes `npm run retention:execution:evidence:validate -- path/to/retention-execution-evidence.json`, and local guard coverage remains `npm run smoke:retention-approval-validation` plus `npm run smoke:retention-execution-evidence-validation`",
   "Accessibility and UX evidence passes `npm run android:accessibility:validate -- path/to/android-accessibility-evidence.json` for TalkBack, 200% fonts, small screens, player controls, P2P/privacy controls, touch targets, error states, and localization readiness; local guard coverage remains `npm run smoke:android-accessibility-evidence-validation`",
   "Host provisioning evidence passes `npm run host:provisioning:evidence:validate -- path/to/host-provisioning-evidence.json` with origin, edge, API, tracker, control-plane, retention-worker, and monitoring host coverage plus DNS, TLS, internal-port deny, and compose-render evidence before production smoke evidence",
@@ -1378,7 +1378,7 @@ for (const required of [
   "`deployment-execution` with `deployment:evidence:validate`, `release-manifest-validated`, `image-digests-pinned`, `compose-rendered`, `images-pulled`, `deployed-up-no-build`, `service-health`, `post-deploy-smokes`, and `rollback-ready`",
   "`nginx-tls-smoke` with `nginx:tls:evidence:validate`, `smoke:nginx-origin-playback`, `smoke:nginx-edge-cache`, `valid-certificate`, `hostname-verified`, `origin-auth-401`, `origin-segment-200`, `edge-cache-miss`, `edge-cache-hit`, `cross-token-hit`, `no-third-party-cdn`, `source-url-redaction`, and `cache-key-redaction`",
   "`canary-rollout` with `canary:rollout:evidence:validate`, `canary:metrics:validate`, `peerTimeouts5m`, `peerHashFailures5m=0`, and `peerDisconnects5m=0`",
-  "`capacity-load-ladder` with `capacity:plan:validate`, `load:ladder:validate`, `selfSustainingSweep`, `webrtc-datachannel`, and `tracker-signaling-relay`",
+  "`capacity-load-ladder` with `capacity:plan:validate`, `load:ladder:validate`, `direct-p2p-offload-measured`, `edge-tls-throughput-measured`, `provider-traffic-terms-approved`, `relay-egress-included`, `selfSustainingSweep`, `webrtc-datachannel`, `tracker-signaling-relay`, and the `single-channel-cell-ladder-1k`, `single-channel-cell-ladder-10k`, and `single-channel-cell-ladder-100k` markers",
   "`staging-chaos-drills` with `chaos:staging:validate`, `android-playback-continuity`, `owned-edge-failover`, `placement-failover`, `durable-placement-restore`, `peer-health-incident`, `SwarmcastPeerHashFailures`, and `docs/runbooks/peer-health.md`",
   "`production-smokes` with `production:smoke:evidence:validate`, `source-preflight`, `catalog-search-pagination`, `ingest-demand-segments`, `edge-cache-miss-hit`, `tracker-join-peer-list-signal-stats-metrics`, `retention-health-metrics`, and `offload-dashboard-alert-query`",
   "`rollback-drill` with `rollback:evidence:validate`, `docs/runbooks/rollback-drill.md`, `android-release-halt-ready`, `app-incident-delivery-fleet-only`, and `tail-edge-only-mode`",
@@ -1485,7 +1485,14 @@ for (const required of [
 if (failed) process.exit(1);
 const capacityPlanScriptText = readFileSync("scripts/validate-capacity-plan.js", "utf8");
 for (const required of [
-  "measuredOffloadRatio must be at least 0.90 before launch",
+  "offloadMeasurementStatus must be measured before launch",
+  "directP2pOffloadRatio must be at least 0.90 before launch",
+  "edgeNodeCapacityMeasurementStatus must be measured before launch",
+  "providerTrafficTermsApproved must be true before launch",
+  "relayEgressIncluded must be true",
+  "edgeNodeCapacityMbps exceeds the sustained link utilization budget",
+  "validateSensitivity",
+  "--allow-draft",
   "edgeCacheHitRatio must be at least 0.80 before launch",
   "plannedEdgeNodes",
   "plannedOriginNodes",
@@ -1500,15 +1507,24 @@ for (const required of [
 const capacityPlanText = readFileSync("docs/capacity-plan.md", "utf8");
 for (const required of [
   "npm run capacity:plan:validate -- config/capacity-plan.json",
+  "npm run capacity:plan:validate -- --allow-draft config/capacity-plan.json",
   "npm run smoke:capacity-plan-validation",
-  "`measuredOffloadRatio`",
+  "`directP2pOffloadRatio`",
+  "`offloadMeasurementStatus`",
+  "`edgeNodeCapacityMeasurementStatus`",
+  "`providerTrafficTermsApproved`",
+  "`relayEgressIncluded`",
   "`selfSustainingSuperPeerFraction`",
   "`helperUploadPacketsPerSegment`",
   "`superPeerSweepEvidence`",
   "`edgeCacheHitRatio`",
   "`plannedEdgeNodes`",
   "`plannedOriginNodes`",
-  "measuredOffloadRatio >= 0.90",
+  "directP2pOffloadRatio >= 0.90",
+  "82 nodes at `rho=0.99`",
+  "813 at `rho=0.90`",
+  "2,438 at `rho=0.70`",
+  "4,063 at `rho=0.50`",
   "selfSustainingSuperPeerFraction <= 0.25"
 ]) {
   if (!capacityPlanText.includes(required)) {
@@ -1521,13 +1537,20 @@ const capacityPlanSmokeText = readFileSync("scripts/smoke-capacity-plan-validati
 for (const required of [
   "scripts/validate-capacity-plan.js",
   "reviewDate = \"07/05/2026\"",
-  "measuredOffloadRatio = 0.89",
+  "directP2pOffloadRatio = 0.89",
+  "edgeNodeCapacityMbps = 801",
+  "edgeNodeCapacityMeasurementStatus = \"conservative-assumption\"",
+  "offloadMeasurementEvidence = \"load-ladder/physical-device.synthetic.json\"",
+  "edgeNodeCapacityEvidence = \"capacity/edge-node-throughput.pending.json\"",
+  "providerTrafficTermsApproved = false",
+  "providerTrafficTermsEvidence = \"capacity/provider-traffic-terms.pending.md\"",
+  "relayEgressIncluded = false",
   "selfSustainingSuperPeerFraction = 0.3",
   "superPeerSweepEvidence = \"token=synthetic-secret\"",
   "edgeCacheHitRatio = 0.79",
-  "plannedEdgeNodes = 1",
+  "plannedEdgeNodes = 24",
   "plannedOriginNodes = 4",
-  "capacity plan validation smoke OK: pass=1 failures=7"
+  "capacity plan validation smoke OK: pass=2 failures=15"
 ]) {
   if (!capacityPlanSmokeText.includes(required)) {
     console.error(`scripts/smoke-capacity-plan-validation.js: missing capacity plan smoke text: ${required}`);
@@ -1537,14 +1560,21 @@ for (const required of [
 
 const capacityPlanJsonText = readFileSync("config/capacity-plan.json", "utf8");
 for (const required of [
-  "\"measuredOffloadRatio\": 0.9",
+  "\"offloadMeasurementStatus\": \"modeled\"",
+  "\"directP2pOffloadRatio\": 0.85",
   "\"selfSustainingSuperPeerFraction\": 0.15",
   "\"helperUploadPacketsPerSegment\": 150",
   "\"superPeerSweepEvidence\": \"load-ladder/headless-super-peer-sweep.synthetic.json\"",
   "\"edgeCacheHitRatio\": 0.85",
+  "\"edgeNodeCapacityMeasurementStatus\": \"conservative-assumption\"",
+  "\"edgeNodeCapacityMbps\": 800",
+  "\"providerTrafficTermsApproved\": false",
+  "\"relayEgressIncluded\": true",
   "\"headroomRatio\": 0.3",
-  "\"plannedEdgeNodes\": 2",
-  "\"plannedOriginNodes\": 5"
+  "\"plannedEdgeNodes\": 25",
+  "\"plannedOriginNodes\": 5",
+  "\"sensitivityPeakConcurrentViewers\": 1000000",
+  "\"requiredEdgeNodes\": 4063"
 ]) {
   if (!capacityPlanJsonText.includes(required)) {
     console.error(`config/capacity-plan.json: missing capacity plan value: ${required}`);
@@ -1555,9 +1585,11 @@ for (const required of [
 const assumptionsText = readFileSync("docs/assumptions.md", "utf8");
 for (const required of [
   "config/capacity-plan.json",
-  "npm run capacity:plan:validate -- config/capacity-plan.json",
+  "npm run capacity:plan:validate -- --allow-draft config/capacity-plan.json",
   "Self-sustaining super-peer threshold",
-  "current deterministic sweep flattens at 15%"
+  "current deterministic sweep flattens at 15%",
+  "corrected deterministic model currently reports 0.85",
+  "800 Mbps sustained on a 1 Gbps link"
 ]) {
   if (!assumptionsText.includes(required)) {
     console.error(`docs/assumptions.md: missing capacity plan assumption text: ${required}`);
@@ -1925,9 +1957,16 @@ for (const required of [
   "capacity-load-ladder",
   "capacity:plan:validate",
   "load:ladder:validate",
+  "direct-p2p-offload-measured",
+  "edge-tls-throughput-measured",
+  "provider-traffic-terms-approved",
+  "relay-egress-included",
   "selfSustainingSweep",
   "webrtc-datachannel",
   "tracker-signaling-relay",
+  "single-channel-cell-ladder-1k",
+  "single-channel-cell-ladder-10k",
+  "single-channel-cell-ladder-100k",
   "staging-chaos-drills",
   "chaos:staging:validate",
   "android-playback-continuity",
@@ -2115,9 +2154,16 @@ for (const required of [
   "\"capacity-load-ladder\"",
   "capacity:plan:validate",
   "load:ladder:validate",
+  "direct-p2p-offload-measured",
+  "edge-tls-throughput-measured",
+  "provider-traffic-terms-approved",
+  "relay-egress-included",
   "selfSustainingSweep",
   "webrtc-datachannel",
   "tracker-signaling-relay",
+  "single-channel-cell-ladder-1k",
+  "single-channel-cell-ladder-10k",
+  "single-channel-cell-ladder-100k",
   "\"staging-chaos-drills\"",
   "chaos:staging:validate",
   "android-playback-continuity",

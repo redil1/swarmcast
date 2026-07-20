@@ -239,6 +239,24 @@ expectFailure(
   /capacity-load-ladder evidence must mention webrtc-datachannel/
 );
 expectFailure(
+  "missing measured edge throughput launch evidence",
+  writeVariant("missing-measured-edge-throughput", (record) => {
+    const capacityLoadLadder = gate(record, "capacity-load-ladder");
+    capacityLoadLadder.evidence = capacityLoadLadder.evidence.filter((evidence) => !evidence.includes("edge-tls-throughput-measured"));
+    return record;
+  }),
+  /capacity-load-ladder evidence must mention edge-tls-throughput-measured/
+);
+expectFailure(
+  "missing 100K cell ladder launch evidence",
+  writeVariant("missing-100k-cell-ladder", (record) => {
+    const capacityLoadLadder = gate(record, "capacity-load-ladder");
+    capacityLoadLadder.evidence = capacityLoadLadder.evidence.filter((evidence) => !evidence.includes("single-channel-cell-ladder-100k"));
+    return record;
+  }),
+  /capacity-load-ladder evidence must mention single-channel-cell-ladder-100k/
+);
+expectFailure(
   "missing peer health staging chaos launch evidence",
   writeVariant("missing-peer-health-staging-chaos", (record) => {
     const stagingChaos = gate(record, "staging-chaos-drills");
@@ -364,4 +382,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=35");
+console.log("launch evidence validation smoke OK: pass=1 failures=37");

@@ -2866,3 +2866,13 @@ Results:
 - Expanded the negative validation smoke from 12 to 18 failure paths and documented that the committed synthetic fixture proves record shape only, never capacity or launch readiness.
 - The seven-stage synthetic fixture, 18-case negative smoke, configuration validation, `npm run check`, and repository-wide verification with 163 tests pass locally.
 - Commit `8f07e17` passed remote CI run `29767526051` across Node, deployment-shape, and Android jobs. The actual 1K/10K/100K fleet runs remain external launch gates.
+
+## Build Slice 303 In Progress
+
+- Reclassified the committed capacity plan as a draft instead of allowing synthetic and modeled inputs to masquerade as launch measurements.
+- Replaced the unsupported 8 Gbps edge-host assumption with a conservative 800 Mbps allowance bounded by a 1 Gbps link and 80% sustained utilization.
+- Replaced the false `measuredOffloadRatio=0.90` input with the corrected modeled direct-P2P `rho=0.85`; the 20K-viewer draft now requires 25 edge nodes with 30% headroom instead of 2.
+- Added a recomputed 1M-viewer sensitivity table requiring 82, 813, 2,438, or 4,063 edge nodes at direct-P2P `rho` 0.99, 0.90, 0.70, or 0.50 respectively.
+- Launch validation now requires measured non-synthetic offload, measured sustained TLS host throughput, approved provider traffic terms, and relay egress inclusion. Draft calculations require the explicit `--allow-draft` flag.
+- Final launch evidence now separately requires those capacity proofs plus 1K/10K/100K single-channel cell-ladder markers.
+- Capacity validation passes 2 positive shapes and rejects 15 invalid or unproved cases; launch evidence validation passes one synthetic shape and rejects 37 failure cases. `npm run check` passes locally; repository-wide verification and remote CI remain before this slice is complete.

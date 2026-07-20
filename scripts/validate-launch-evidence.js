@@ -147,7 +147,23 @@ const requiredGates = [
       "acknowledged"
     ]
   },
-  { id: "capacity-load-ladder", requiredEvidence: ["capacity:plan:validate", "load:ladder:validate", "selfSustainingSweep", "webrtc-datachannel", "tracker-signaling-relay"] },
+  {
+    id: "capacity-load-ladder",
+    requiredEvidence: [
+      "capacity:plan:validate",
+      "load:ladder:validate",
+      "direct-p2p-offload-measured",
+      "edge-tls-throughput-measured",
+      "provider-traffic-terms-approved",
+      "relay-egress-included",
+      "selfSustainingSweep",
+      "webrtc-datachannel",
+      "tracker-signaling-relay",
+      "single-channel-cell-ladder-1k",
+      "single-channel-cell-ladder-10k",
+      "single-channel-cell-ladder-100k"
+    ]
+  },
   {
     id: "staging-chaos-drills",
     requiredEvidence: [

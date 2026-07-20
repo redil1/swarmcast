@@ -258,9 +258,16 @@
       "evidence": [
         "capacity:plan:validate config/capacity-plan.json synthetic-pass",
         "load:ladder:validate synthetic-pass",
+        "direct-p2p-offload-measured synthetic-pass",
+        "edge-tls-throughput-measured synthetic-pass",
+        "provider-traffic-terms-approved synthetic-pass",
+        "relay-egress-included synthetic-pass",
         "selfSustainingSweep synthetic-pass",
         "webrtc-datachannel synthetic-pass",
         "tracker-signaling-relay synthetic-pass",
+        "single-channel-cell-ladder-1k synthetic-pass",
+        "single-channel-cell-ladder-10k synthetic-pass",
+        "single-channel-cell-ladder-100k synthetic-pass",
         "load-ladder/webrtc-vm/synthetic-report"
       ]
     },
