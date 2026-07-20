@@ -67,7 +67,9 @@
       "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
       "targets": [
         { "expr": "rate(swarmcast_tracker_download_p2p_bytes_total[5m])", "legendFormat": "p2p" },
-        { "expr": "rate(swarmcast_tracker_download_edge_bytes_total[5m])", "legendFormat": "edge" }
+        { "expr": "rate(swarmcast_tracker_download_edge_bytes_total[5m])", "legendFormat": "edge" },
+        { "expr": "rate(swarmcast_tracker_download_bootstrap_origin_bytes_total[5m])", "legendFormat": "origin bootstrap" },
+        { "expr": "rate(swarmcast_tracker_download_relay_bytes_total[5m])", "legendFormat": "relay" }
       ]
     },
     {
@@ -110,7 +112,9 @@
       "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
       "targets": [
         { "expr": "swarmcast_tracker_download_p2p_bytes_5m", "legendFormat": "p2p 5m" },
-        { "expr": "swarmcast_tracker_download_edge_bytes_5m", "legendFormat": "edge 5m" }
+        { "expr": "swarmcast_tracker_download_edge_bytes_5m", "legendFormat": "edge 5m" },
+        { "expr": "swarmcast_tracker_download_bootstrap_origin_bytes_5m", "legendFormat": "origin bootstrap 5m" },
+        { "expr": "swarmcast_tracker_download_relay_bytes_5m", "legendFormat": "relay 5m" }
       ]
     },
     {

@@ -202,6 +202,8 @@ class TrackerClient(
         dlP2p: Long,
         dlEdge: Long,
         ul: Long,
+        dlBootstrapOrigin: Long = 0,
+        dlRelay: Long = 0,
         stalls: Int = 0,
         startupMs: Long? = null,
         bufferMs: Long? = null,
@@ -212,6 +214,8 @@ class TrackerClient(
         put("t", "stats")
         put("dl_p2p", dlP2p)
         put("dl_edge", dlEdge)
+        put("dl_bootstrap_origin", dlBootstrapOrigin)
+        put("dl_relay", dlRelay)
         put("ul", ul)
         put("stalls", stalls)
         put("peer_timeouts", peerTimeouts.coerceAtLeast(0L))

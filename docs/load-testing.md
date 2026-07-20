@@ -11,7 +11,7 @@ The load ladder must move from deterministic local smokes to VM/WebRTC tests bef
 - `npm run smoke:placement-movement`: assigns 20K synthetic channels before and after adding an ingest node, verifies bounded placement movement, and checks distribution skew across ingest nodes.
 - `npm run smoke:headless-peer`: verifies a peer reconstructs a segment from two partial recoders.
 - `npm run smoke:headless-200`: verifies 200 viewers reconstruct a verified coded segment through helper recoding.
-- `npm run smoke:headless-super-peer-sweep`: runs a 500-peer deterministic headless sweep across 5%, 10%, 15%, 20%, and 25% super-peer fractions, verifies every viewer reconstructs the segment, and identifies where edge fallback flattens to zero under the configured helper upload budget.
+- `npm run smoke:headless-super-peer-sweep`: runs a 500-peer deterministic headless sweep across 5%, 10%, 15%, 20%, and 25% super-peer fractions, verifies every viewer reconstructs the segment, charges every preloaded helper segment as bootstrap delivery, and reports the resulting model `rho`. This is a model diagnostic, not production offload evidence.
 - `npm run smoke:ingest-demand-playlist`: starts a real ingest HTTP server with `ChannelManager`, demands a channel, produces synthetic fMP4 HLS files through a worker shim, watches the segment, announces it to a fake tracker internal endpoint, and verifies live status.
 - `npm run smoke:ingest-ffmpeg-chaos`: simulates repeated ffmpeg worker crashes for a demanded channel and verifies restart backoff preserves demand metadata before the channel enters degraded state.
 - `npm run smoke:ingest-tail-admission`: verifies `TAIL_ADMISSION_MAX_CHANNELS` rejects new cold-tail channels before ffmpeg starts while allowing hot channels through the normal capacity path.
@@ -44,9 +44,9 @@ Each staging run must record:
 - command, commit, image tags, and host shape
 - peer count, channel count, WiFi/cellular mix, and super-peer fraction
 - WebRTC DataChannel transport, tracker-signaling relay path, and successful DataChannel transfer
-- rolling `rho`, stall rate, startup latency, buffer health, tracker p95 message cost, and memory per peer
-- edge egress, origin egress, cache hit ratio, and alert state
-- self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, and edge-fallback packets per fraction
+- rolling `rho` computed as direct P2P bytes divided by direct P2P, edge, origin-bootstrap, and relay bytes; stall rate, startup latency, buffer health, tracker p95 message cost, and memory per peer
+- separate client P2P/edge/origin-bootstrap/relay byte counters reconciled within 5% of edge, origin, and relay access-log egress; cache hit ratio and alert state
+- self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, every preloaded helper charged as bootstrap packets, and packet-derived model `rho` per fraction
 
 Validate the final ladder evidence before launch:
 

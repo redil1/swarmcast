@@ -409,8 +409,9 @@ for (const required of [
   "segment announcement delivery",
   "buffer health",
   "500-peer deterministic headless sweep",
-  "edge fallback flattens to zero",
-  "self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, and edge-fallback packets per fraction",
+  "charges every preloaded helper segment as bootstrap delivery",
+  "self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, every preloaded helper charged as bootstrap packets",
+  "reconciled within 5% of edge, origin, and relay access-log egress",
   "WebRTC DataChannel transport, tracker-signaling relay path, and successful DataChannel transfer",
   "rho >= 0.90",
   "config/performance-budgets.json",
@@ -433,6 +434,10 @@ for (const required of [
   "stageExpectations",
   "validateSelfSustainingSweep",
   "selfSustainingSweep.flattenSuperPeerFraction",
+  "selfSustainingSweep.bootstrapAccounting",
+  "clientBootstrapOriginBytes",
+  "edgeAccessEgressBytes",
+  "assertReconciled",
   "smoke:headless-super-peer-sweep",
   "1-channel-3-devices",
   "1-channel-200-peers",
@@ -458,7 +463,12 @@ for (const required of [
   "\"ladderId\": \"load-ladder-20260705\"",
   "\"selfSustainingSweep\"",
   "\"flattenSuperPeerFraction\": 0.15",
+  "\"bootstrapAccounting\": \"all-preloaded-helpers\"",
+  "\"bestOffloadRatio\": 0.85",
   "\"edgeFallbackPackets\": 5750",
+  "\"edgeBootstrapPackets\": 1500",
+  "\"clientBootstrapOriginBytes\"",
+  "\"edgeAccessEgressBytes\"",
   "\"id\": \"1-channel-3-devices\"",
   "\"id\": \"1-channel-200-peers\"",
   "\"id\": \"50-channels-2000-peers\"",
@@ -483,6 +493,8 @@ for (const required of [
   "synthetic load ladder evidence requires --allow-synthetic",
   "missing self sustaining sweep",
   "edge fallback after flatten",
+  "missing helper bootstrap accounting",
+  "edge access reconciliation drift",
   "zipf-catalog",
   "offloadRatio = 0.89",
   "stallRate = 0.02",
@@ -490,7 +502,7 @@ for (const required of [
   "dataChannelTransfer = false",
   "alertState = \"firing\"",
   "token=synthetic-secret",
-  "load ladder evidence validation smoke OK: pass=1 failures=10"
+  "load ladder evidence validation smoke OK: pass=1 failures=12"
 ]) {
   if (!loadLadderSmokeText.includes(required)) {
     console.error(`scripts/smoke-load-ladder-evidence-validation.js: missing load ladder smoke text: ${required}`);
@@ -1143,6 +1155,8 @@ for (const metric of [
   "swarmcast_tracker_offload_ratio_5m",
   "swarmcast_tracker_download_p2p_bytes_5m",
   "swarmcast_tracker_download_edge_bytes_5m",
+  "swarmcast_tracker_download_bootstrap_origin_bytes_5m",
+  "swarmcast_tracker_download_relay_bytes_5m",
   "swarmcast_tracker_stall_rate_5m",
   "swarmcast_tracker_startup_latency_ms_avg_5m",
   "swarmcast_tracker_buffer_ms_min_5m",
@@ -4395,7 +4409,7 @@ const androidTextChecks = [
   {
     file: "android/app/src/main/java/tv/swarmcast/playback/PlaybackUrls.kt",
     required: [
-      "appendQueryParameter(\"token\", token)",
+      "addQueryParameter(\"token\", token)",
       "template.contains(\"{file}\")"
     ]
   },
@@ -4724,11 +4738,17 @@ const androidTextChecks = [
     file: "android/app/src/main/java/tv/swarmcast/p2p/SegmentScheduler.kt",
     required: [
       "store.get(seq)",
-      "tryPeers(seq, urgencyMs)",
+      "tryPeerPaths",
       "collectCodedPackets",
       "tryDecodeCodedSegment",
       "decoderFactory.create",
-      "fetchFromEdge",
+      "fetchOwnedSegment",
+      "originTemplate",
+      "checkNotNull(manifest[seq])",
+      "meta.seedTier",
+      "downloadedFromBootstrapOriginCounter",
+      "downloadedFromRelayCounter",
+      "segment hash mismatch",
       "PlaybackUrls.segmentUrl",
       "downloadedFromPeers",
       "downloadedFromEdge",

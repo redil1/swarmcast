@@ -1,5 +1,11 @@
 export function contributionTier(peer) {
-  const downloaded = Math.max((peer.bytesDownP2p || 0) + (peer.bytesDownEdge || 0), 1);
+  const downloaded = Math.max(
+    (peer.bytesDownP2p || 0) +
+    (peer.bytesDownEdge || 0) +
+    (peer.bytesDownBootstrapOrigin || 0) +
+    (peer.bytesDownRelay || 0),
+    1
+  );
   const ratio = (peer.bytesUp || 0) / downloaded;
   if (peer.transport === "cell") return "guest";
   if (ratio >= 0.8) return "full";
@@ -12,7 +18,11 @@ export function isSuperPeer(peer) {
 }
 
 export function score(peer) {
-  const ratio = Math.min((peer.bytesUp || 0) / Math.max((peer.bytesDownP2p || 0) + (peer.bytesDownEdge || 0), 1), 3) / 3;
+  const downloaded = (peer.bytesDownP2p || 0) +
+    (peer.bytesDownEdge || 0) +
+    (peer.bytesDownBootstrapOrigin || 0) +
+    (peer.bytesDownRelay || 0);
+  const ratio = Math.min((peer.bytesUp || 0) / Math.max(downloaded, 1), 3) / 3;
   const totalTransfers = (peer.transfersOk || 0) + (peer.transfersFail || 0);
   const reliability = totalTransfers === 0 ? 0.5 : (peer.transfersOk || 0) / totalTransfers;
   const capacity = peer.transport === "wifi" && peer.uploadEnabled ? 1 : 0;

@@ -41,6 +41,8 @@ export function createPeer(userData = {}) {
     bytesUp: 0,
     bytesDownP2p: 0,
     bytesDownEdge: 0,
+    bytesDownBootstrapOrigin: 0,
+    bytesDownRelay: 0,
     peerTimeouts: 0,
     peerHashFailures: 0,
     peerDisconnects: 0,

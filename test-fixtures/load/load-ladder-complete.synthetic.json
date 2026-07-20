@@ -9,16 +9,19 @@
   "selfSustainingSweep": {
     "command": "npm run smoke:headless-super-peer-sweep",
     "peerCount": 500,
+    "codingRank": 20,
     "uploadPacketsPerSuperPeer": 150,
+    "bootstrapAccounting": "all-preloaded-helpers",
     "fractions": [0.05, 0.1, 0.15, 0.2, 0.25],
     "flattenSuperPeerFraction": 0.15,
-    "minOffloadAfterFlatten": 0.997,
+    "bestOffloadRatio": 0.85,
+    "flattenOffloadRatio": 0.85,
     "edgeFallbackPackets": [
-      { "superPeerFraction": 0.05, "edgeFallbackPackets": 5750 },
-      { "superPeerFraction": 0.1, "edgeFallbackPackets": 1500 },
-      { "superPeerFraction": 0.15, "edgeFallbackPackets": 0 },
-      { "superPeerFraction": 0.2, "edgeFallbackPackets": 0 },
-      { "superPeerFraction": 0.25, "edgeFallbackPackets": 0 }
+      { "superPeerFraction": 0.05, "edgeFallbackPackets": 5750, "edgeBootstrapPackets": 500, "p2pPackets": 3750, "offloadRatio": 0.375 },
+      { "superPeerFraction": 0.1, "edgeFallbackPackets": 1500, "edgeBootstrapPackets": 1000, "p2pPackets": 7500, "offloadRatio": 0.75 },
+      { "superPeerFraction": 0.15, "edgeFallbackPackets": 0, "edgeBootstrapPackets": 1500, "p2pPackets": 8500, "offloadRatio": 0.85 },
+      { "superPeerFraction": 0.2, "edgeFallbackPackets": 0, "edgeBootstrapPackets": 2000, "p2pPackets": 8000, "offloadRatio": 0.8 },
+      { "superPeerFraction": 0.25, "edgeFallbackPackets": 0, "edgeBootstrapPackets": 2500, "p2pPackets": 7500, "offloadRatio": 0.75 }
     ],
     "evidence": ["load-ladder/headless-super-peer-sweep.synthetic.json"]
   },
@@ -36,6 +39,14 @@
       "wifiFraction": 1,
       "superPeerFraction": 0.67,
       "offloadRatio": 0.67,
+      "clientP2pBytes": 670000,
+      "clientEdgeBytes": 300000,
+      "clientBootstrapOriginBytes": 30000,
+      "clientRelayBytes": 0,
+      "edgeAccessEgressBytes": 300000,
+      "originAccessBootstrapBytes": 30000,
+      "relayAccessEgressBytes": 0,
+      "reconciliationTolerance": 0.05,
       "stallRate": 0.002,
       "startupLatencyMsP95": 3100,
       "bufferMsMin": 26000,
@@ -45,7 +56,7 @@
       "edgeEgressMbps": 5,
       "originEgressMbps": 0.5,
       "alertState": "clear",
-      "evidence": ["load-ladder/1-channel-3-devices.synthetic.json", "webrtc-datachannel tracker-signaling-relay synthetic-pass"]
+      "evidence": ["load-ladder/1-channel-3-devices.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled synthetic-pass"]
     },
     {
       "id": "1-channel-200-peers",
@@ -60,6 +71,14 @@
       "wifiFraction": 0.8,
       "superPeerFraction": 0.8,
       "offloadRatio": 0.91,
+      "clientP2pBytes": 910000,
+      "clientEdgeBytes": 70000,
+      "clientBootstrapOriginBytes": 20000,
+      "clientRelayBytes": 0,
+      "edgeAccessEgressBytes": 70000,
+      "originAccessBootstrapBytes": 20000,
+      "relayAccessEgressBytes": 0,
+      "reconciliationTolerance": 0.05,
       "stallRate": 0.003,
       "startupLatencyMsP95": 3400,
       "bufferMsMin": 30000,
@@ -69,7 +88,7 @@
       "edgeEgressMbps": 90,
       "originEgressMbps": 12,
       "alertState": "clear",
-      "evidence": ["load-ladder/1-channel-200-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay synthetic-pass"]
+      "evidence": ["load-ladder/1-channel-200-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled synthetic-pass"]
     },
     {
       "id": "50-channels-2000-peers",
@@ -84,6 +103,14 @@
       "wifiFraction": 0.82,
       "superPeerFraction": 0.78,
       "offloadRatio": 0.9,
+      "clientP2pBytes": 900000,
+      "clientEdgeBytes": 80000,
+      "clientBootstrapOriginBytes": 20000,
+      "clientRelayBytes": 0,
+      "edgeAccessEgressBytes": 80000,
+      "originAccessBootstrapBytes": 20000,
+      "relayAccessEgressBytes": 0,
+      "reconciliationTolerance": 0.05,
       "stallRate": 0.005,
       "startupLatencyMsP95": 4200,
       "bufferMsMin": 22000,
@@ -93,7 +120,7 @@
       "edgeEgressMbps": 900,
       "originEgressMbps": 130,
       "alertState": "clear",
-      "evidence": ["load-ladder/50-channels-2000-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay synthetic-pass"]
+      "evidence": ["load-ladder/50-channels-2000-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled synthetic-pass"]
     },
     {
       "id": "zipf-catalog",
@@ -108,6 +135,14 @@
       "wifiFraction": 0.82,
       "superPeerFraction": 0.78,
       "offloadRatio": 0.9,
+      "clientP2pBytes": 900000,
+      "clientEdgeBytes": 80000,
+      "clientBootstrapOriginBytes": 20000,
+      "clientRelayBytes": 0,
+      "edgeAccessEgressBytes": 80000,
+      "originAccessBootstrapBytes": 20000,
+      "relayAccessEgressBytes": 0,
+      "reconciliationTolerance": 0.05,
       "stallRate": 0.006,
       "startupLatencyMsP95": 4300,
       "bufferMsMin": 21000,
@@ -117,7 +152,7 @@
       "edgeEgressMbps": 980,
       "originEgressMbps": 145,
       "alertState": "clear",
-      "evidence": ["load-ladder/zipf-catalog.synthetic.json", "test-fixtures/distribution/zipf-20k.json", "webrtc-datachannel tracker-signaling-relay synthetic-pass"]
+      "evidence": ["load-ladder/zipf-catalog.synthetic.json", "test-fixtures/distribution/zipf-20k.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled synthetic-pass"]
     }
   ]
 }

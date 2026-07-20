@@ -70,10 +70,28 @@ expectFailure(
 expectFailure(
   "edge fallback after flatten",
   writeVariant("edge-fallback-after-flatten", (record) => {
-    record.selfSustainingSweep.edgeFallbackPackets.find((row) => row.superPeerFraction === 0.2).edgeFallbackPackets = 1;
+    const row = record.selfSustainingSweep.edgeFallbackPackets.find((candidate) => candidate.superPeerFraction === 0.2);
+    row.edgeFallbackPackets = 1;
+    row.p2pPackets -= 1;
     return record;
   }),
   /selfSustainingSweep\.edgeFallbackPackets must be zero at and after flattenSuperPeerFraction/
+);
+expectFailure(
+  "missing helper bootstrap accounting",
+  writeVariant("missing-helper-bootstrap", (record) => {
+    record.selfSustainingSweep.edgeFallbackPackets[2].edgeBootstrapPackets = 20;
+    return record;
+  }),
+  /does not charge every preloaded helper/
+);
+expectFailure(
+  "edge access reconciliation drift",
+  writeVariant("edge-reconciliation-drift", (record) => {
+    stage(record, "1-channel-200-peers").edgeAccessEgressBytes = 100000;
+    return record;
+  }),
+  /edge egress differs by 0\.3000, above tolerance 0\.05/
 );
 expectFailure(
   "offload below required threshold",
@@ -124,4 +142,4 @@ expectFailure(
   /1-channel-200-peers\.evidence evidence reference looks like it may contain sensitive material/
 );
 
-console.log("load ladder evidence validation smoke OK: pass=1 failures=10");
+console.log("load ladder evidence validation smoke OK: pass=1 failures=12");

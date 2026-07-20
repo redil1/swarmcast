@@ -62,7 +62,7 @@ class PlaybackSessionCoordinator(
     private var uploadAllowed = false
     private var swarmMode = "edge-only"
     private var peerRefreshJob: Job? = null
-    private var lastStats = SchedulerStats(0, 0, 0)
+    private var lastStats = SchedulerStats(downloadedFromPeers = 0, downloadedFromEdge = 0)
     private var lastStalls = 0
     private var playbackStartMs = 0L
     private var startupLatencyReported = false
@@ -119,7 +119,7 @@ class PlaybackSessionCoordinator(
         peerManager.closeAll()
         tracker.close()
         playerHolder.stop()
-        lastStats = SchedulerStats(0, 0, 0)
+        lastStats = SchedulerStats(downloadedFromPeers = 0, downloadedFromEdge = 0)
         lastStalls = 0
         playbackStartMs = 0L
         startupLatencyReported = false
@@ -200,6 +200,8 @@ class PlaybackSessionCoordinator(
         tracker.reportStats(
             dlP2p = current.downloadedFromPeers - lastStats.downloadedFromPeers,
             dlEdge = current.downloadedFromEdge - lastStats.downloadedFromEdge,
+            dlBootstrapOrigin = current.downloadedFromBootstrapOrigin - lastStats.downloadedFromBootstrapOrigin,
+            dlRelay = current.downloadedFromRelay - lastStats.downloadedFromRelay,
             ul = current.uploadedToPeers - lastStats.uploadedToPeers,
             stalls = (currentStalls - lastStalls).coerceAtLeast(0),
             startupMs = startupMs,

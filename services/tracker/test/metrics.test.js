@@ -7,6 +7,8 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     peers: 2,
     dlP2p: 100,
     dlEdge: 50,
+    dlBootstrapOrigin: 10,
+    dlRelay: 5,
     ul: 75,
     stalls: 1,
     peerTimeouts: 2,
@@ -19,6 +21,8 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     bufferMsMin: 12000,
     rollingDlP2p: 30,
     rollingDlEdge: 70,
+    rollingDlBootstrapOrigin: 7,
+    rollingDlRelay: 3,
     rollingOffloadRatio: 0.3,
     rollingStallRate: 0.01,
     rollingPeerTimeouts: 1,
@@ -33,6 +37,8 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
 
   assert.match(text, /swarmcast_tracker_peers 2/);
   assert.match(text, /swarmcast_tracker_offload_ratio 0\.666/);
+  assert.match(text, /swarmcast_tracker_download_bootstrap_origin_bytes_total 10/);
+  assert.match(text, /swarmcast_tracker_download_relay_bytes_5m 3/);
   assert.match(text, /swarmcast_tracker_offload_ratio_5m 0\.3/);
   assert.match(text, /swarmcast_tracker_playback_stalls_total 1/);
   assert.match(text, /swarmcast_tracker_peer_timeouts_total 2/);

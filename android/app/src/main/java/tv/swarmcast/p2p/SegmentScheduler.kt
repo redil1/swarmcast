@@ -1,6 +1,9 @@
 package tv.swarmcast.p2p
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -10,11 +13,15 @@ import tv.swarmcast.data.ErrorCodes
 import tv.swarmcast.data.apiExceptionFromResponse
 import tv.swarmcast.playback.PlaybackUrls
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.min
 
 data class SchedulerStats(
     val downloadedFromPeers: Long,
     val downloadedFromEdge: Long,
+    val downloadedFromBootstrapOrigin: Long = 0,
+    val downloadedFromRelay: Long = 0,
     val uploadedToPeers: Long = 0,
     val peerTimeouts: Long = 0,
     val peerHashFailures: Long = 0,
@@ -34,6 +41,7 @@ class SegmentScheduler(
     private val codedFetch = CodedFetch(links = { links.values })
     private val activeDecoders = ConcurrentHashMap<Int, NetworkCodingDecoder>()
     private val encoders = ConcurrentHashMap<Int, NetworkCodingEncoder>()
+    private val inFlightFetches = ConcurrentHashMap<Int, CompletableDeferred<ByteArray>>()
 
     var edgeTemplate: String = ""
         private set
@@ -43,16 +51,24 @@ class SegmentScheduler(
         private set
     var superPeer: Boolean = false
         private set
-    var downloadedFromPeers = 0L
-        private set
-    var downloadedFromEdge = 0L
-        private set
+    private val downloadedFromPeersCounter = AtomicLong(0)
+    private val downloadedFromEdgeCounter = AtomicLong(0)
+    private val downloadedFromBootstrapOriginCounter = AtomicLong(0)
+    private val downloadedFromRelayCounter = AtomicLong(0)
     private val uploadedToPeersCounter = AtomicLong(0)
     private val peerTimeoutsCounter = AtomicLong(0)
     private val peerHashFailuresCounter = AtomicLong(0)
     private val peerDisconnectsCounter = AtomicLong(0)
     val uploadedToPeers: Long
         get() = uploadedToPeersCounter.get()
+    val downloadedFromPeers: Long
+        get() = downloadedFromPeersCounter.get()
+    val downloadedFromEdge: Long
+        get() = downloadedFromEdgeCounter.get()
+    val downloadedFromBootstrapOrigin: Long
+        get() = downloadedFromBootstrapOriginCounter.get()
+    val downloadedFromRelay: Long
+        get() = downloadedFromRelayCounter.get()
     val peerTimeouts: Long
         get() = peerTimeoutsCounter.get()
     val peerHashFailures: Long
@@ -96,18 +112,55 @@ class SegmentScheduler(
     suspend fun fetchSegment(seq: Int, fileName: String, urgencyMs: Long): ByteArray {
         store.get(seq)?.let { return it.bytes }
 
-        tryDecodeCodedSegment(seq, urgencyMs)?.let { return it }
-        tryPeers(seq, urgencyMs)?.let { return it }
+        val pending = CompletableDeferred<ByteArray>()
+        val existing = inFlightFetches.putIfAbsent(seq, pending)
+        if (existing != null) return existing.await()
 
-        val bytes = fetchFromEdge(fileName)
-        downloadedFromEdge += bytes.size
-        manifest[seq]?.let { meta ->
-            store.putVerified(seq, bytes, meta.sha256)
-            encoders.remove(seq)
-            links.values.forEach { it.sendBitfield(store.heldSeqs()) }
-            links.values.forEach { it.sendRank(seq, meta.k) }
+        return try {
+            val bytes = fetchSegmentOnce(seq, fileName, urgencyMs.coerceAtLeast(MIN_PEER_TIMEOUT_MS))
+            pending.complete(bytes)
+            bytes
+        } catch (error: Throwable) {
+            pending.completeExceptionally(error)
+            throw error
+        } finally {
+            inFlightFetches.remove(seq, pending)
         }
-        return bytes
+    }
+
+    private suspend fun fetchSegmentOnce(seq: Int, fileName: String, urgencyMs: Long): ByteArray {
+        val meta = checkNotNull(manifest[seq]) { "segment metadata is unavailable for $seq" }
+        val designatedBootstrap = meta.seedTier && superPeer && originTemplate.isNotBlank()
+        val peerBudgetMs = if (designatedBootstrap) min(urgencyMs, SEED_PEER_WAIT_MS) else urgencyMs
+
+        if (!designatedBootstrap || hasPeerSupply(seq)) {
+            tryPeerPaths(seq, peerBudgetMs, waitForSupply = !designatedBootstrap)?.let { return it }
+        }
+
+        if (designatedBootstrap) {
+            val bootstrapBytes = try {
+                fetchOwnedSegment(
+                    template = originTemplate,
+                    fileName = fileName,
+                    meta = meta,
+                    timeoutMs = (urgencyMs - peerBudgetMs).coerceAtLeast(MIN_ORIGIN_TIMEOUT_MS),
+                    counter = downloadedFromBootstrapOriginCounter
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                null
+            }
+            bootstrapBytes?.let { return it }
+        }
+
+        return fetchOwnedSegment(
+            template = edgeTemplate,
+            fileName = fileName,
+            meta = meta,
+            timeoutMs = urgencyMs.coerceAtLeast(MIN_EDGE_TIMEOUT_MS),
+            counter = downloadedFromEdgeCounter
+        )
     }
 
     suspend fun collectCodedPackets(seq: Int, urgencyMs: Long): List<CodedPacketCandidate> {
@@ -131,7 +184,7 @@ class SegmentScheduler(
                 val bytes = decoder.decode()
                 if (store.putVerified(seq, bytes, meta.sha256)) {
                     acceptedPeers.forEach { reputation.record(it, PeerReputationEvent.SUCCESS) }
-                    downloadedFromPeers += bytes.size
+                    downloadedFromPeersCounter.addAndGet(bytes.size.toLong())
                     activeDecoders.remove(seq)
                     encoders.remove(seq)
                     links.values.forEach { it.sendBitfield(store.heldSeqs()) }
@@ -163,6 +216,8 @@ class SegmentScheduler(
         SchedulerStats(
             downloadedFromPeers = downloadedFromPeers,
             downloadedFromEdge = downloadedFromEdge,
+            downloadedFromBootstrapOrigin = downloadedFromBootstrapOrigin,
+            downloadedFromRelay = downloadedFromRelay,
             uploadedToPeers = uploadedToPeers,
             peerTimeouts = peerTimeouts,
             peerHashFailures = peerHashFailures,
@@ -194,7 +249,7 @@ class SegmentScheduler(
             }
 
             recordPeerEvent(link, PeerReputationEvent.SUCCESS)
-            downloadedFromPeers += bytes.size
+            downloadedFromPeersCounter.addAndGet(bytes.size.toLong())
             links.values.forEach { it.sendBitfield(store.heldSeqs()) }
             links.values.forEach { it.sendRank(seq, meta.k) }
             return bytes
@@ -224,14 +279,54 @@ class SegmentScheduler(
         link.close()
     }
 
-    private suspend fun fetchFromEdge(fileName: String): ByteArray = withContext(Dispatchers.IO) {
-        require(edgeTemplate.isNotBlank()) { "edge template is not configured" }
+    private suspend fun tryPeerPaths(seq: Int, budgetMs: Long, waitForSupply: Boolean): ByteArray? {
+        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(budgetMs)
+        do {
+            val codedBudget = remainingMs(deadlineNanos)
+            if (codedBudget <= 0L) return null
+            tryDecodeCodedSegment(seq, codedBudget)?.let { return it }
+            val wholeSegmentBudget = remainingMs(deadlineNanos)
+            if (wholeSegmentBudget <= 0L) return null
+            tryPeers(seq, wholeSegmentBudget)?.let { return it }
+            val remaining = remainingMs(deadlineNanos)
+            if (!waitForSupply || remaining <= 0L) return null
+            delay(min(PEER_SUPPLY_POLL_MS, remaining))
+        } while (true)
+    }
+
+    private fun hasPeerSupply(seq: Int): Boolean = links.values.any {
+        it.remoteHas.contains(seq) || it.rankFor(seq) > 0
+    }
+
+    private fun remainingMs(deadlineNanos: Long): Long =
+        TimeUnit.NANOSECONDS.toMillis((deadlineNanos - System.nanoTime()).coerceAtLeast(0L))
+
+    private suspend fun fetchOwnedSegment(
+        template: String,
+        fileName: String,
+        meta: TrackerEvent.Segment,
+        timeoutMs: Long,
+        counter: AtomicLong
+    ): ByteArray {
+        val bytes = fetchFromTemplate(template, fileName, timeoutMs)
+        counter.addAndGet(bytes.size.toLong())
+        check(store.putVerified(meta.seq, bytes, meta.sha256)) { "segment hash mismatch for ${meta.seq}" }
+        encoders.remove(meta.seq)
+        links.values.forEach { it.sendBitfield(store.heldSeqs()) }
+        links.values.forEach { it.sendRank(meta.seq, meta.k) }
+        return bytes
+    }
+
+    private suspend fun fetchFromTemplate(template: String, fileName: String, timeoutMs: Long): ByteArray = withContext(Dispatchers.IO) {
+        require(template.isNotBlank()) { "segment template is not configured" }
         require(authToken.isNotBlank()) { "auth token is not configured" }
 
         val request = Request.Builder()
-            .url(PlaybackUrls.segmentUrl(edgeTemplate, fileName, authToken))
+            .url(PlaybackUrls.segmentUrl(template, fileName, authToken))
             .build()
-        http.newCall(request).execute().use { response ->
+        val call = http.newCall(request)
+        call.timeout().timeout(timeoutMs.coerceAtLeast(MIN_HTTP_TIMEOUT_MS), TimeUnit.MILLISECONDS)
+        call.execute().use { response ->
             if (!response.isSuccessful) {
                 throw apiExceptionFromResponse(json, response.body?.string(), response.code, ErrorCodes.EDGE_UNAVAILABLE)
             }
@@ -243,5 +338,10 @@ class SegmentScheduler(
         private const val MANIFEST_WINDOW = 90
         private const val MAX_PEER_ATTEMPTS = 4
         private const val MIN_PEER_TIMEOUT_MS = 250L
+        private const val SEED_PEER_WAIT_MS = 250L
+        private const val MIN_ORIGIN_TIMEOUT_MS = 750L
+        private const val MIN_EDGE_TIMEOUT_MS = 2_000L
+        private const val MIN_HTTP_TIMEOUT_MS = 250L
+        private const val PEER_SUPPLY_POLL_MS = 50L
     }
 }

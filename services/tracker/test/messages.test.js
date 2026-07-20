@@ -303,6 +303,8 @@ test("stats accumulates peer counters", async () => {
       t: "stats",
       dl_p2p: 100,
       dl_edge: 25,
+      dl_bootstrap_origin: 10,
+      dl_relay: 5,
       ul: 80,
       stalls: 1,
       peer_timeouts: 2,
@@ -315,6 +317,8 @@ test("stats accumulates peer counters", async () => {
 
   assert.equal(peer.bytesDownP2p, 100);
   assert.equal(peer.bytesDownEdge, 25);
+  assert.equal(peer.bytesDownBootstrapOrigin, 10);
+  assert.equal(peer.bytesDownRelay, 5);
   assert.equal(peer.bytesUp, 80);
   assert.equal(peer.stalls, 1);
   assert.equal(peer.peerTimeouts, 2);

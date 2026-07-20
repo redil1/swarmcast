@@ -25,6 +25,8 @@ function summary({
   peers,
   dlP2p,
   dlEdge,
+  dlBootstrapOrigin = 0,
+  dlRelay = 0,
   ul,
   stalls,
   peerTimeouts = 0,
@@ -38,11 +40,13 @@ function summary({
   bufferSamples = 0,
   bufferMsMin = null
 }) {
-  const totalDownload = dlP2p + dlEdge;
+  const totalDownload = dlP2p + dlEdge + dlBootstrapOrigin + dlRelay;
   return {
     peers,
     dlP2p,
     dlEdge,
+    dlBootstrapOrigin,
+    dlRelay,
     ul,
     stalls,
     peerTimeouts,
@@ -71,6 +75,8 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
     ts: nowMs,
     dlP2p: nonNegativeInt(msg.dl_p2p),
     dlEdge: nonNegativeInt(msg.dl_edge),
+    dlBootstrapOrigin: nonNegativeInt(msg.dl_bootstrap_origin ?? msg.dlBootstrapOrigin),
+    dlRelay: nonNegativeInt(msg.dl_relay ?? msg.dlRelay),
     ul: nonNegativeInt(msg.ul),
     stalls: nonNegativeInt(msg.stalls),
     peerTimeouts,
@@ -83,6 +89,8 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
   peer.bytesUp = (peer.bytesUp || 0) + sample.ul;
   peer.bytesDownP2p = (peer.bytesDownP2p || 0) + sample.dlP2p;
   peer.bytesDownEdge = (peer.bytesDownEdge || 0) + sample.dlEdge;
+  peer.bytesDownBootstrapOrigin = (peer.bytesDownBootstrapOrigin || 0) + sample.dlBootstrapOrigin;
+  peer.bytesDownRelay = (peer.bytesDownRelay || 0) + sample.dlRelay;
   peer.stalls = (peer.stalls || 0) + sample.stalls;
   peer.peerTimeouts = (peer.peerTimeouts || 0) + peerTimeouts;
   peer.peerHashFailures = (peer.peerHashFailures || 0) + peerHashFailures;
@@ -105,6 +113,8 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
 export function aggregatePeerStats(peers) {
   let dlP2p = 0;
   let dlEdge = 0;
+  let dlBootstrapOrigin = 0;
+  let dlRelay = 0;
   let ul = 0;
   let stalls = 0;
   let peerTimeouts = 0;
@@ -121,6 +131,8 @@ export function aggregatePeerStats(peers) {
   for (const peer of peers) {
     dlP2p += peer.bytesDownP2p || 0;
     dlEdge += peer.bytesDownEdge || 0;
+    dlBootstrapOrigin += peer.bytesDownBootstrapOrigin || 0;
+    dlRelay += peer.bytesDownRelay || 0;
     ul += peer.bytesUp || 0;
     stalls += peer.stalls || 0;
     peerTimeouts += peer.peerTimeouts || 0;
@@ -144,6 +156,8 @@ export function aggregatePeerStats(peers) {
     peers: peers.length,
     dlP2p,
     dlEdge,
+    dlBootstrapOrigin,
+    dlRelay,
     ul,
     stalls,
     peerTimeouts,
@@ -162,6 +176,8 @@ export function aggregatePeerStats(peers) {
 export function aggregateRollingPeerStats(peers, nowMs = Date.now(), windowMs = STATS_WINDOW_MS) {
   let dlP2p = 0;
   let dlEdge = 0;
+  let dlBootstrapOrigin = 0;
+  let dlRelay = 0;
   let ul = 0;
   let stalls = 0;
   let peerTimeouts = 0;
@@ -183,6 +199,8 @@ export function aggregateRollingPeerStats(peers, nowMs = Date.now(), windowMs = 
       if (sample.ts < cutoff) continue;
       dlP2p += sample.dlP2p || 0;
       dlEdge += sample.dlEdge || 0;
+      dlBootstrapOrigin += sample.dlBootstrapOrigin || 0;
+      dlRelay += sample.dlRelay || 0;
       ul += sample.ul || 0;
       stalls += sample.stalls || 0;
       peerTimeouts += sample.peerTimeouts || 0;
@@ -206,6 +224,8 @@ export function aggregateRollingPeerStats(peers, nowMs = Date.now(), windowMs = 
     peers: peers.length,
     dlP2p,
     dlEdge,
+    dlBootstrapOrigin,
+    dlRelay,
     ul,
     stalls,
     peerTimeouts,

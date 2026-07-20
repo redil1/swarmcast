@@ -1,6 +1,6 @@
 package tv.swarmcast.playback
 
-import android.net.Uri
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
 data class PlaybackRequest(
     val channelId: String,
@@ -14,16 +14,11 @@ object PlaybackUrls {
         require(rawUrl.isNotBlank()) { "playback URL is required" }
         require(token.isNotBlank()) { "playback token is required" }
 
-        val uri = Uri.parse(rawUrl)
-        val builder = uri.buildUpon().clearQuery()
-        uri.queryParameterNames
-            .filterNot { it == "token" }
-            .forEach { name ->
-                uri.getQueryParameters(name).forEach { value ->
-                    builder.appendQueryParameter(name, value)
-                }
-            }
-        return builder.appendQueryParameter("token", token).build().toString()
+        return rawUrl.toHttpUrl().newBuilder()
+            .removeAllQueryParameters("token")
+            .addQueryParameter("token", token)
+            .build()
+            .toString()
     }
 
     fun segmentUrl(template: String, fileName: String, token: String): String {

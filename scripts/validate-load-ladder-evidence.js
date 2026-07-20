@@ -56,6 +56,7 @@ function numberField(name, value, { min = Number.NEGATIVE_INFINITY, max = Number
 function integerField(name, value, { min = Number.NEGATIVE_INFINITY, max = Number.POSITIVE_INFINITY } = {}) {
   if (!Number.isInteger(value)) fail(`${name} must be an integer`);
   if (value < min || value > max) fail(`${name} must be between ${min} and ${max}`);
+  return value;
 }
 
 function validateEvidenceList(name, evidence) {
@@ -66,6 +67,12 @@ function validateEvidenceList(name, evidence) {
       fail(`${name} evidence reference looks like it may contain sensitive material`);
     }
   }
+}
+
+function assertReconciled(name, clientBytes, accessLogBytes, tolerance) {
+  const denominator = Math.max(clientBytes, accessLogBytes, 1);
+  const delta = Math.abs(clientBytes - accessLogBytes) / denominator;
+  if (delta > tolerance) fail(`${name} differs by ${delta.toFixed(4)}, above tolerance ${tolerance}`);
 }
 
 function validateStage(stage) {
@@ -82,7 +89,23 @@ function validateStage(stage) {
   integerField(`${id}.peerCount`, stage.peerCount, { min: expected.peers });
   numberField(`${id}.wifiFraction`, stage.wifiFraction, { min: 0, max: 1 });
   numberField(`${id}.superPeerFraction`, stage.superPeerFraction, { min: 0, max: 1 });
-  numberField(`${id}.offloadRatio`, stage.offloadRatio, { min: expected.offload, max: 1 });
+  const offloadRatio = numberField(`${id}.offloadRatio`, stage.offloadRatio, { min: expected.offload, max: 1 });
+  const clientP2pBytes = integerField(`${id}.clientP2pBytes`, stage.clientP2pBytes, { min: 1 });
+  const clientEdgeBytes = integerField(`${id}.clientEdgeBytes`, stage.clientEdgeBytes, { min: 0 });
+  const clientBootstrapOriginBytes = integerField(`${id}.clientBootstrapOriginBytes`, stage.clientBootstrapOriginBytes, { min: 0 });
+  const clientRelayBytes = integerField(`${id}.clientRelayBytes`, stage.clientRelayBytes, { min: 0 });
+  const edgeAccessEgressBytes = integerField(`${id}.edgeAccessEgressBytes`, stage.edgeAccessEgressBytes, { min: 0 });
+  const originAccessBootstrapBytes = integerField(`${id}.originAccessBootstrapBytes`, stage.originAccessBootstrapBytes, { min: 0 });
+  const relayAccessEgressBytes = integerField(`${id}.relayAccessEgressBytes`, stage.relayAccessEgressBytes, { min: 0 });
+  const reconciliationTolerance = numberField(`${id}.reconciliationTolerance`, stage.reconciliationTolerance, { min: 0, max: 0.05 });
+  const totalClientDelivery = clientP2pBytes + clientEdgeBytes + clientBootstrapOriginBytes + clientRelayBytes;
+  const computedOffload = clientP2pBytes / totalClientDelivery;
+  if (Math.abs(computedOffload - offloadRatio) > 0.001) {
+    fail(`${id}.offloadRatio does not match direct P2P over all delivery bytes`);
+  }
+  assertReconciled(`${id}.edge egress`, clientEdgeBytes, edgeAccessEgressBytes, reconciliationTolerance);
+  assertReconciled(`${id}.origin bootstrap`, clientBootstrapOriginBytes, originAccessBootstrapBytes, reconciliationTolerance);
+  assertReconciled(`${id}.relay egress`, clientRelayBytes, relayAccessEgressBytes, reconciliationTolerance);
   numberField(`${id}.stallRate`, stage.stallRate, { min: 0, max: budgets.androidStallRateMax });
   numberField(`${id}.startupLatencyMsP95`, stage.startupLatencyMsP95, { min: 0, max: budgets.androidStartupLatencyMsP95 });
   numberField(`${id}.bufferMsMin`, stage.bufferMsMin, { min: budgets.androidBufferMsMin });
@@ -94,7 +117,7 @@ function validateStage(stage) {
   cleanString(`${id}.alertState`, stage.alertState, /^clear$/);
   validateEvidenceList(`${id}.evidence`, stage.evidence);
   const joinedEvidence = stage.evidence.join("\n");
-  for (const marker of ["webrtc-datachannel", "tracker-signaling-relay"]) {
+  for (const marker of ["webrtc-datachannel", "tracker-signaling-relay", "edge-access-reconciled"]) {
     if (!joinedEvidence.includes(marker)) fail(`${id}.evidence must include ${marker}`);
   }
   return id;
@@ -111,7 +134,9 @@ function validateSelfSustainingSweep(sweep) {
     fail("selfSustainingSweep.command must run smoke:headless-super-peer-sweep");
   }
   integerField("selfSustainingSweep.peerCount", sweep.peerCount, { min: 500 });
+  const codingRank = integerField("selfSustainingSweep.codingRank", sweep.codingRank, { min: 1 });
   integerField("selfSustainingSweep.uploadPacketsPerSuperPeer", sweep.uploadPacketsPerSuperPeer, { min: 1 });
+  cleanString("selfSustainingSweep.bootstrapAccounting", sweep.bootstrapAccounting, /^all-preloaded-helpers$/);
 
   if (!Array.isArray(sweep.fractions) || sweep.fractions.length === 0) {
     fail("selfSustainingSweep.fractions must be a non-empty array");
@@ -131,18 +156,37 @@ function validateSelfSustainingSweep(sweep) {
   if (!fractionKeys.has(flattenKey)) {
     fail("selfSustainingSweep.flattenSuperPeerFraction must match a tested fraction");
   }
-  numberField("selfSustainingSweep.minOffloadAfterFlatten", sweep.minOffloadAfterFlatten, { min: 0.9, max: 1 });
+  const reportedBestOffload = numberField("selfSustainingSweep.bestOffloadRatio", sweep.bestOffloadRatio, { min: 0, max: 1 });
+  const reportedFlattenOffload = numberField("selfSustainingSweep.flattenOffloadRatio", sweep.flattenOffloadRatio, { min: 0, max: 1 });
 
   if (!Array.isArray(sweep.edgeFallbackPackets) || sweep.edgeFallbackPackets.length === 0) {
     fail("selfSustainingSweep.edgeFallbackPackets must be a non-empty array");
   }
   let sawFlattenZero = false;
+  let bestOffload = 0;
   for (const [index, row] of sweep.edgeFallbackPackets.entries()) {
     if (!row || typeof row !== "object") fail(`selfSustainingSweep.edgeFallbackPackets[${index}] must be an object`);
     const fraction = numberField(`selfSustainingSweep.edgeFallbackPackets[${index}].superPeerFraction`, row.superPeerFraction, { min: 0.01, max: 1 });
     const key = fractionKey(fraction);
     if (!fractionKeys.has(key)) fail(`selfSustainingSweep.edgeFallbackPackets[${index}].superPeerFraction was not tested`);
-    integerField(`selfSustainingSweep.edgeFallbackPackets[${index}].edgeFallbackPackets`, row.edgeFallbackPackets, { min: 0 });
+    const edgeFallbackPackets = integerField(`selfSustainingSweep.edgeFallbackPackets[${index}].edgeFallbackPackets`, row.edgeFallbackPackets, { min: 0 });
+    const edgeBootstrapPackets = integerField(`selfSustainingSweep.edgeFallbackPackets[${index}].edgeBootstrapPackets`, row.edgeBootstrapPackets, { min: 1 });
+    const p2pPackets = integerField(`selfSustainingSweep.edgeFallbackPackets[${index}].p2pPackets`, row.p2pPackets, { min: 0 });
+    const offloadRatio = numberField(`selfSustainingSweep.edgeFallbackPackets[${index}].offloadRatio`, row.offloadRatio, { min: 0, max: 1 });
+    const superPeerCount = Math.round(sweep.peerCount * fraction);
+    const expectedBootstrapPackets = superPeerCount * codingRank;
+    if (edgeBootstrapPackets !== expectedBootstrapPackets) {
+      fail(`selfSustainingSweep.edgeFallbackPackets[${index}] does not charge every preloaded helper`);
+    }
+    const expectedViewerPackets = (sweep.peerCount - superPeerCount) * codingRank;
+    if (p2pPackets + edgeFallbackPackets !== expectedViewerPackets) {
+      fail(`selfSustainingSweep.edgeFallbackPackets[${index}] viewer packet accounting is inconsistent`);
+    }
+    const computedOffload = p2pPackets / (p2pPackets + edgeFallbackPackets + edgeBootstrapPackets);
+    if (Math.abs(computedOffload - offloadRatio) > 0.001) {
+      fail(`selfSustainingSweep.edgeFallbackPackets[${index}].offloadRatio is inconsistent`);
+    }
+    bestOffload = Math.max(bestOffload, computedOffload);
     if (fraction >= flatten && row.edgeFallbackPackets !== 0) {
       fail("selfSustainingSweep.edgeFallbackPackets must be zero at and after flattenSuperPeerFraction");
     }
@@ -151,6 +195,9 @@ function validateSelfSustainingSweep(sweep) {
   if (!sawFlattenZero) {
     fail("selfSustainingSweep must include zero edge fallback at flattenSuperPeerFraction");
   }
+  const flattenRow = sweep.edgeFallbackPackets.find((row) => fractionKey(row.superPeerFraction) === flattenKey);
+  if (Math.abs(bestOffload - reportedBestOffload) > 0.001) fail("selfSustainingSweep.bestOffloadRatio is inconsistent");
+  if (Math.abs(flattenRow.offloadRatio - reportedFlattenOffload) > 0.001) fail("selfSustainingSweep.flattenOffloadRatio is inconsistent");
 
   validateEvidenceList("selfSustainingSweep.evidence", sweep.evidence);
   return flatten;
