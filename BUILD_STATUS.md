@@ -2930,4 +2930,4 @@ Results:
 
 - Remote CI run `29781121582` exposed a startup race in the tracker-cell WebSocket smoke: its readiness probe observed the internal metrics listener before the separate viewer listener was accepting connections.
 - The smoke now waits for both tracker listeners with bounded retries before opening viewer WebSockets.
-- Thirty consecutive executions pass under Node 22.23.1; corrected protected remote CI remains the merge gate for PR #2.
+- Thirty consecutive executions pass under Node 22.23.1. Corrected remote CI runs `29781658533` and `29781661084` pass Node, Android, and deployment-shape jobs on the implementation commit.
