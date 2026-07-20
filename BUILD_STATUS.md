@@ -2887,3 +2887,16 @@ Results:
 - Android P2P launch evidence now requires WiFi and cellular ICE outcomes, reconciled selected-candidate counts, and sanitized network/candidate evidence markers; its smoke now rejects 25 failure paths.
 - Android unit/debug/release builds, 49 targeted tracker tests, and repository-wide verification with 163 tests pass.
 - Commit `94b9efa` passed remote CI run `29769852588` across Node, deployment-shape, and Android jobs. Real devices across carriers are still required to decide whether STUN-only operation is economically acceptable or TURN must be provisioned.
+
+## Build Slice 305 In Progress
+
+- Superseded the STUN-only decision with an owned TURN relay design using short-lived, subject-bound coturn REST credentials returned with viewer tokens.
+- Android validates and caches ICE responses, refreshes before the earliest token/TURN expiry, applies credentialed ICE servers before peer creation, and no longer contains third-party STUN defaults.
+- Production config requires owned STUN and UDP/TCP/TLS TURN URLs, a strong shared secret, bounded credential lifetime, immutable image ref, TLS files, quotas, relay range, bandwidth caps, and monitored targets.
+- Added a minimal coturn 4.7.0 image built from exact commit `678996a52954ddc7a44afd9f72f5b5c647e41083` on digest-pinned Alpine 3.23 with unused database backends disabled.
+- Trivy 0.72.0 with the 2026-07-20 database reports zero vulnerabilities for the local hardened image; the unchanged HIGH/CRITICAL validator passes without waivers.
+- Added hardened relay config, dedicated firewall, private/loopback/CGNAT denial, TLS 1.2+, quotas, bandwidth limits, secret-rotation overlap, Prometheus file discovery, alerts, dashboard panels, and an operator runbook.
+- Added deterministic live smoke coverage for STUN, authenticated UDP relay, authenticated TLS relay, and Prometheus metrics; every external probe has a bounded timeout.
+- Extended release, SBOM, scan, dependency, host, deployment, secrets, security, threat, rollback, and launch evidence contracts from 12 to 13 runtime images/components where applicable.
+- `npm run verify` passes 166 tests. Android unit tests and debug/release assemblies pass. The local hardened TURN image build, scan, and live relay smoke pass.
+- Remote CI and a clean signed 13-image staging publication remain required before this slice is complete. Physical carrier/device relay proof, measured relay capacity/egress, and production provisioning remain launch gates.

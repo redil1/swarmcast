@@ -12,7 +12,8 @@ const expectedImageScanEvidence = [
   "var/scans/grafana.trivy.json",
   "var/scans/edge-nginx.trivy.json",
   "var/scans/edge-metrics.trivy.json",
-  "var/scans/node-exporter.trivy.json"
+  "var/scans/node-exporter.trivy.json",
+  "var/scans/turn.trivy.json"
 ];
 
 const requiredGates = [
@@ -68,6 +69,18 @@ const requiredGates = [
     ]
   },
   { id: "production-environment", requiredEvidence: ["env:production:validate", "smoke:production-env-validation", "smoke:compose-production-env"] },
+  {
+    id: "turn-relay",
+    requiredEvidence: [
+      "smoke:turn",
+      "turn-rest-credentials",
+      "turn-udp-relay",
+      "turn-tls-relay",
+      "turn-prometheus",
+      "turn-private-peer-deny",
+      "relay-egress-included"
+    ]
+  },
   {
     id: "deployment-execution",
     requiredEvidence: [

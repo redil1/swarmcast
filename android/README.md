@@ -16,6 +16,8 @@ Current status:
 - Media3 HLS playback now routes numbered media segment requests through the scheduler-backed data source while playlists and unrecognized assets stay on authenticated HTTP.
 - Android peer reputation now penalizes timeouts and hash mismatches, disconnecting a peer after two poisoned segment failures.
 - Android tracker stats now include peer-upload bytes served through whole-segment and coded-packet DataChannel sends.
+- Auth responses now provide owned STUN and short-lived TURN REST credentials; Android refreshes them before expiry and applies them before creating new WebRTC peer connections.
+- ICE telemetry reports attempts, outcomes, selected candidate type, and network class so real carrier tests can measure direct versus relayed connectivity.
 - Android stat flushes now report peer timeout, hash-failure, and disconnect deltas to the tracker for operational visibility.
 - Peer link cleanup now closes replaced links, completes pending peer requests, and disposes stale WebRTC objects when links stop.
 - Network policy is scaffolded for WiFi, metered network, and battery checks.

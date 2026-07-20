@@ -177,6 +177,85 @@ const checks = [
       "DRY RUN:"
     ],
     forbidden: []
+  },
+  {
+    file: "infra/turn/docker-compose.yml",
+    required: [
+      "swarmcast-turn:local",
+      "network_mode: host",
+      "TURN_SHARED_SECRET",
+      "TURN_PREVIOUS_SHARED_SECRET",
+      "TURN_BPS_CAPACITY",
+      "TURN_MIN_PORT",
+      "TURN_MAX_PORT",
+      "read_only: true",
+      "cap_drop: [\"ALL\"]",
+      "NET_BIND_SERVICE",
+      "turnutils_stunclient"
+    ],
+    forbidden: ["cloudfront", "akamai", "fastly"]
+  },
+  {
+    file: "infra/turn/Dockerfile",
+    required: [
+      "alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40",
+      "PROMETHEUS_CLIENT_COMMIT=23b260f0916ef9ea03cac91d3d64a93cd33ea563",
+      "COTURN_COMMIT=678996a52954ddc7a44afd9f72f5b5c647e41083",
+      "TURN_NO_SQLITE=1",
+      "apk upgrade --no-cache",
+      "USER nobody:nogroup"
+    ],
+    forbidden: []
+  },
+  {
+    file: "infra/turn/render-config.sh",
+    required: [
+      "use-auth-secret",
+      "static-auth-secret=$TURN_SHARED_SECRET",
+      "TURN_PREVIOUS_SHARED_SECRET",
+      "cert=/certs/fullchain.pem",
+      "pkey=/certs/privkey.pem",
+      "denied-peer-ip=10.0.0.0-10.255.255.255",
+      "TURN_ALLOW_PRIVATE_PEERS",
+      "prometheus",
+      "no-cli",
+      "no-rfc5780"
+    ],
+    forbidden: []
+  },
+  {
+    file: "infra/host/firewall/ufw-turn.sh",
+    required: [
+      "APPLY=\"${APPLY:-0}\"",
+      "ALLOW_METRICS_FROM",
+      "TURN_LISTENING_PORT",
+      "TURN_TLS_LISTENING_PORT",
+      "TURN_MIN_PORT}:${TURN_MAX_PORT}/udp",
+      "TURN_MIN_PORT}:${TURN_MAX_PORT}/tcp",
+      "restricted turn metrics",
+      "deny public turn metrics",
+      "DRY RUN:"
+    ],
+    forbidden: []
+  },
+  {
+    file: "services/auth/src/turnCredentials.js",
+    required: ["createHmac", "sha1", "expiresAt", "username", "credential"],
+    forbidden: []
+  },
+  {
+    file: "docs/runbooks/turn-relay.md",
+    required: [
+      "TURN Relay Operations",
+      "TURN_SHARED_SECRET",
+      "TURN_PREVIOUS_SHARED_SECRET",
+      "turn_total_allocations",
+      "turn_total_traffic_sentb",
+      "SwarmcastTurnTargetDown",
+      "npm run smoke:turn",
+      "Delivery Fleet"
+    ],
+    forbidden: []
   }
 ];
 
@@ -223,7 +302,8 @@ for (const required of [
   "net.core.somaxconn",
   "ulimit -n",
   "1048576",
-  "origin, edge, API, tracker, control-plane, retention-worker, and monitoring",
+  "origin, edge, API, tracker, control-plane, retention-worker, TURN, and monitoring",
+  "infra/host/firewall/ufw-turn.sh",
   "Evidence references for bootstrap checks must explicitly include the check IDs"
 ]) {
   if (!hostBootstrapText.includes(required)) {
@@ -1333,11 +1413,11 @@ for (const required of [
   "retention worker",
   "Dependency review evidence passes `npm run dependency:review:validate -- path/to/dependency-review.json`; evidence must cover npm audit, SBOM, release image refs, image scans, Android debug/release builds, inventory decisions, reviewer roles, and waiver expiry; local guard coverage remains `npm run smoke:dependency-review-validation`",
   "Release artifact evidence includes the `swarmcast-release-manifest` and `swarmcast-sbom` artifacts, plus `npm run smoke:release-manifest-production` output",
-  "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 12 expected service and infrastructure scan report paths",
+  "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 13 expected service and infrastructure scan report paths",
   "Capacity/load ladder evidence passes `npm run capacity:plan:validate -- config/capacity-plan.json` without `--allow-draft` and `npm run load:ladder:validate -- path/to/load-ladder-evidence.json`, including measured direct-P2P offload, measured sustained TLS edge throughput, approved provider traffic terms, relay egress accounting, the self-sustaining sweep, and 1K/10K/100K single-channel cell stages; local guard coverage remains `npm run smoke:capacity-plan-validation` and `npm run smoke:load-ladder-evidence-validation`",
   "Data retention approval evidence passes `npm run retention:approval:validate -- path/to/retention-approval.json`, retention execution evidence passes `npm run retention:execution:evidence:validate -- path/to/retention-execution-evidence.json`, and local guard coverage remains `npm run smoke:retention-approval-validation` plus `npm run smoke:retention-execution-evidence-validation`",
   "Accessibility and UX evidence passes `npm run android:accessibility:validate -- path/to/android-accessibility-evidence.json` for TalkBack, 200% fonts, small screens, player controls, P2P/privacy controls, touch targets, error states, and localization readiness; local guard coverage remains `npm run smoke:android-accessibility-evidence-validation`",
-  "Host provisioning evidence passes `npm run host:provisioning:evidence:validate -- path/to/host-provisioning-evidence.json` with origin, edge, API, tracker, control-plane, retention-worker, and monitoring host coverage plus DNS, TLS, internal-port deny, and compose-render evidence before production smoke evidence",
+  "Host provisioning evidence passes `npm run host:provisioning:evidence:validate -- path/to/host-provisioning-evidence.json` with origin, edge, API, tracker, control-plane, retention-worker, TURN, and monitoring host coverage plus DNS, TLS, TURN port/range, internal-port deny, and compose-render evidence before production smoke evidence",
   "Production secrets evidence passes `npm run secrets:evidence:validate -- path/to/secrets-evidence.json`",
   "secret purpose, production scope, storage, rotation policy, runtime injection, access-review, backup/restore, redaction, and no-raw-secret evidence shape",
   "Production environment config passes `npm run env:production:validate -- path/to/production.env`, `npm run smoke:production-env-validation`, and `npm run smoke:compose-production-env` before deployment",
@@ -2214,6 +2294,10 @@ for (const required of [
   "duplicate host",
   ".evidence must mention",
   "publicTcpPorts must be exactly [80,443]",
+  "turnPublicUdpPorts must be exactly [3478]",
+  "turnPublicTcpPorts must be exactly [3478,5349]",
+  "turnRelayPortRange must be exactly [49152,65535]",
+  "turnMetricsRestrictedToMonitoring must be true",
   "synthetic host provisioning evidence requires --allow-synthetic",
   "Host provisioning evidence OK"
 ]) {
@@ -4470,8 +4554,12 @@ const androidTextChecks = [
   {
     file: "android/app/src/main/java/tv/swarmcast/data/AuthRepository.kt",
     required: [
+      "suspend fun session()",
       "suspend fun token()",
       "suspend fun refresh()",
+      "data class IceServerResponse",
+      "iceServers",
+      "refreshMutex.withLock",
       "apiExceptionFromResponse",
       "response.body?.string()",
       "x-app-key"
@@ -4564,7 +4652,9 @@ const androidTextChecks = [
   {
     file: "android/app/src/main/java/tv/swarmcast/playback/PlaybackSessionCoordinator.kt",
     required: [
-      "authRepository.token()",
+      "authRepository.session()",
+      "peerManager.updateIceServers",
+      "ICE_REFRESH_POLL_MS",
       "tracker.connect",
       "playerHolder.play",
       "scheduler.configure",
@@ -4746,6 +4836,8 @@ const androidTextChecks = [
     file: "android/app/src/main/java/tv/swarmcast/p2p/PeerConnectionManager.kt",
     required: [
       "PeerConnectionFactory.initialize",
+      "iceServerConfigs: List<IceServerConfig> = emptyList()",
+      "fun updateIceServers",
       "createDataChannel(\"sc-data\"",
       "fun onSignal",
       "fun closeAll",

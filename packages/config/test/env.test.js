@@ -13,6 +13,7 @@ import {
   ownedUrlEnv,
   parseSourceAllowedHosts,
   sourcePolicyFromEnv,
+  validateIceServerUrls,
   validateTrackerShards,
   validateSourceUrl,
   urlEnv
@@ -70,6 +71,13 @@ test("service config loaders preserve current defaults", () => {
   assert.equal(loadAuthConfig().jwtAudience, "swarmcast");
   assert.equal(loadAuthConfig().jwtIssuer, "swarmcast-auth");
   assert.equal(loadAuthConfig().tokenTtlSeconds, 21_600);
+  assert.deepEqual(loadAuthConfig().stunUrls, [
+    "stun:stun.l.google.com:19302",
+    "stun:stun.cloudflare.com:3478"
+  ]);
+  assert.equal(loadAuthConfig().turnEnabled, false);
+  assert.deepEqual(loadAuthConfig().turnUrls, []);
+  assert.equal(loadAuthConfig().turnCredentialTtlSeconds, 3_600);
   assert.equal(loadIngestConfig().trackerInternalUrl, "http://tracker:7002");
   assert.deepEqual(loadIngestConfig().trackerInternalUrls, ["http://tracker:7002"]);
   assert.equal(loadIngestConfig().idleTeardownMs, 60_000);
@@ -187,6 +195,42 @@ test("auth key rotation config is validated", () => {
   assert.throws(() => loadAuthConfig({ AUTH_KEY_ID: " bad key " }), /AUTH_KEY_ID/);
   assert.throws(() => loadAuthConfig({ AUTH_JWT_ISSUER: "bad issuer" }), /AUTH_JWT_ISSUER/);
   assert.throws(() => loadAuthConfig({ AUTH_TOKEN_TTL_SECONDS: "60" }), /AUTH_TOKEN_TTL_SECONDS/);
+});
+
+test("ICE and TURN config validates owned hosts and short-lived credentials", () => {
+  const env = {
+    APP_API_KEY: "app-key",
+    AUTH_TOKEN_TTL_SECONDS: "7200",
+    ICE_SERVER_ALLOWED_HOSTS: "stun.swarmcast.tv,turn.swarmcast.tv",
+    ICE_STUN_URLS: '["stun:stun.swarmcast.tv:3478"]',
+    TURN_ENABLED: "1",
+    TURN_URLS: '["turn:turn.swarmcast.tv:3478?transport=udp","turns:turn.swarmcast.tv:443?transport=tcp"]',
+    TURN_SHARED_SECRET: "0123456789abcdef0123456789abcdef",
+    TURN_CREDENTIAL_TTL_SECONDS: "3600"
+  };
+  const config = loadAuthConfig(env, { requireSecrets: true });
+  assert.deepEqual(config.stunUrls, ["stun:stun.swarmcast.tv:3478"]);
+  assert.equal(config.turnEnabled, true);
+  assert.deepEqual(config.turnUrls, [
+    "turn:turn.swarmcast.tv:3478?transport=udp",
+    "turns:turn.swarmcast.tv:443?transport=tcp"
+  ]);
+  assert.equal(config.turnCredentialTtlSeconds, 3600);
+
+  assert.throws(() => loadAuthConfig({ ...env, TURN_SHARED_SECRET: "short" }), /TURN_SHARED_SECRET/);
+  assert.throws(() => loadAuthConfig({ ...env, TURN_URLS: "[]" }), /TURN_URLS must be a non-empty/);
+  assert.throws(() => loadAuthConfig({ ...env, TURN_CREDENTIAL_TTL_SECONDS: "7201" }), /must not exceed/);
+  assert.throws(() => loadAuthConfig({ ...env, TURN_URLS: '["turn:evil.example:3478"]' }), /ICE_SERVER_ALLOWED_HOSTS/);
+  assert.throws(() => loadAuthConfig({ ...env, TURN_URLS: '["turn:user:password@turn.swarmcast.tv"]' }), /without credentials/);
+  assert.throws(() => loadAuthConfig({ ...env, TURN_URLS: '["turns:turn.swarmcast.tv:443?transport=udp"]' }), /cannot use UDP/);
+  assert.throws(() => loadAuthConfig({ ...env, TURN_URLS: '["turn:turn.swarmcast.tv:70000"]' }), /invalid port/);
+  assert.throws(() => loadAuthConfig({ ...env, ICE_SERVER_ALLOWED_HOSTS: "" }, { requireSecrets: true }), /ICE_SERVER_ALLOWED_HOSTS is required/);
+
+  assert.deepEqual(validateIceServerUrls(
+    ["STUN:STUN.SWARMCAST.TV:3478"],
+    "ICE_STUN_URLS",
+    { allowedSchemes: ["stun"], allowedHosts: ["*.swarmcast.tv"] }
+  ), ["stun:stun.swarmcast.tv:3478"]);
 });
 
 test("control-plane ingest node JSON is parsed and validated", () => {

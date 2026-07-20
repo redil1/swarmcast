@@ -36,6 +36,8 @@ for (const required of [
 const productionConfig = renderCompose(["--env-file", "test-fixtures/config/production.env"]);
 for (const required of [
   "AUTH_KEY_PATH: /data/es256.pem",
+  "TURN_ENABLED: \"1\"",
+  "TURN_CREDENTIAL_TTL_SECONDS: \"3600\"",
   "M3U_PATH: /config/source.m3u",
   "INGEST_NODES: '[{\"id\":\"origin-a\",\"baseUrl\":\"https://origin.swarmcast.tv\",\"ingestUrl\":\"https://origin.swarmcast.tv\"}]'",
   "CATALOG_DB_PATH: /data/catalog.sqlite",
@@ -82,4 +84,19 @@ for (const required of [
   assert.ok(edgeConfig.includes(required), `production edge compose render missing ${required}`);
 }
 
-console.log("production compose env smoke OK: default=pass production=pass release=pass edge=pass");
+const turnConfig = renderCompose(["--env-file", "test-fixtures/config/production.env"], [
+  "infra/turn/docker-compose.yml"
+]);
+for (const required of [
+  "image: ghcr.io/aziz/ads/turn@sha256:8888888888888888888888888888888888888888888888888888888888888888",
+  "TURN_REALM: turn.swarmcast.tv",
+  "TURN_BPS_CAPACITY: \"100000000\"",
+  "TURN_MIN_PORT: \"49152\"",
+  "TURN_MAX_PORT: \"65535\"",
+  "network_mode: host",
+  "NET_BIND_SERVICE"
+]) {
+  assert.ok(turnConfig.includes(required), `production TURN compose render missing ${required}`);
+}
+
+console.log("production compose env smoke OK: default=pass production=pass release=pass edge=pass turn=pass");

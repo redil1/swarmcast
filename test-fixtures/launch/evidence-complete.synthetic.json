@@ -120,6 +120,7 @@
         "var/scans/edge-nginx.trivy.json",
         "var/scans/edge-metrics.trivy.json",
         "var/scans/node-exporter.trivy.json",
+        "var/scans/turn.trivy.json",
         "image:scan:bundle:validate synthetic-pass"
       ]
     },
@@ -165,6 +166,20 @@
       "owner": "platform",
       "status": "complete",
       "evidence": ["env:production:validate synthetic-pass", "smoke:production-env-validation synthetic-pass", "smoke:compose-production-env synthetic-pass"]
+    },
+    {
+      "id": "turn-relay",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": [
+        "smoke:turn synthetic-pass",
+        "turn-rest-credentials synthetic-pass",
+        "turn-udp-relay synthetic-pass",
+        "turn-tls-relay synthetic-pass",
+        "turn-prometheus synthetic-pass",
+        "turn-private-peer-deny synthetic-pass",
+        "relay-egress-included synthetic-pass"
+      ]
     },
     {
       "id": "deployment-execution",

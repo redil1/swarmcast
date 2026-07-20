@@ -13,7 +13,8 @@ const releaseImages = [
   ["grafana", "SWARMCAST_GRAFANA_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["edge-nginx", "SWARMCAST_EDGE_NGINX_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["edge-metrics", "SWARMCAST_EDGE_METRICS_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
-  ["node-exporter", "SWARMCAST_NODE_EXPORTER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`]
+  ["node-exporter", "SWARMCAST_NODE_EXPORTER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["turn", "SWARMCAST_TURN_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`]
 ];
 
 const args = process.argv.slice(2);

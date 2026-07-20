@@ -17,7 +17,8 @@ const requiredImages = [
   "grafana",
   "edge-nginx",
   "edge-metrics",
-  "node-exporter"
+  "node-exporter",
+  "turn"
 ];
 
 function parseEnvFile(file) {

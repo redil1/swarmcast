@@ -10,7 +10,9 @@
   "synthetic": true,
   "commands": [
     "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker",
-    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker"
+    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker",
+    "docker compose --env-file /secure/prod.env -f infra/turn/docker-compose.yml pull turn",
+    "docker compose --env-file /secure/prod.env -f infra/turn/docker-compose.yml up -d --no-build turn"
   ],
   "services": [
     {
@@ -52,6 +54,14 @@
       "running": true,
       "health": "healthy",
       "evidence": ["deploy/retention-worker/health-synthetic"]
+    },
+    {
+      "name": "turn",
+      "image": "ghcr.io/example/swarmcast/turn@sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "pulled": true,
+      "running": true,
+      "health": "healthy",
+      "evidence": ["deploy/turn/relay-health-synthetic"]
     }
   ],
   "checks": [

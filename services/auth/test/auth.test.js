@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createPrivateKey, generateKeyPairSync } from "node:crypto";
+import { createHmac, createPrivateKey, generateKeyPairSync } from "node:crypto";
 import { once } from "node:events";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -61,9 +61,57 @@ test("auth service issues token and verifies it", async () => {
     const metrics = await fetch(`${base}/metrics`);
     const text = await metrics.text();
     assert.match(text, /swarmcast_auth_tokens_issued_total 1/);
+    assert.match(text, /swarmcast_auth_turn_credentials_issued_total 0/);
     assert.match(text, /swarmcast_auth_verify_ok_total 2/);
     assert.match(text, /swarmcast_auth_verify_fail_total 1/);
   });
+});
+
+test("auth service issues short-lived coturn credentials with viewer tokens", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "swarmcast-auth-turn-"));
+  const sharedSecret = "0123456789abcdef0123456789abcdef";
+  const server = await createAuthServer({
+    keyPath: path.join(dir, "es256.pem"),
+    appApiKey: "app-key",
+    stunUrls: ["stun:stun.swarmcast.tv:3478"],
+    turnEnabled: true,
+    turnUrls: [
+      "turn:turn.swarmcast.tv:3478?transport=udp",
+      "turns:turn.swarmcast.tv:443?transport=tcp"
+    ],
+    turnSharedSecret: sharedSecret,
+    turnCredentialTtlSeconds: 3600,
+    nowSeconds: () => 1_700_000_000,
+    tokenRateLimiter: new IpRateLimiter({ capacity: 100, refillPerMinute: 100 })
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}`;
+
+  try {
+    const issued = await fetch(`${base}/token`, {
+      method: "POST",
+      headers: { "x-app-key": "app-key" }
+    });
+    assert.equal(issued.status, 200);
+    const body = await issued.json();
+    assert.deepEqual(body.iceServers[0], { urls: ["stun:stun.swarmcast.tv:3478"] });
+    assert.deepEqual(body.iceServers[1].urls, [
+      "turn:turn.swarmcast.tv:3478?transport=udp",
+      "turns:turn.swarmcast.tv:443?transport=tcp"
+    ]);
+    assert.equal(body.iceServers[1].expiresAt, 1_700_003_600);
+    assert.match(body.iceServers[1].username, /^1700003600:/);
+    assert.equal(
+      body.iceServers[1].credential,
+      createHmac("sha1", sharedSecret).update(body.iceServers[1].username).digest("base64")
+    );
+
+    const metrics = await (await fetch(`${base}/metrics`)).text();
+    assert.match(metrics, /swarmcast_auth_turn_credentials_issued_total 1/);
+  } finally {
+    server.close();
+  }
 });
 
 test("auth service exposes public jwks", async () => {

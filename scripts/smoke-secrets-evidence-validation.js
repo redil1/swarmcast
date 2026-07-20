@@ -126,5 +126,13 @@ expectFailure(
   }),
   /deployment-injection-tested\.evidence must mention deployment-injection-tested/
 );
+expectFailure(
+  "missing TURN shared secret evidence",
+  writeVariant("missing-turn-secret", (record) => {
+    record.secrets = record.secrets.filter((candidate) => candidate.id !== "turn-shared-secret");
+    return record;
+  }),
+  /missing required secret turn-shared-secret/
+);
 
-console.log("secrets evidence validation smoke OK: pass=1 failures=10");
+console.log("secrets evidence validation smoke OK: pass=1 failures=11");

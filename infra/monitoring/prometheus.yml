@@ -42,6 +42,13 @@ scrape_configs:
     static_configs:
       - targets: ["auth:7003"]
 
+  - job_name: swarmcast-turn
+    metrics_path: /metrics
+    scheme: http
+    file_sd_configs:
+      - files: ["/etc/prometheus/turn-targets/*.json"]
+        refresh_interval: 30s
+
   - job_name: swarmcast-control-plane
     metrics_path: /metrics
     scheme: http

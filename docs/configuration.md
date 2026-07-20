@@ -22,6 +22,14 @@ SwarmCast services use explicit environment variables and startup validation. Re
 | auth/tracker | `AUTH_JWT_AUDIENCE` | `swarmcast` |
 | auth/tracker | `AUTH_JWT_ISSUER` | `swarmcast-auth` |
 | auth | `AUTH_TOKEN_TTL_SECONDS` | `21600` |
+| auth | `ICE_STUN_URLS` | public STUN development defaults; production must use owned hosts |
+| auth | `TURN_ENABLED` | `false` locally; required `true` by production env validation |
+| auth | `TURN_URLS` | `[]` |
+| auth | `TURN_CREDENTIAL_TTL_SECONDS` | `3600` |
+| turn | `TURN_MIN_PORT` / `TURN_MAX_PORT` | `49152` / `65535` |
+| turn | `TURN_TOTAL_QUOTA` | `10000` allocations |
+| turn | `TURN_MAX_BPS` | `1250000` bytes/s per allocation |
+| turn | `TURN_BPS_CAPACITY` | `100000000` bytes/s per host |
 | ingest | `INGEST_PORT` | `7001` |
 | ingest | `TRACKER_INTERNAL_URL` | `http://tracker:7002` |
 | ingest | `TRACKER_INTERNAL_URLS` | `[]` (JSON list; falls back to `TRACKER_INTERNAL_URL`) |
@@ -86,6 +94,8 @@ SwarmCast services use explicit environment variables and startup validation. Re
 - Runtime media base URLs reject known third-party CDN provider hostnames such as CloudFront, Akamai, and Fastly.
 - Auth `AUTH_KEY_ID` must be a safe JWT `kid`; `AUTH_PREVIOUS_JWKS_PATH` can publish previous public keys during a rotation overlap.
 - Auth and tracker must share `AUTH_JWT_AUDIENCE` and `AUTH_JWT_ISSUER`; `AUTH_TOKEN_TTL_SECONDS` must be between 300 and 86400 seconds.
+- Production auth requires `ICE_SERVER_ALLOWED_HOSTS`, owned `ICE_STUN_URLS`, and TURN/UDP, TURN/TCP, and TURN/TLS URLs. `TURN_SHARED_SECRET` is never returned to clients; auth derives short-lived coturn REST credentials whose TTL cannot exceed the viewer token TTL.
+- TURN allocation quota cannot exceed the configured relay port count. Production rejects private-peer relay access, tag-only coturn images, missing TLS certificate directories, and unmonitored relay targets.
 - Tracker `TRACKER_IDLE_TIMEOUT_SECONDS` must be `0` or greater than `8` for `uWebSockets.js` compatibility.
 - If `TRACKER_SHARDS` is set, each entry must have a unique safe `id` and owned `ws` or `wss` `wsUrl`, and `TRACKER_SHARD_ID` must match one declared shard.
 - Tail admission stays disabled when `TAIL_ADMISSION_MAX_CHANNELS=0`; when set, new below-threshold tail channels are rejected before ffmpeg starts once the tail budget is full.

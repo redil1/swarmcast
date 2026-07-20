@@ -6,6 +6,7 @@ const requiredScopes = [
   "source-url-protection",
   "tracker-abuse",
   "p2p-poisoning",
+  "turn-relay",
   "release-gate"
 ];
 const args = process.argv.slice(2);

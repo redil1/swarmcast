@@ -7,7 +7,7 @@ Target OS: Ubuntu 24.04 LTS.
 3. Apply file descriptor limits from `infra/host/security-limits.d/99-swarmcast.conf`.
 4. Review and apply the UFW firewall profile from `infra/host/firewall/ufw-swarmcast.sh`.
 5. Mount `/var/hls` as tmpfs for origin ingest nodes and make it writable by the container runtime user.
-6. Configure DNS for origin, tracker, API, edge, control-plane, retention-worker, and monitoring hosts.
+6. Configure DNS for origin, tracker, API, edge, control-plane, retention-worker, TURN, and monitoring hosts.
 7. Issue TLS certificates with `infra/host/tls/certbot-swarmcast.sh` before exposing services.
 8. Deploy with the compose file in `infra/docker-compose.yml`.
 9. Smoke test token issuance, catalog access, origin playlist access, and edge cache hit behavior.
@@ -17,7 +17,8 @@ Operational rule:
 - Internal service ports must stay on private Docker or host networks. Only public TLS entrypoints should be exposed.
 - The firewall profile permits SSH, HTTP, and HTTPS, and denies direct public access to service ports `7000`, `7001`, `7002`, `7003`, `7010`, `7020`, and `9101`.
 - TLS certificates are issued one hostname at a time so nginx can read `/etc/letsencrypt/live/<hostname>/fullchain.pem` for each server block.
-- Host provisioning evidence must cover origin, edge, API, tracker, control-plane, retention-worker, and monitoring roles before launch.
+- TURN hosts use the dedicated `infra/host/firewall/ufw-turn.sh` profile. Their public UDP/TCP/TLS and relay ports are separate from the web-host `[80,443]` policy, and port `9641` must be restricted to monitoring sources.
+- Host provisioning evidence must cover origin, edge, API, tracker, control-plane, retention-worker, TURN, and monitoring roles before launch.
 - Evidence references for bootstrap checks must explicitly include the check IDs such as `sysctl-applied`, `file-limits-applied`, `tmpfs-var-hls-mounted`, `internal-ports-denied`, `tls-certificates-issued`, `certbot-renew-dry-run`, `compose-renders`, and `public-dns-configured`.
 
 Example tmpfs preparation:

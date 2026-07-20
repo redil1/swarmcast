@@ -36,6 +36,14 @@
 - Repeat hash mismatches reduce reputation and disconnect offenders.
 - Bad peer reports must not allow unauthenticated peers to frame honest peers.
 
+## TURN Relay
+
+- TURN credentials are subject-bound, short-lived, rate-limited, and never contain the shared secret.
+- Production exposes owned UDP, TCP, and TLS relay endpoints with explicit allocation and byte-rate quotas.
+- Relay permissions deny private, loopback, link-local, carrier-grade NAT, and multicast peer ranges.
+- Coturn metrics are restricted to monitoring sources; relay egress is reconciled as owned traffic.
+- Current and previous TURN secrets support bounded zero-downtime rotation; raw values never enter evidence.
+
 ## Release Gate
 
 Production launch is blocked until P0/P1 findings are fixed or explicitly waived in `docs/launch-readiness.md`.

@@ -25,6 +25,10 @@ function replaceLine(key, value) {
   return (text) => text.replace(new RegExp(`^${key}=.*$`, "m"), `${key}=${value}`);
 }
 
+function appendLine(key, value) {
+  return (text) => `${text.trimEnd()}\n${key}=${value}\n`;
+}
+
 function validate(file) {
   return spawnSync(process.execPath, ["scripts/validate-production-env.js", file], {
     encoding: "utf8"
@@ -79,5 +83,36 @@ expectFailure(
   writeVariant("missing-alertmanager-config-path", removeLine("ALERTMANAGER_CONFIG_PATH")),
   /ALERTMANAGER_CONFIG_PATH is required/
 );
+expectFailure(
+  "TURN disabled",
+  writeVariant("turn-disabled", replaceLine("TURN_ENABLED", "0")),
+  /TURN_ENABLED must be 1/
+);
+expectFailure(
+  "TURN host outside owned allowlist",
+  writeVariant("turn-unowned-host", replaceLine(
+    "TURN_URLS",
+    '["turn:relay.invalid.test:3478?transport=udp"]'
+  )),
+  /ICE_SERVER_ALLOWED_HOSTS/
+);
+expectFailure(
+  "TURN missing TLS endpoint",
+  writeVariant("turn-missing-tls", replaceLine(
+    "TURN_URLS",
+    '["turn:turn.swarmcast.tv:3478?transport=udp","turn:turn.swarmcast.tv:3478?transport=tcp"]'
+  )),
+  /TURN\/TLS endpoint/
+);
+expectFailure(
+  "TURN private peers enabled",
+  writeVariant("turn-private-peers", appendLine("TURN_ALLOW_PRIVATE_PEERS", "1")),
+  /TURN_ALLOW_PRIVATE_PEERS must be 0/
+);
+expectFailure(
+  "TURN allocation quota exceeds relay ports",
+  writeVariant("turn-port-quota", replaceLine("TURN_TOTAL_QUOTA", "20000")),
+  /TURN_TOTAL_QUOTA must not exceed the relay port count/
+);
 
-console.log("production env validation smoke OK: pass=1 failures=7");
+console.log("production env validation smoke OK: pass=1 failures=12");

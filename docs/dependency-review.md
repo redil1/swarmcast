@@ -17,6 +17,7 @@ This review records the production dependency posture for SwarmCast. It does not
 | Monitoring | Alertmanager | `v0.33.1` source rebuild with Go `1.26.5` and `x/crypto v0.53.0` | Staging candidate | Pass clean scan and receiver fire-drill. |
 | Monitoring | Grafana | `13.1.0` source rebuild with Go `1.26.5`; unused Tempo backend excluded | Staging candidate | Pass clean scan and dashboard/health smokes. |
 | Monitoring | node_exporter | `v1.12.0-distroless`, digest-pinned | Staging candidate | Pass clean scan and edge metrics scrape. |
+| Networking | coturn | `4.7.0` commit `678996a`, minimal digest-pinned Alpine 3.23 build | Staging candidate | Pass clean scan, authenticated UDP/TLS relay smoke, external carrier tests, measured relay capacity, and signed staging publication. |
 | Android | Android Gradle Plugin | `8.7.3` | Staging only | Local wrapper-based debug/release assembly passes; review AGP 9.x before production. |
 | Android | Kotlin Gradle plugins | `2.0.21` | Staging only | Local wrapper-based debug/release assembly passes; review Kotlin 2.4 migration before production. |
 | Android | AndroidX Media3 | `1.6.0` | Blocked | Run playback soak on real devices and evaluate current stable Media3. |
@@ -33,6 +34,7 @@ This review records the production dependency posture for SwarmCast. It does not
 - Prometheus: the production candidate uses the immutable `v3.13.1-distroless` digest.
 - Alertmanager: the production candidate rebuilds exact release commit `2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5` with fixed Go and `x/crypto` versions.
 - Grafana: the production candidate rebuilds exact release commit `b309c9bb3b81a748c3a75289236a27309ed2566a` with fixed Go; the unused Tempo backend is excluded from the binary instead of waiving its findings.
+- coturn: the production candidate builds exact `4.7.0` commit `678996a52954ddc7a44afd9f72f5b5c647e41083` on immutable Alpine 3.23, excludes unused database backends, and uses short-lived coturn REST credentials; real carrier reachability and sustained relay capacity remain unapproved.
 - AndroidX Media3: Maven listings show stable releases newer than this repo's `1.6.0`.
 - OkHttp: official docs show OkHttp 5.x artifacts available while this repo uses `4.12.0`.
 - Stream WebRTC Android: Maven listings show `1.3.10` newer than this repo's `1.3.8`.
@@ -42,7 +44,7 @@ This review records the production dependency posture for SwarmCast. It does not
 
 - Run `npm audit --audit-level=moderate` and keep zero moderate-or-higher findings.
 - Generate an SBOM for Node workspaces, Android artifacts, and runtime container images with `npm run sbom:generate -- --output var/sbom/swarmcast-sbom.json`, and verify parser coverage with `npm run sbom:generate -- --check`.
-- Replace tag-only local defaults with digest-pinned images from production env refs after final upgrade decisions and verify all service and infrastructure release refs with `npm run release:images:check` plus `npm run smoke:compose-production-env`.
+- Replace tag-only local defaults with digest-pinned images from production env refs after final upgrade decisions and verify all 13 service and infrastructure release refs with `npm run release:images:check` plus `npm run smoke:compose-production-env`.
 - Run vulnerability scans for service and infrastructure images after final Docker builds, write Trivy JSON reports under `var/scans/`, validate each report with `npm run image:scan:validate -- var/scans/*.json`, keep report-level guard coverage in `npm run check` with `npm run smoke:image-scan-report-validation`, and validate release coverage with `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`.
 - Run Android debug and release builds in CI before approving any Android dependency versions.
 - Run real-device playback, WebRTC/DataChannel, and RLNC decode tests before approving Android media/P2P dependencies.
@@ -79,3 +81,4 @@ npm run image:scan:bundle:validate -- --allow-synthetic --manifest test-fixtures
 - https://square.github.io/okhttp/
 - https://central.sonatype.com/artifact/io.getstream/stream-webrtc-android
 - https://github.com/Backblaze/JavaReedSolomon
+- https://github.com/coturn/coturn/releases

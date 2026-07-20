@@ -18,14 +18,16 @@
     "ingest": "ghcr.io/example/swarmcast/ingest@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "tracker": "ghcr.io/example/swarmcast/tracker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     "control-plane": "ghcr.io/example/swarmcast/control-plane@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    "retention-worker": "ghcr.io/example/swarmcast/retention-worker@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    "retention-worker": "ghcr.io/example/swarmcast/retention-worker@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "turn": "ghcr.io/example/swarmcast/turn@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
   },
   "rollbackImages": {
     "auth": "ghcr.io/example/swarmcast/auth@sha256:1111111111111111111111111111111111111111111111111111111111111111",
     "ingest": "ghcr.io/example/swarmcast/ingest@sha256:2222222222222222222222222222222222222222222222222222222222222222",
     "tracker": "ghcr.io/example/swarmcast/tracker@sha256:3333333333333333333333333333333333333333333333333333333333333333",
     "control-plane": "ghcr.io/example/swarmcast/control-plane@sha256:4444444444444444444444444444444444444444444444444444444444444444",
-    "retention-worker": "ghcr.io/example/swarmcast/retention-worker@sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    "retention-worker": "ghcr.io/example/swarmcast/retention-worker@sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "turn": "ghcr.io/example/swarmcast/turn@sha256:6666666666666666666666666666666666666666666666666666666666666666"
   },
   "preflightChecks": [
     {
@@ -62,19 +64,19 @@
   "commands": [
     {
       "id": "pull-previous-images",
-      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker",
+      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker && docker compose --env-file .env.production -f infra/turn/docker-compose.yml pull turn",
       "status": "pass",
       "evidence": ["rollback/commands/pull-previous-images-synthetic"]
     },
     {
       "id": "up-no-build",
-      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker",
+      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker && docker compose --env-file .env.production -f infra/turn/docker-compose.yml up -d --no-build turn",
       "status": "pass",
       "evidence": ["rollback/commands/up-no-build-synthetic"]
     },
     {
       "id": "service-ps",
-      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml ps",
+      "command": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml ps auth ingest tracker control-plane retention-worker && docker compose --env-file .env.production -f infra/turn/docker-compose.yml ps turn",
       "status": "pass",
       "evidence": ["rollback/commands/service-ps-synthetic"]
     }
@@ -127,6 +129,12 @@
       "owner": "privacy",
       "status": "pass",
       "evidence": ["rollback/post/retention-health-metrics-synthetic"]
+    },
+    {
+      "id": "turn-relay-health-metrics",
+      "owner": "platform",
+      "status": "pass",
+      "evidence": ["rollback/post/turn-relay-health-metrics-synthetic"]
     },
     {
       "id": "dashboard-snapshot",

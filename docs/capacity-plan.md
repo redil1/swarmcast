@@ -26,7 +26,7 @@ The plan converts measured launch inputs into owned infrastructure counts:
 - `edgeNodeLinkCapacityMbps * edgeNodeSustainedUtilizationRatio` caps the capacity that may be credited to one host.
 - `edgeNodeCapacityMeasurementStatus` and `edgeNodeCapacityEvidence` require a sustained TLS egress test before launch.
 - `providerTrafficTermsApproved` and `providerTrafficTermsEvidence` prevent an unreviewed traffic allowance or billing assumption from closing launch readiness.
-- `relayEgressIncluded` must be true even when the current no-TURN design reports zero relay bytes.
+- `relayEgressIncluded` must be true; owned TURN traffic is delivery egress and never counts as direct P2P offload.
 - `headroomRatio` reserves spare capacity for burst, failure, and regional imbalance.
 - `plannedEdgeNodes` must cover residual edge delivery Mbps with headroom.
 - `plannedOriginNodes` must cover active channel packaging capacity with headroom.

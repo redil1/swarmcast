@@ -11,6 +11,7 @@ import tv.swarmcast.data.AuthRepository
 import tv.swarmcast.data.NetworkPolicy
 import tv.swarmcast.data.p2pPermissions
 import tv.swarmcast.p2p.PeerConnectionManager
+import tv.swarmcast.p2p.IceServerConfig
 import tv.swarmcast.p2p.PeerInfo
 import tv.swarmcast.p2p.PeerLink
 import tv.swarmcast.p2p.SchedulerStats
@@ -62,6 +63,7 @@ class PlaybackSessionCoordinator(
     private var uploadAllowed = false
     private var swarmMode = "edge-only"
     private var peerRefreshJob: Job? = null
+    private var iceRefreshJob: Job? = null
     private var lastStats = SchedulerStats(downloadedFromPeers = 0, downloadedFromEdge = 0)
     private var lastStalls = 0
     private var playbackStartMs = 0L
@@ -69,7 +71,11 @@ class PlaybackSessionCoordinator(
 
     suspend fun start() {
         stop()
-        token = authRepository.token()
+        val authSession = authRepository.session()
+        token = authSession.token
+        applyIceServers(authSession.iceServers.map {
+            IceServerConfig(it.urls, it.username, it.credential)
+        })
         val networkSnapshot = networkPolicy.snapshot()
         val permissions = p2pPermissions(p2pEnabled, networkSnapshot)
         p2pDownloadAllowed = permissions.downloadAllowed
@@ -82,6 +88,17 @@ class PlaybackSessionCoordinator(
             while (isActive) {
                 delay(STATS_FLUSH_MS)
                 flushStats()
+            }
+        }
+        iceRefreshJob = scope.launch {
+            while (isActive) {
+                delay(ICE_REFRESH_POLL_MS)
+                runCatching { authRepository.session() }
+                    .onSuccess { response ->
+                        applyIceServers(response.iceServers.map {
+                            IceServerConfig(it.urls, it.username, it.credential)
+                        })
+                    }
             }
         }
 
@@ -112,9 +129,11 @@ class PlaybackSessionCoordinator(
         eventsJob?.cancel()
         statsJob?.cancel()
         peerRefreshJob?.cancel()
+        iceRefreshJob?.cancel()
         eventsJob = null
         statsJob = null
         peerRefreshJob = null
+        iceRefreshJob = null
         p2pDownloadAllowed = false
         uploadAllowed = false
         peerManager.closeAll()
@@ -177,6 +196,10 @@ class PlaybackSessionCoordinator(
         if (peer.id.isNotBlank()) peerManager.connectTo(peer)
     }
 
+    private fun applyIceServers(configs: List<IceServerConfig>) {
+        peerManager.updateIceServers(configs)
+    }
+
     private fun schedulePeerReplenishment(peerIds: Set<String>, immediate: Boolean = false) {
         if (!p2pDownloadAllowed || swarmMode != "p2p" || peerIds.size >= TARGET_PEERS) return
         peerRefreshJob?.cancel()
@@ -219,6 +242,7 @@ class PlaybackSessionCoordinator(
     companion object {
         private const val STATS_FLUSH_MS = 10_000L
         private const val PEER_REFRESH_DELAY_MS = 5_000L
+        private const val ICE_REFRESH_POLL_MS = 60_000L
         private const val TARGET_PEERS = 12
     }
 }

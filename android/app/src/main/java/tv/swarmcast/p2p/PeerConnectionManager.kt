@@ -21,10 +21,7 @@ class PeerConnectionManager(
     context: Context,
     private val tracker: TrackerClient,
     private val maxPeers: Int = 12,
-    iceServerUrls: List<String> = listOf(
-        "stun:stun.l.google.com:19302",
-        "stun:stun.cloudflare.com:3478"
-    ),
+    iceServerConfigs: List<IceServerConfig> = emptyList(),
     private val onOpen: (peerId: String, channel: DataChannel, closePeer: () -> Unit) -> Unit = { _, _, _ -> },
     private val onMessage: (peerId: String, bytes: ByteArray) -> Unit = { _, _ -> },
     private val onClosed: (peerId: String) -> Unit = {},
@@ -37,9 +34,8 @@ class PeerConnectionManager(
     private val iceTelemetry = IceConnectivityTelemetry()
     private val iceAttempts = LinkedHashMap<String, IceAttempt>()
     private var nextIceAttemptId = 1L
-    private val iceServers = iceServerUrls.map {
-        PeerConnection.IceServer.builder(it).createIceServer()
-    }
+    @Volatile
+    private var iceServers = buildIceServers(iceServerConfigs)
 
     val connectedCount: Int
         get() = channels.count { it.value.state() == DataChannel.State.OPEN }
@@ -48,6 +44,10 @@ class PeerConnectionManager(
         get() = peers.keys.toSet()
 
     fun drainIceTelemetry(): IceConnectivityDelta = iceTelemetry.drain()
+
+    fun updateIceServers(configs: List<IceServerConfig>) {
+        iceServers = buildIceServers(configs)
+    }
 
     init {
         PeerConnectionFactory.initialize(
@@ -183,6 +183,20 @@ class PeerConnectionManager(
         return pc
     }
 
+    private fun buildIceServers(configs: List<IceServerConfig>): List<PeerConnection.IceServer> {
+        require(configs.isNotEmpty()) { "at least one ICE server is required" }
+        return configs.flatMap { config ->
+            require(config.urls.isNotEmpty()) { "ICE server URLs are required" }
+            require(config.username.isBlank() == config.credential.isBlank()) { "ICE credentials are incomplete" }
+            config.urls.map { url ->
+                PeerConnection.IceServer.builder(url)
+                    .setUsername(config.username)
+                    .setPassword(config.credential)
+                    .createIceServer()
+            }
+        }
+    }
+
     private fun wireDataChannel(peerId: String, channel: DataChannel) {
         channels.remove(peerId)?.let(::closeDataChannel)
         channels[peerId] = channel
@@ -268,3 +282,9 @@ class PeerConnectionManager(
 
     private data class IceAttempt(val id: Long, var outcome: String? = null)
 }
+
+data class IceServerConfig(
+    val urls: List<String>,
+    val username: String = "",
+    val credential: String = ""
+)

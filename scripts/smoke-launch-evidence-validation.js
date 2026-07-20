@@ -356,6 +356,15 @@ expectFailure(
   /production-smokes evidence must mention source-preflight/
 );
 expectFailure(
+  "missing TURN TLS relay launch evidence",
+  writeVariant("missing-turn-tls-relay", (record) => {
+    const turnRelay = gate(record, "turn-relay");
+    turnRelay.evidence = turnRelay.evidence.filter((evidence) => !evidence.includes("turn-tls-relay"));
+    return record;
+  }),
+  /turn-relay evidence must mention turn-tls-relay/
+);
+expectFailure(
   "missing rollback drill launch evidence",
   writeVariant("missing-rollback-evidence", (record) => {
     const rollbackDrill = gate(record, "rollback-drill");
@@ -391,4 +400,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=38");
+console.log("launch evidence validation smoke OK: pass=1 failures=39");

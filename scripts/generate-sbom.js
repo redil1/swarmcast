@@ -73,13 +73,29 @@ function collectDockerfiles(components) {
     "infra/edge/Dockerfile.nginx",
     "infra/edge/Dockerfile.metrics",
     "infra/monitoring/Dockerfile.alertmanager",
-    "infra/monitoring/Dockerfile.grafana"
+    "infra/monitoring/Dockerfile.grafana",
+    "infra/turn/Dockerfile"
   ]) {
     const text = readText(file);
     const args = new Map(
       [...text.matchAll(/^\s*ARG\s+([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)\s*$/gm)]
         .map((match) => [match[1], match[2]])
     );
+    for (const [argument, name, repository] of [
+      ["COTURN_COMMIT", "coturn", "https://github.com/coturn/coturn.git"],
+      ["PROMETHEUS_CLIENT_COMMIT", "prometheus-client-c", "https://github.com/digitalocean/prometheus-client-c.git"]
+    ]) {
+      const commit = args.get(argument);
+      if (!commit) continue;
+      addComponent(components, {
+        type: "library",
+        ecosystem: "git",
+        name,
+        version: commit,
+        source: file,
+        resolved: `${repository}#${commit}`
+      });
+    }
     for (const match of text.matchAll(/^\s*FROM\s+([^\s]+)(?:\s+AS\s+\S+)?/gim)) {
       const argument = match[1].match(/^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/)?.[1];
       const image = argument ? args.get(argument) : match[1];
@@ -99,7 +115,8 @@ function collectComposeImages(components) {
   for (const file of [
     "infra/docker-compose.yml",
     "infra/docker-compose.release.yml",
-    "infra/edge/docker-compose.yml"
+    "infra/edge/docker-compose.yml",
+    "infra/turn/docker-compose.yml"
   ]) {
     const text = readText(file);
     for (const match of text.matchAll(/^\s*image:\s+(.+)$/gm)) {
@@ -184,12 +201,14 @@ function createSbom() {
         "infra/docker-compose.yml",
         "infra/docker-compose.release.yml",
         "infra/edge/docker-compose.yml",
+        "infra/turn/docker-compose.yml",
         "services/*/Dockerfile",
         "infra/nginx/Dockerfile",
         "infra/edge/Dockerfile.nginx",
         "infra/edge/Dockerfile.metrics",
         "infra/monitoring/Dockerfile.alertmanager",
-        "infra/monitoring/Dockerfile.grafana"
+        "infra/monitoring/Dockerfile.grafana",
+        "infra/turn/Dockerfile"
       ]
     },
     components: [...components.values()].sort((a, b) =>
@@ -200,7 +219,7 @@ function createSbom() {
 
 function assertCoverage(sbom) {
   const ecosystems = new Set(sbom.components.map((component) => component.ecosystem));
-  for (const ecosystem of ["npm", "maven", "gradle", "oci"]) {
+  for (const ecosystem of ["npm", "maven", "gradle", "oci", "git"]) {
     if (!ecosystems.has(ecosystem)) throw new Error(`SBOM missing ${ecosystem} components`);
   }
 
@@ -210,6 +229,7 @@ function assertCoverage(sbom) {
     "nginx:1.29.8-alpine3.23-slim@sha256:",
     "prom/prometheus:v3.13.1-distroless",
     "prom/node-exporter:v1.12.0-distroless",
+    "coturn",
     "gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
     "grafana/grafana:13.1.0-distroless-slim@sha256:",
     "androidx.media3:media3-exoplayer",

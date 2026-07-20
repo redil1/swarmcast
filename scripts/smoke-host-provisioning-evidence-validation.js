@@ -45,6 +45,22 @@ function expectFailure(label, file, pattern) {
 
 expectPass("complete synthetic host provisioning evidence", fixture);
 expectFailure(
+  "missing TURN host",
+  writeVariant("missing-turn-host", (record) => {
+    record.hosts = record.hosts.filter((candidate) => candidate.role !== "turn");
+    return record;
+  }),
+  /hosts must include turn/
+);
+expectFailure(
+  "TURN metrics exposed publicly",
+  writeVariant("turn-metrics-public", (record) => {
+    record.turnMetricsRestrictedToMonitoring = false;
+    return record;
+  }),
+  /turnMetricsRestrictedToMonitoring must be true/
+);
+expectFailure(
   "unexpected public port",
   writeVariant("unexpected-public-port", (record) => {
     record.publicTcpPorts = [80, 443, 22];
@@ -110,4 +126,4 @@ expectFailure(
   /origin-1\.evidence evidence reference looks like it may contain sensitive material/
 );
 
-console.log("host provisioning evidence validation smoke OK: pass=1 failures=8");
+console.log("host provisioning evidence validation smoke OK: pass=1 failures=10");

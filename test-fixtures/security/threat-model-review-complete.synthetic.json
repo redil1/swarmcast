@@ -37,6 +37,11 @@
       "evidence": ["npm run smoke:nginx-edge-cache", "npm run smoke:edge-cache-metrics"]
     },
     {
+      "id": "turn-relay",
+      "owner": "platform",
+      "evidence": ["npm run smoke:turn", "docs/runbooks/turn-relay.md"]
+    },
+    {
       "id": "android-p2p",
       "owner": "android",
       "evidence": ["android/app/src/main/java/com/swarmcast/app/p2p/PeerLink.kt", "docs/privacy-store-compliance.md#peer-disclosure"]
@@ -167,6 +172,13 @@
       "owner": "operations",
       "decision": "Retention safeguards exist; staging execution against scoped credentials remains open.",
       "evidence": ["npm run retention:job", "npm run smoke:retention-execute"]
+    },
+    {
+      "id": "T-016",
+      "status": "accepted",
+      "owner": "platform",
+      "decision": "TURN abuse controls are implemented; real carrier relay and egress proof remains open.",
+      "evidence": ["T-016 npm run smoke:turn", "docs/runbooks/turn-relay.md"]
     }
   ],
   "openGates": [
@@ -205,6 +217,12 @@
       "owner": "security",
       "riskAcceptedBy": "synthetic-release-board",
       "evidence": ["docs/dependency-review.md#required-before-production"]
+    },
+    {
+      "id": "turn-carrier-proof",
+      "owner": "platform",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["turn-carrier-proof docs/runbooks/turn-relay.md#synthetic-open"]
     }
   ],
   "signoffs": [

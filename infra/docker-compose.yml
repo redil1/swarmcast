@@ -66,6 +66,12 @@ services:
       AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-swarmcast}
       AUTH_JWT_ISSUER: ${AUTH_JWT_ISSUER:-swarmcast-auth}
       AUTH_TOKEN_TTL_SECONDS: ${AUTH_TOKEN_TTL_SECONDS:-21600}
+      ICE_SERVER_ALLOWED_HOSTS: ${ICE_SERVER_ALLOWED_HOSTS:-}
+      ICE_STUN_URLS: ${ICE_STUN_URLS:-["stun:stun.l.google.com:19302","stun:stun.cloudflare.com:3478"]}
+      TURN_ENABLED: ${TURN_ENABLED:-0}
+      TURN_URLS: ${TURN_URLS:-[]}
+      TURN_SHARED_SECRET: ${TURN_SHARED_SECRET:-}
+      TURN_CREDENTIAL_TTL_SECONDS: ${TURN_CREDENTIAL_TTL_SECONDS:-3600}
     volumes:
       - auth-keys:/data
     networks: [internal]
@@ -134,6 +140,7 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ${TURN_TARGETS_DIR:-./monitoring/turn-targets}:/etc/prometheus/turn-targets:ro
       - prom-data:/prometheus
     networks: [internal]
 

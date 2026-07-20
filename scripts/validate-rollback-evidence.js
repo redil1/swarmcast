@@ -5,7 +5,8 @@ const requiredServices = [
   "ingest",
   "tracker",
   "control-plane",
-  "retention-worker"
+  "retention-worker",
+  "turn"
 ];
 const requiredPreflightChecks = [
   "freeze-deployments",
@@ -28,6 +29,7 @@ const requiredPostChecks = [
   "tracker-join-signal-stats-metrics",
   "edge-cache-miss-hit",
   "retention-health-metrics",
+  "turn-relay-health-metrics",
   "dashboard-snapshot",
   "android-release-halt-ready",
   "app-incident-delivery-fleet-only",
@@ -139,6 +141,12 @@ function validateCommands(record) {
   }
   for (const id of requiredCommands) {
     if (!byId.has(id)) fail(`missing required rollback command ${id}`);
+  }
+  const commandText = record.commands.map((command) => command.command).join("\n");
+  for (const service of requiredServices) {
+    if (!new RegExp(`(^|\\s)${service}(?=\\s|$)`, "m").test(commandText)) {
+      fail(`rollback commands must include service ${service}`);
+    }
   }
   return incomplete;
 }

@@ -16,6 +16,12 @@ export const ENV_DEFAULTS = Object.freeze({
   AUTH_JWT_AUDIENCE: "swarmcast",
   AUTH_JWT_ISSUER: "swarmcast-auth",
   AUTH_TOKEN_TTL_SECONDS: 21_600,
+  ICE_STUN_URLS: ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"],
+  ICE_SERVER_ALLOWED_HOSTS: "",
+  TURN_ENABLED: false,
+  TURN_URLS: [],
+  TURN_SHARED_SECRET: "",
+  TURN_CREDENTIAL_TTL_SECONDS: 3_600,
   AUTH_PORT: 7003,
   CONTROL_PLANE_PORT: 7010,
   CATALOG_DB_PATH: "",
@@ -224,6 +230,50 @@ function sourceHostAllowed(hostname, allowedHosts) {
   });
 }
 
+export function validateIceServerUrls(urls, key, {
+  allowedSchemes,
+  allowedHosts = []
+} = {}) {
+  if (!Array.isArray(urls) || urls.length === 0) {
+    throw new ConfigError(`${key} must be a non-empty JSON array`, { key });
+  }
+  const schemes = new Set(allowedSchemes || ["stun", "stuns", "turn", "turns"]);
+  const seen = new Set();
+
+  return urls.map((value, index) => {
+    const itemKey = `${key}[${index}]`;
+    if (typeof value !== "string" || value.trim() !== value || value.length > 512) {
+      throw new ConfigError(`${itemKey} must be a trimmed ICE server URL`, { key });
+    }
+    const match = value.match(/^([a-z]+):(\[[^\]]+\]|[^/?#:@]+)(?::(\d{1,5}))?(?:\?transport=(udp|tcp))?$/i);
+    if (!match) {
+      throw new ConfigError(`${itemKey} must be a valid STUN or TURN URL without credentials, path, or fragment`, { key });
+    }
+    const [, rawScheme, rawHost, rawPort, rawTransport] = match;
+    const scheme = rawScheme.toLowerCase();
+    const transport = rawTransport?.toLowerCase();
+    if (!schemes.has(scheme)) {
+      throw new ConfigError(`${itemKey} must use one of: ${[...schemes].join(", ")}`, { key });
+    }
+    if ((scheme === "stuns" || scheme === "turns") && transport === "udp") {
+      throw new ConfigError(`${itemKey} cannot use UDP transport with ${scheme}`, { key });
+    }
+    if (rawPort) {
+      const port = Number.parseInt(rawPort, 10);
+      if (port < 1 || port > 65_535) throw new ConfigError(`${itemKey} has an invalid port`, { key });
+    }
+    const hostname = rawHost.replace(/^\[|\]$/g, "").toLowerCase();
+    if (!hostname || !sourceHostAllowed(hostname, allowedHosts)) {
+      throw new ConfigError(`${itemKey} host is not in ICE_SERVER_ALLOWED_HOSTS`, { key });
+    }
+    const normalizedHost = rawHost.startsWith("[") ? `[${hostname}]` : hostname;
+    const normalized = `${scheme}:${normalizedHost}${rawPort ? `:${rawPort}` : ""}${transport ? `?transport=${transport}` : ""}`;
+    if (seen.has(normalized)) throw new ConfigError(`${key} contains duplicate URL ${normalized}`, { key });
+    seen.add(normalized);
+    return normalized;
+  });
+}
+
 export function sourcePolicyFromEnv(env = process.env, { requireAllowedHosts = false } = {}) {
   const allowedHosts = parseSourceAllowedHosts(stringEnv(env, "SOURCE_ALLOWED_HOSTS", ENV_DEFAULTS.SOURCE_ALLOWED_HOSTS));
   if (requireAllowedHosts && allowedHosts.length === 0) {
@@ -358,14 +408,54 @@ export function missingRequiredEnvExampleKeys(text, requiredKeys = REQUIRED_ENV_
 }
 
 export function loadAuthConfig(env = process.env, { requireSecrets = false } = {}) {
+  const appApiKey = requireSecrets ? requiredEnv(env, "APP_API_KEY") : stringEnv(env, "APP_API_KEY");
+  const tokenTtlSeconds = intEnv(env, "AUTH_TOKEN_TTL_SECONDS", ENV_DEFAULTS.AUTH_TOKEN_TTL_SECONDS, { min: 300, max: 86_400 });
+  const iceServerAllowedHosts = parseSourceAllowedHosts(stringEnv(env, "ICE_SERVER_ALLOWED_HOSTS", ENV_DEFAULTS.ICE_SERVER_ALLOWED_HOSTS));
+  if (requireSecrets && iceServerAllowedHosts.length === 0) {
+    throw new ConfigError("ICE_SERVER_ALLOWED_HOSTS is required when production validation is enabled", { key: "ICE_SERVER_ALLOWED_HOSTS" });
+  }
+  const stunUrls = validateIceServerUrls(
+    jsonEnv(env, "ICE_STUN_URLS", ENV_DEFAULTS.ICE_STUN_URLS),
+    "ICE_STUN_URLS",
+    { allowedSchemes: ["stun", "stuns"], allowedHosts: iceServerAllowedHosts }
+  );
+  const turnEnabled = boolEnv(env, "TURN_ENABLED", ENV_DEFAULTS.TURN_ENABLED);
+  const turnUrlsInput = jsonEnv(env, "TURN_URLS", ENV_DEFAULTS.TURN_URLS);
+  const turnUrls = turnEnabled
+    ? validateIceServerUrls(turnUrlsInput, "TURN_URLS", {
+      allowedSchemes: ["turn", "turns"],
+      allowedHosts: iceServerAllowedHosts
+    })
+    : [];
+  const turnSharedSecret = turnEnabled
+    ? requiredEnv(env, "TURN_SHARED_SECRET").trim()
+    : stringEnv(env, "TURN_SHARED_SECRET").trim();
+  if (turnEnabled && !/^[A-Za-z0-9_-]{32,256}$/.test(turnSharedSecret)) {
+    throw new ConfigError("TURN_SHARED_SECRET must be 32-256 URL-safe characters", { key: "TURN_SHARED_SECRET" });
+  }
+  const turnCredentialTtlSeconds = intEnv(
+    env,
+    "TURN_CREDENTIAL_TTL_SECONDS",
+    ENV_DEFAULTS.TURN_CREDENTIAL_TTL_SECONDS,
+    { min: 300, max: 86_400 }
+  );
+  if (turnEnabled && turnCredentialTtlSeconds > tokenTtlSeconds) {
+    throw new ConfigError("TURN_CREDENTIAL_TTL_SECONDS must not exceed AUTH_TOKEN_TTL_SECONDS", { key: "TURN_CREDENTIAL_TTL_SECONDS" });
+  }
   return {
     keyPath: stringEnv(env, "AUTH_KEY_PATH", ENV_DEFAULTS.AUTH_KEY_PATH),
     keyId: keyIdEnv(env, "AUTH_KEY_ID", ENV_DEFAULTS.AUTH_KEY_ID),
     previousJwksPath: stringEnv(env, "AUTH_PREVIOUS_JWKS_PATH", ENV_DEFAULTS.AUTH_PREVIOUS_JWKS_PATH),
     jwtAudience: jwtClaimEnv(env, "AUTH_JWT_AUDIENCE", ENV_DEFAULTS.AUTH_JWT_AUDIENCE),
     jwtIssuer: jwtClaimEnv(env, "AUTH_JWT_ISSUER", ENV_DEFAULTS.AUTH_JWT_ISSUER),
-    tokenTtlSeconds: intEnv(env, "AUTH_TOKEN_TTL_SECONDS", ENV_DEFAULTS.AUTH_TOKEN_TTL_SECONDS, { min: 300, max: 86_400 }),
-    appApiKey: requireSecrets ? requiredEnv(env, "APP_API_KEY") : stringEnv(env, "APP_API_KEY"),
+    tokenTtlSeconds,
+    stunUrls,
+    iceServerAllowedHosts,
+    turnEnabled,
+    turnUrls,
+    turnSharedSecret,
+    turnCredentialTtlSeconds,
+    appApiKey,
     port: intEnv(env, "AUTH_PORT", ENV_DEFAULTS.AUTH_PORT, { min: 1, max: 65535 })
   };
 }

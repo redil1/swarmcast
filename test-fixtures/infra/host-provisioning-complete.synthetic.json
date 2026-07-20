@@ -6,6 +6,10 @@
   "startedAt": "2026-07-05T00:00:00.000Z",
   "completedAt": "2026-07-05T00:16:00.000Z",
   "publicTcpPorts": [80, 443],
+  "turnPublicUdpPorts": [3478],
+  "turnPublicTcpPorts": [3478, 5349],
+  "turnRelayPortRange": [49152, 65535],
+  "turnMetricsRestrictedToMonitoring": true,
   "deniedInternalTcpPorts": [7000, 7001, 7002, 7003, 7010, 7020, 9101],
   "thirdPartyCdnUsed": false,
   "synthetic": true,
@@ -45,6 +49,12 @@
       "role": "retention-worker",
       "publicHostnames": ["retention.prod.swarmcast.tv"],
       "evidence": ["host-provisioning/retention-worker-host-synthetic"]
+    },
+    {
+      "id": "turn-1",
+      "role": "turn",
+      "publicHostnames": ["turn.prod.swarmcast.tv"],
+      "evidence": ["host-provisioning/turn-host-synthetic"]
     },
     {
       "id": "monitoring-1",

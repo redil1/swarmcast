@@ -7,6 +7,7 @@ const requiredSecrets = [
   "retention-store-token",
   "alertmanager-webhook-default",
   "alertmanager-webhook-critical",
+  "turn-shared-secret",
   "production-env-file"
 ];
 
@@ -17,6 +18,7 @@ const requiredSecretDefinitions = new Map([
   ["retention-store-token", { purpose: "retention store authentication", injectedInto: ["retention-worker"] }],
   ["alertmanager-webhook-default", { purpose: "default alert notifications", injectedInto: ["alertmanager"] }],
   ["alertmanager-webhook-critical", { purpose: "critical alert notifications", injectedInto: ["alertmanager"] }],
+  ["turn-shared-secret", { purpose: "short-lived turn credential derivation", injectedInto: ["auth", "turn"] }],
   ["production-env-file", { purpose: "production environment injection", injectedInto: ["compose"] }]
 ]);
 
@@ -25,6 +27,7 @@ const requiredChecks = [
   "secret-manager-access-reviewed",
   "deployment-injection-tested",
   "auth-key-rotation-ready",
+  "turn-secret-rotation-ready",
   "backup-restore-covered",
   "redaction-proof-reviewed",
   "alertmanager-receiver-secrets-reviewed"

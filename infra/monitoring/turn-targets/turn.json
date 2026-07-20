@@ -1,0 +1,9 @@
+[
+  {
+    "targets": ["turn.example.tv:9641"],
+    "labels": {
+      "region": "replace-me",
+      "role": "turn"
+    }
+  }
+]

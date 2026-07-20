@@ -53,7 +53,7 @@ expectPass("complete synthetic deployment evidence", fixture);
 expectFailure(
   "deployment command missing no-build",
   writeVariant("missing-no-build", (record) => {
-    record.commands[1] = record.commands[1].replace(" --no-build", "");
+    record.commands = record.commands.map((command) => command.replace(" --no-build", ""));
     return record;
   }),
   /commands must include up --no-build/
@@ -83,6 +83,14 @@ expectFailure(
   /control-plane\.evidence must mention control-plane/
 );
 expectFailure(
+  "TURN service missing",
+  writeVariant("missing-turn-service", (record) => {
+    record.services = record.services.filter((candidate) => candidate.name !== "turn");
+    return record;
+  }),
+  /missing service turn/
+);
+expectFailure(
   "check evidence missing check id",
   writeVariant("check-evidence-missing-id", (record) => {
     check(record, "rollback-ready").evidence = ["rollback:evidence:validate synthetic-pass"];
@@ -107,4 +115,4 @@ expectFailure(
   /tracker\.evidence evidence reference looks like it may contain sensitive material/
 );
 
-console.log("deployment evidence validation smoke OK: pass=1 failures=7");
+console.log("deployment evidence validation smoke OK: pass=1 failures=8");

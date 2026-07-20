@@ -14,7 +14,7 @@ Use this runbook to rehearse or execute service rollback to the previous stable 
 ## Preflight
 
 1. Freeze unrelated deployments.
-2. Confirm the previous stable tag exists for `auth`, `ingest`, `tracker`, `control-plane`, and `retention-worker`.
+2. Confirm the previous stable tag exists for `auth`, `ingest`, `tracker`, `control-plane`, `retention-worker`, and `turn`.
 3. Confirm current auth key volume, placement state, retention action log, and monitoring data are backed up or covered by the restore drill.
 4. Export the previous stable immutable image refs:
 
@@ -31,8 +31,10 @@ export SWARMCAST_GRAFANA_IMAGE=grafana/grafana:11.1.0@sha256:4444444444444444444
 export SWARMCAST_EDGE_NGINX_IMAGE=nginx:1.27@sha256:5555555555555555555555555555555555555555555555555555555555555555
 export SWARMCAST_EDGE_METRICS_IMAGE=node:22-slim@sha256:6666666666666666666666666666666666666666666666666666666666666666
 export SWARMCAST_NODE_EXPORTER_IMAGE=prom/node-exporter:v1.8.0@sha256:7777777777777777777777777777777777777777777777777777777777777777
+export SWARMCAST_TURN_IMAGE=ghcr.io/org/repo/turn@sha256:8888888888888888888888888888888888888888888888888888888888888888
 npm run release:images:check
 docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml config
+docker compose --env-file .env.production -f infra/turn/docker-compose.yml config
 ```
 
 The release override sets immutable image names. Use the rollback commands with `--no-build`; do not rely on local build contexts during rollback.
@@ -43,6 +45,9 @@ The release override sets immutable image names. Use the rollback commands with 
 docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker
 docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker
 docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml ps
+docker compose --env-file .env.production -f infra/turn/docker-compose.yml pull turn
+docker compose --env-file .env.production -f infra/turn/docker-compose.yml up -d --no-build turn
+docker compose --env-file .env.production -f infra/turn/docker-compose.yml ps turn
 ```
 
 ## Post-Rollback Smokes
@@ -54,6 +59,7 @@ docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml p
 - Tracker WebSocket join, signal relay, stats intake, and `/metrics` respond.
 - Edge cache still returns authenticated `MISS` then `HIT`.
 - Retention worker `/health` and `/metrics` respond.
+- TURN accepts fresh short-lived credentials over UDP and TLS, rejects expired credentials and private-peer targets, and exposes metrics only to monitoring.
 
 ## Evidence
 

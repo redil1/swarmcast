@@ -38,6 +38,14 @@
       "evidence": ["smoke:poisoning", "packages/p2p/test/receiver.test.js"]
     },
     {
+      "id": "turn-relay",
+      "status": "pass",
+      "evidence": [
+        "turn-relay npm run smoke:turn synthetic-pass",
+        "docs/runbooks/turn-relay.md"
+      ]
+    },
+    {
       "id": "release-gate",
       "status": "pass",
       "evidence": ["npm run release:images:check synthetic refs", "npm run image:scan:validate synthetic clean report"]

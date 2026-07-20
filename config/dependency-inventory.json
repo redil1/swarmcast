@@ -92,6 +92,16 @@
       "releaseGate": "Pass clean scan, edge metrics scrape, and the signed staging release."
     },
     {
+      "id": "turn",
+      "area": "networking",
+      "name": "coturn",
+      "current": "coturn 4.7.0 commit 678996a52954ddc7a44afd9f72f5b5c647e41083 on digest-pinned Alpine 3.23",
+      "source": "infra/turn/Dockerfile, .github/workflows/release.yml, and infra/turn/docker-compose.yml",
+      "pinning": "immutable source commit and base digest rebuilt, scanned, and signed by the release workflow",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass clean scan, authenticated UDP/TLS relay smoke, capacity measurement, and signed staging publication."
+    },
+    {
       "id": "android-gradle-plugin",
       "area": "android",
       "name": "Android Gradle Plugin",

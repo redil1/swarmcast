@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
+import { isIP } from "node:net";
 import {
   boolEnv,
   intEnv,
   jsonEnv,
   jwtClaimEnv,
   keyIdEnv,
+  loadAuthConfig,
   ownedUrlEnv,
   sourcePolicyFromEnv,
   stringEnv,
@@ -23,6 +25,25 @@ const requiredProductionKeys = [
   "AUTH_JWT_AUDIENCE",
   "AUTH_JWT_ISSUER",
   "AUTH_TOKEN_TTL_SECONDS",
+  "ICE_SERVER_ALLOWED_HOSTS",
+  "ICE_STUN_URLS",
+  "TURN_ENABLED",
+  "TURN_URLS",
+  "TURN_SHARED_SECRET",
+  "TURN_CREDENTIAL_TTL_SECONDS",
+  "TURN_REALM",
+  "TURN_EXTERNAL_IP",
+  "TURN_CERT_DIR",
+  "TURN_LISTENING_PORT",
+  "TURN_TLS_LISTENING_PORT",
+  "TURN_MIN_PORT",
+  "TURN_MAX_PORT",
+  "TURN_USER_QUOTA",
+  "TURN_TOTAL_QUOTA",
+  "TURN_MAX_BPS",
+  "TURN_BPS_CAPACITY",
+  "TURN_PROMETHEUS_PORT",
+  "TURN_TARGETS_DIR",
   "INGEST_NODES",
   "CATALOG_DB_PATH",
   "PLACEMENT_DB_PATH",
@@ -49,7 +70,8 @@ const requiredProductionKeys = [
   "SWARMCAST_GRAFANA_IMAGE",
   "SWARMCAST_EDGE_NGINX_IMAGE",
   "SWARMCAST_EDGE_METRICS_IMAGE",
-  "SWARMCAST_NODE_EXPORTER_IMAGE"
+  "SWARMCAST_NODE_EXPORTER_IMAGE",
+  "SWARMCAST_TURN_IMAGE"
 ];
 
 const releaseImageKeys = [
@@ -67,7 +89,8 @@ const infrastructureImageKeys = [
   "SWARMCAST_GRAFANA_IMAGE",
   "SWARMCAST_EDGE_NGINX_IMAGE",
   "SWARMCAST_EDGE_METRICS_IMAGE",
-  "SWARMCAST_NODE_EXPORTER_IMAGE"
+  "SWARMCAST_NODE_EXPORTER_IMAGE",
+  "SWARMCAST_TURN_IMAGE"
 ];
 
 const productionImageKeys = [
@@ -170,6 +193,48 @@ function validateProductionEnv(env, file) {
   jwtClaimEnv(env, "AUTH_JWT_AUDIENCE", "");
   jwtClaimEnv(env, "AUTH_JWT_ISSUER", "");
   intEnv(env, "AUTH_TOKEN_TTL_SECONDS", 21_600, { min: 300, max: 86_400 });
+  const authConfig = loadAuthConfig(env, { requireSecrets: true });
+  if (!authConfig.turnEnabled) fail("TURN_ENABLED must be 1 for production mobile reachability");
+  if (boolEnv(env, "TURN_ALLOW_PRIVATE_PEERS", false)) fail("TURN_ALLOW_PRIVATE_PEERS must be 0 for production");
+  requireHexSecret(env, "TURN_SHARED_SECRET");
+  if (!authConfig.turnUrls.some((url) => url.startsWith("turn:") && url.endsWith("transport=udp"))) {
+    fail("TURN_URLS must include a TURN/UDP endpoint");
+  }
+  if (!authConfig.turnUrls.some((url) => url.startsWith("turn:") && url.endsWith("transport=tcp"))) {
+    fail("TURN_URLS must include a TURN/TCP endpoint");
+  }
+  if (!authConfig.turnUrls.some((url) => url.startsWith("turns:") && url.endsWith("transport=tcp"))) {
+    fail("TURN_URLS must include a TURN/TLS endpoint");
+  }
+  const turnRealm = requirePresent(env, "TURN_REALM");
+  if (!/^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/i.test(turnRealm)) fail("TURN_REALM must be a valid DNS name");
+  if (isIP(requirePresent(env, "TURN_EXTERNAL_IP")) === 0) fail("TURN_EXTERNAL_IP must be an IP address");
+  const turnCertDir = requirePresent(env, "TURN_CERT_DIR");
+  if (!turnCertDir.startsWith("/") || turnCertDir.includes("..")) {
+    fail("TURN_CERT_DIR must be an absolute non-traversing path");
+  }
+  intEnv(env, "TURN_LISTENING_PORT", 3478, { min: 1, max: 65_535 });
+  intEnv(env, "TURN_TLS_LISTENING_PORT", 5349, { min: 1, max: 65_535 });
+  const turnMinPort = intEnv(env, "TURN_MIN_PORT", 49_152, { min: 1024, max: 65_535 });
+  const turnMaxPort = intEnv(env, "TURN_MAX_PORT", 65_535, { min: 1024, max: 65_535 });
+  if (turnMaxPort < turnMinPort || turnMaxPort - turnMinPort + 1 < 100) {
+    fail("TURN relay port range must contain at least 100 ports");
+  }
+  intEnv(env, "TURN_USER_QUOTA", 12, { min: 1, max: 100 });
+  const turnTotalQuota = intEnv(env, "TURN_TOTAL_QUOTA", 10_000, { min: 1, max: 1_000_000 });
+  if (turnTotalQuota > turnMaxPort - turnMinPort + 1) fail("TURN_TOTAL_QUOTA must not exceed the relay port count");
+  intEnv(env, "TURN_MAX_BPS", 1_250_000, { min: 100_000, max: 125_000_000 });
+  intEnv(env, "TURN_BPS_CAPACITY", 100_000_000, { min: 1_000_000, max: 12_500_000_000 });
+  intEnv(env, "TURN_PROMETHEUS_PORT", 9641, { min: 1, max: 65_535 });
+  const turnTargetsDir = requirePresent(env, "TURN_TARGETS_DIR");
+  if (!turnTargetsDir.startsWith("/") || turnTargetsDir.includes("..")) {
+    fail("TURN_TARGETS_DIR must be an absolute non-traversing path");
+  }
+  const previousTurnSecret = stringEnv(env, "TURN_PREVIOUS_SHARED_SECRET").trim();
+  if (previousTurnSecret) {
+    if (!/^[A-Za-z0-9_-]{32,256}$/.test(previousTurnSecret)) fail("TURN_PREVIOUS_SHARED_SECRET is invalid");
+    if (previousTurnSecret === authConfig.turnSharedSecret) fail("TURN_PREVIOUS_SHARED_SECRET must differ from TURN_SHARED_SECRET");
+  }
 
   validateIngestNodes(jsonEnv(env, "INGEST_NODES", []));
   requireSqlitePath(env, "CATALOG_DB_PATH");

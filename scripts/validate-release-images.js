@@ -10,7 +10,8 @@ const requiredImages = [
   ["grafana", "SWARMCAST_GRAFANA_IMAGE"],
   ["edge-nginx", "SWARMCAST_EDGE_NGINX_IMAGE"],
   ["edge-metrics", "SWARMCAST_EDGE_METRICS_IMAGE"],
-  ["node-exporter", "SWARMCAST_NODE_EXPORTER_IMAGE"]
+  ["node-exporter", "SWARMCAST_NODE_EXPORTER_IMAGE"],
+  ["turn", "SWARMCAST_TURN_IMAGE"]
 ];
 
 const allowTagOnly = process.argv.includes("--allow-tag-only");

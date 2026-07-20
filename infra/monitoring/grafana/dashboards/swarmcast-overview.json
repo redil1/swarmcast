@@ -213,6 +213,24 @@
       "targets": [
         { "expr": "sum by (network_class, candidate_type) (rate(swarmcast_tracker_ice_selected_candidate_total[5m]))", "legendFormat": "{{network_class}} {{candidate_type}}" }
       ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "TURN Active Allocations",
+      "gridPos": { "x": 0, "y": 64, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (instance, region) (turn_total_allocations)", "legendFormat": "{{region}} {{instance}}" }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "TURN Relay Throughput",
+      "gridPos": { "x": 12, "y": 64, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (instance, region) (rate(turn_total_traffic_sentb[5m]) + rate(turn_total_traffic_rcvb[5m])) * 8", "legendFormat": "{{region}} {{instance}} bits/s" }
+      ]
     }
   ]
 }

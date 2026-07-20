@@ -2,7 +2,7 @@
 
 Review date: 2026-07-05
 
-This model covers the current SwarmCast architecture: authenticated HLS origin, owned edge cache, auth service, tracker, control plane, lazy ingest workers, retention worker, Android app, WebRTC DataChannels, RLNC/coded-packet path, monitoring, release pipeline, and dependency supply chain.
+This model covers the current SwarmCast architecture: authenticated HLS origin, owned edge cache, auth service, tracker, control plane, lazy ingest workers, retention worker, owned TURN relay, Android app, WebRTC DataChannels, RLNC/coded-packet path, monitoring, release pipeline, and dependency supply chain.
 
 ## Assets
 
@@ -26,6 +26,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 | Ingest to tracker | Internal segment announce | `x-internal-token`, SHA-256 manifest, bounded channel lifecycle. |
 | Retention worker to operational stores | Internal worker to sensitive logs/metrics stores | Non-destructive default, explicit execution guard, adapter permissions scoped to retention actions, monitored success/failure metrics. |
 | Peer to peer | Viewer device to viewer device | WebRTC DTLS, bounded upload policy, segment hash verification, reputation, P2P disable path. |
+| Android and auth to TURN | Public viewer and credential service to owned relay | Short-lived HMAC credentials, TLS endpoint, quotas, private-peer denial, secret rotation overlap, metrics, and edge fallback. |
 | RLNC decoder boundary | Coded packets to stored bytes | Rank checks, fuzzed decoder, hash verification before `SegmentStore`, license and ABI review. |
 | Release pipeline to production | CI artifacts to runtime fleet | Immutable tags, image digest pinning, SBOM, vulnerability scan, rollback record. |
 | Monitoring and logs | Services to operators | Redaction, no JWTs, no source URLs, retention limits. |
@@ -49,6 +50,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 | T-013 | Tracker or control-plane outage breaks playback. | Delivery Fleet fallback; tracker carries signaling/stats but not media payloads. | Chaos drill: kill tracker/control-plane during playback and confirm player continues. |
 | T-014 | Release workflow publishes mutable or unreviewed artifacts. | Release workflow scaffolds immutable version/SHA tags and release summary. | Protect production environment secrets, require approval, pin images by digest, rehearse rollback. |
 | T-015 | Retention worker deletes or aggregates the wrong records. | Dry-run default, `RETENTION_EXECUTE=1` guard, policy-driven actions, fixture tests, failure/staleness alerts. | Production datastore adapter review, scoped credentials, and staging retention drill. |
+| T-016 | TURN credentials are abused for bandwidth theft or relays are used to reach private services. | Subject-bound expiring credentials, issuance rate limits, allocation/bandwidth quotas, private-peer denial, restricted metrics, immutable image, and rotation overlap. | Real carrier/device relay proof, relay egress reconciliation, external abuse test, and production secret review. |
 
 ## Abuse Cases To Test
 
@@ -63,6 +65,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 - ffmpeg source fails repeatedly and does not leak source URL in logs or metrics.
 - Retention worker dry-run and execute modes against staging stores, including incident hold exceptions.
 - Compromised dependency or image scan finding blocks launch.
+- Expired, forged, and replayed TURN credentials fail; relay attempts toward private and loopback addresses are denied.
 
 ## Required Before Production
 

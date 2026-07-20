@@ -122,6 +122,13 @@
       "evidence": ["node-exporter infra/edge/docker-compose.yml#node-exporter"]
     },
     {
+      "id": "turn",
+      "status": "approved",
+      "owner": "platform",
+      "decision": "Approve coturn 4.6.3-r3 for owned relay staging with immutable image and authenticated relay smoke evidence.",
+      "evidence": ["turn npm run smoke:turn synthetic-pass"]
+    },
+    {
       "id": "android-gradle-plugin",
       "status": "approved",
       "owner": "android",

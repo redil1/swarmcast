@@ -13,7 +13,8 @@ const requiredServices = [
   "grafana",
   "edge-nginx",
   "edge-metrics",
-  "node-exporter"
+  "node-exporter",
+  "turn"
 ];
 const args = process.argv.slice(2);
 const allowHigh = args.includes("--allow-high");

@@ -13,7 +13,7 @@ const requiredChecks = [
   "compose-renders",
   "public-dns-configured"
 ];
-const requiredHostRoles = ["origin", "edge", "api", "tracker", "control-plane", "retention-worker", "monitoring"];
+const requiredHostRoles = ["origin", "edge", "api", "tracker", "control-plane", "retention-worker", "turn", "monitoring"];
 const requiredCheckEvidence = Object.fromEntries(requiredChecks.map((id) => [id, id]));
 const requiredDeniedPorts = [7000, 7001, 7002, 7003, 7010, 7020, 9101];
 const args = process.argv.slice(2);
@@ -70,7 +70,7 @@ function validateHosts(hosts) {
     const id = cleanString("host.id", host.id, /^[a-z0-9][a-z0-9-]*$/);
     if (ids.has(id)) fail(`duplicate host ${id}`);
     ids.add(id);
-    const role = cleanString(`${host.id}.role`, host.role, /^(origin|edge|api|tracker|control-plane|retention-worker|monitoring)$/);
+    const role = cleanString(`${host.id}.role`, host.role, /^(origin|edge|api|tracker|control-plane|retention-worker|turn|monitoring)$/);
     roles.add(role);
     if (!Array.isArray(host.publicHostnames) || host.publicHostnames.length === 0) fail(`${host.id}.publicHostnames must be non-empty`);
     for (const hostname of host.publicHostnames) cleanString(`${host.id}.publicHostnames[]`, hostname, hostnamePattern);
@@ -111,6 +111,18 @@ function validatePorts(record) {
   if (!Array.isArray(record.deniedInternalTcpPorts)) fail("deniedInternalTcpPorts must be an array");
   for (const port of requiredDeniedPorts) {
     if (!record.deniedInternalTcpPorts.includes(port)) fail(`deniedInternalTcpPorts must include ${port}`);
+  }
+  if (!Array.isArray(record.turnPublicUdpPorts) || record.turnPublicUdpPorts.join(",") !== "3478") {
+    fail("turnPublicUdpPorts must be exactly [3478]");
+  }
+  if (!Array.isArray(record.turnPublicTcpPorts) || record.turnPublicTcpPorts.join(",") !== "3478,5349") {
+    fail("turnPublicTcpPorts must be exactly [3478,5349]");
+  }
+  if (!Array.isArray(record.turnRelayPortRange) || record.turnRelayPortRange.join(",") !== "49152,65535") {
+    fail("turnRelayPortRange must be exactly [49152,65535]");
+  }
+  if (record.turnMetricsRestrictedToMonitoring !== true) {
+    fail("turnMetricsRestrictedToMonitoring must be true");
   }
 }
 

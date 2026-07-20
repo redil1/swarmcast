@@ -15,6 +15,7 @@ This template records the production deployment shape. Fill every value before l
 | alertmanager | TBD | TBD | 9093 | `/-/ready` | TBD |
 | grafana | TBD | TBD | 3000 | `/api/health` | TBD |
 | edge-metrics | TBD | TBD | 9101 | `/health` and `/metrics` | TBD |
+| turn | TBD | TBD | 3478/5349 plus relay range | STUN probe and `/metrics` on 9641 | TBD |
 
 ## Edge Nodes
 
@@ -35,6 +36,7 @@ Production environment files must set persistent mounted SQLite paths for `CATAL
 - Alertmanager receiver endpoints
 - retention datastore credentials or `RETENTION_STORE_MODULE` deployment config
 - `RETENTION_STORE_HTTP_TOKEN` when using the built-in HTTP retention store
+- `TURN_SHARED_SECRET` shared by auth and the active relay fleet; optional `TURN_PREVIOUS_SHARED_SECRET` exists only during rotation overlap
 - production catalog source credentials if applicable
 
 ## Launch Evidence
@@ -44,6 +46,7 @@ Production environment files must set persistent mounted SQLite paths for `CATAL
 - production secrets evidence that passes `npm run secrets:evidence:validate -- path/to/secrets-evidence.json`, including secret purpose, production scope, storage, rotation policy, runtime injection, access-review, backup/restore, redaction-proof, and no-raw-secret evidence
 - deployment execution evidence that passes `npm run deployment:evidence:validate -- path/to/deployment-evidence.json`, with service command coverage, digest-pinned pulls, `up --no-build`, service health, post-deploy smokes, rollback readiness, and exact evidence markers
 - production smoke evidence that passes `npm run production:smoke:evidence:validate -- path/to/production-smoke-evidence.json`
+- owned TURN evidence covering short-lived REST credentials, UDP and TLS relay, Prometheus scraping, private-peer denial, real Android relay candidate selection, and reconciled relay egress; local packaging coverage is `npm run smoke:turn`
 - nginx/TLS evidence that passes `npm run nginx:tls:evidence:validate -- path/to/nginx-tls-evidence.json`, including valid certificate, hostname verification, origin auth, authorized segment fetch, edge MISS/HIT, cross-token cache reuse, source URL redaction, cache-key redaction, and no third-party CDN fallback; local guard coverage remains `npm run smoke:nginx-tls-evidence-validation`
 - source allowlist evidence that passes `npm run source:allowlist:evidence:validate -- path/to/source-allowlist-evidence.json`
 - Alertmanager fire-drill screenshot or log

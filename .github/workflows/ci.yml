@@ -69,7 +69,9 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: docker compose -f infra/docker-compose.yml config
       - run: docker compose -f infra/edge/docker-compose.yml config
+      - run: docker compose --env-file test-fixtures/config/production.env -f infra/turn/docker-compose.yml config
       - run: docker pull nginx:1.29.8-alpine3.23-slim@sha256:c9366b8c560169b101ca0e5422ed063b20779e6454c2326b9c9704225c9b0c08
       - run: npm run smoke:nginx-config
       - run: npm run smoke:nginx-origin-playback
       - run: npm run smoke:nginx-edge-cache
+      - run: npm run smoke:turn

@@ -51,6 +51,25 @@ function expectFailure(label, file, pattern) {
 
 expectPass("complete synthetic rollback evidence", fixture);
 expectFailure(
+  "TURN rollback image missing",
+  writeVariant("missing-turn-image", (record) => {
+    delete record.rollbackImages.turn;
+    return record;
+  }),
+  /rollbackImages\.turn is required/
+);
+expectFailure(
+  "TURN omitted from rollback commands",
+  writeVariant("missing-turn-command", (record) => {
+    record.commands = record.commands.map((item) => ({
+      ...item,
+      command: item.command.replace(/\s*&& docker compose --env-file \.env\.production -f infra\/turn\/docker-compose\.yml (?:pull|up -d --no-build|ps) turn/g, "")
+    }));
+    return record;
+  }),
+  /rollback commands must include service turn/
+);
+expectFailure(
   "rollback image matches current image",
   writeVariant("same-rollback-image", (record) => {
     record.rollbackImages.auth = record.currentImages.auth;
@@ -99,4 +118,4 @@ expectFailure(
   /source-preflight\.evidence evidence reference looks like it may contain sensitive material/
 );
 
-console.log("rollback evidence validation smoke OK: pass=1 failures=6");
+console.log("rollback evidence validation smoke OK: pass=1 failures=8");

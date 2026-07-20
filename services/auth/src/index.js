@@ -7,6 +7,7 @@ import { createLogger, logHttpRequest } from "@swarmcast/config/logging";
 import { createLocalJWKSet, exportJWK, jwtVerify, SignJWT } from "jose";
 import { createAuthMetrics, formatAuthMetrics } from "./metrics.js";
 import { IpRateLimiter } from "./rateLimit.js";
+import { issueTurnCredentials } from "./turnCredentials.js";
 
 const DEFAULT_CONFIG = loadAuthConfig();
 
@@ -63,11 +64,18 @@ export async function createAuthServer({
   jwtAudience = DEFAULT_CONFIG.jwtAudience,
   jwtIssuer = DEFAULT_CONFIG.jwtIssuer,
   tokenTtlSeconds = DEFAULT_CONFIG.tokenTtlSeconds,
+  stunUrls = DEFAULT_CONFIG.stunUrls,
+  turnEnabled = DEFAULT_CONFIG.turnEnabled,
+  turnUrls = DEFAULT_CONFIG.turnUrls,
+  turnSharedSecret = DEFAULT_CONFIG.turnSharedSecret,
+  turnCredentialTtlSeconds = DEFAULT_CONFIG.turnCredentialTtlSeconds,
   appApiKey = DEFAULT_CONFIG.appApiKey,
   tokenRateLimiter = new IpRateLimiter(),
+  nowSeconds = () => Math.floor(Date.now() / 1000),
   logger = null
 } = {}) {
   if (!appApiKey) throw new Error("APP_API_KEY is required");
+  if (turnEnabled && !turnSharedSecret) throw new Error("TURN_SHARED_SECRET is required when TURN is enabled");
 
   const privateKey = ensurePrivateKey(keyPath);
   const publicJwk = await exportJWK(privateKey);
@@ -100,17 +108,30 @@ export async function createAuthServer({
         logger?.warn("auth_token_rate_limited", { error_class: "rate_limited" }, "token request rate limited");
         return errorJson(res, ERROR_CODES.RATE_LIMITED, "rate limited");
       }
+      const issuedAt = nowSeconds();
+      const subject = randomUUID();
       const token = await new SignJWT({ scope: "view" })
         .setProtectedHeader({ alg: "ES256", kid: keyId })
-        .setSubject(randomUUID())
+        .setSubject(subject)
         .setAudience(jwtAudience)
         .setIssuer(jwtIssuer)
-        .setIssuedAt()
-        .setExpirationTime(`${tokenTtlSeconds}s`)
+        .setIssuedAt(issuedAt)
+        .setExpirationTime(issuedAt + tokenTtlSeconds)
         .sign(privateKey);
+      const iceServers = [{ urls: [...stunUrls] }];
+      if (turnEnabled) {
+        iceServers.push(issueTurnCredentials({
+          urls: turnUrls,
+          sharedSecret: turnSharedSecret,
+          ttlSeconds: turnCredentialTtlSeconds,
+          subject,
+          nowSeconds: issuedAt
+        }));
+        metrics.turnCredentialsIssued += 1;
+      }
       metrics.tokensIssued += 1;
       logger?.info("auth_token_issued", { request_id: req.headers["x-request-id"] || null }, "token issued");
-      return json(res, 200, { token, expiresIn: tokenTtlSeconds });
+      return json(res, 200, { token, expiresIn: tokenTtlSeconds, iceServers });
     }
 
     if (url.pathname === "/verify") {
@@ -143,6 +164,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     jwtAudience: runtimeConfig.jwtAudience,
     jwtIssuer: runtimeConfig.jwtIssuer,
     tokenTtlSeconds: runtimeConfig.tokenTtlSeconds,
+    stunUrls: runtimeConfig.stunUrls,
+    turnEnabled: runtimeConfig.turnEnabled,
+    turnUrls: runtimeConfig.turnUrls,
+    turnSharedSecret: runtimeConfig.turnSharedSecret,
+    turnCredentialTtlSeconds: runtimeConfig.turnCredentialTtlSeconds,
     appApiKey: runtimeConfig.appApiKey,
     logger
   });

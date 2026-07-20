@@ -27,7 +27,8 @@
       "var/scans/grafana.trivy.json",
       "var/scans/edge-nginx.trivy.json",
       "var/scans/edge-metrics.trivy.json",
-      "var/scans/node-exporter.trivy.json"
+      "var/scans/node-exporter.trivy.json",
+      "var/scans/turn.trivy.json"
     ]
   },
   "checks": [
@@ -98,6 +99,11 @@
       "service": "node-exporter",
       "env": "SWARMCAST_NODE_EXPORTER_IMAGE",
       "image": "prom/node-exporter:v1.8.0@sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    },
+    {
+      "service": "turn",
+      "env": "SWARMCAST_TURN_IMAGE",
+      "image": "ghcr.io/aziz/ads/turn@sha256:8888888888888888888888888888888888888888888888888888888888888888"
     }
   ]
 }
