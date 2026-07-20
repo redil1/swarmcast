@@ -45,7 +45,9 @@ try {
     "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
     "-subj", "/CN=localhost", "-keyout", key, "-out", cert
   ]);
-  chmodSync(key, 0o600);
+  chmodSync(directory, 0o755);
+  chmodSync(cert, 0o644);
+  chmodSync(key, 0o644);
 
   run("docker", [
     "run", "-d", "--name", name,
