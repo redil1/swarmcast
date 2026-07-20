@@ -1,6 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { aggregatePeerStats, aggregateRollingPeerStats, recordPeerStats } from "../src/stats.js";
+import {
+  addPeerToTrackerStats,
+  aggregatePeerStats,
+  aggregateRollingPeerStats,
+  createTrackerStats,
+  recordPeerStats,
+  recordTrackerStats,
+  removePeerFromTrackerStats,
+  snapshotRollingTrackerStats,
+  snapshotTrackerStats
+} from "../src/stats.js";
 
 test("aggregatePeerStats computes offload and peer fractions", () => {
   const stats = aggregatePeerStats([
@@ -104,4 +114,55 @@ test("recordPeerStats keeps cumulative counters, playback quality, and rolling w
   assert.equal(rolling.startupLatencyMsAvg, 800);
   assert.equal(rolling.bufferMsAvg, 20000);
   assert.equal(rolling.bufferMsMin, 20000);
+});
+
+test("incremental tracker stats preserve counters after disconnect without scanning peers", () => {
+  const stats = createTrackerStats();
+  const wifi = { id: "wifi", transport: "wifi", superPeer: true };
+  const cell = { id: "cell", transport: "cell", superPeer: false };
+  addPeerToTrackerStats(stats, wifi);
+  addPeerToTrackerStats(stats, cell);
+
+  recordTrackerStats(stats, wifi, {
+    ts: 0,
+    dlP2p: 900,
+    dlEdge: 100,
+    dlBootstrapOrigin: 50,
+    dlRelay: 0,
+    ul: 700,
+    stalls: 0,
+    peerTimeouts: 1,
+    peerHashFailures: 0,
+    peerDisconnects: 0,
+    startupLatencyMs: 1000,
+    bufferMs: 30000
+  }, 0);
+  recordTrackerStats(stats, cell, {
+    ts: 6000,
+    dlP2p: 100,
+    dlEdge: 900,
+    dlBootstrapOrigin: 0,
+    dlRelay: 100,
+    ul: 0,
+    stalls: 1,
+    peerTimeouts: 0,
+    peerHashFailures: 1,
+    peerDisconnects: 1,
+    startupLatencyMs: 2000,
+    bufferMs: 10000
+  }, 6000);
+
+  removePeerFromTrackerStats(stats, cell);
+  const cumulative = snapshotTrackerStats(stats);
+  const rolling = snapshotRollingTrackerStats(stats, 6000, 5000);
+
+  assert.equal(cumulative.peers, 1);
+  assert.equal(cumulative.dlP2p, 1000);
+  assert.equal(cumulative.dlEdge, 1000);
+  assert.equal(cumulative.bufferMsMin, 30000);
+  assert.equal(cumulative.offloadRatio, 1000 / 2150);
+  assert.equal(rolling.dlP2p, 100);
+  assert.equal(rolling.dlEdge, 900);
+  assert.equal(rolling.dlRelay, 100);
+  assert.equal(rolling.bufferMsMin, 10000);
 });

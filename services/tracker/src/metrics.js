@@ -1,4 +1,9 @@
-import { aggregateStateRollingStats, aggregateStateStats } from "./stats.js";
+import {
+  aggregateStateRollingStats,
+  aggregateStateStats,
+  snapshotRollingTrackerStats,
+  snapshotTrackerStats
+} from "./stats.js";
 
 function line(name, value, help, type = "gauge") {
   return `# HELP ${name} ${help}
@@ -9,6 +14,7 @@ ${name} ${Number.isFinite(value) ? value : 0}`;
 export function formatPrometheusMetrics(stats) {
   return [
     line("swarmcast_tracker_peers", stats.peers, "Connected tracker peers"),
+    line("swarmcast_tracker_cells", stats.cells || 0, "Active tracker swarm cells"),
     line("swarmcast_tracker_download_p2p_bytes_total", stats.dlP2p, "Client-reported P2P download bytes", "counter"),
     line("swarmcast_tracker_download_edge_bytes_total", stats.dlEdge, "Client-reported edge download bytes", "counter"),
     line("swarmcast_tracker_download_bootstrap_origin_bytes_total", stats.dlBootstrapOrigin || 0, "Client-reported designated origin bootstrap bytes", "counter"),
@@ -37,15 +43,21 @@ export function formatPrometheusMetrics(stats) {
     line("swarmcast_tracker_buffer_ms_avg_5m", stats.rollingBufferMsAvg ?? 0, "Average client-reported playback buffer depth in the rolling 5 minute window"),
     line("swarmcast_tracker_buffer_ms_min_5m", stats.rollingBufferMsMin ?? 0, "Minimum client-reported playback buffer depth in the rolling 5 minute window"),
     line("swarmcast_tracker_wifi_fraction", stats.wifiFraction, "Fraction of peers on WiFi"),
-    line("swarmcast_tracker_super_peer_fraction", stats.superPeerFraction, "Fraction of peers promoted to super-peer")
+    line("swarmcast_tracker_super_peer_fraction", stats.superPeerFraction, "Fraction of peers promoted to super-peer"),
+    line("swarmcast_tracker_segment_payload_encodes_total", stats.segmentPayloadsEncoded || 0, "Pre-encoded segment payload variants", "counter"),
+    line("swarmcast_tracker_messages_dropped_total", stats.messagesDropped || 0, "Tracker messages dropped before delivery", "counter"),
+    line("swarmcast_tracker_backpressure_drops_total", stats.backpressureDrops || 0, "Tracker messages dropped by the backpressure budget", "counter"),
+    line("swarmcast_tracker_cell_capacity_rejections_total", stats.cellCapacityRejections || 0, "Tracker joins rejected by a full swarm cell", "counter")
   ].join("\n") + "\n";
 }
 
 export function metricsForState(state) {
-  const cumulative = aggregateStateStats(state);
-  const rolling = aggregateStateRollingStats(state);
+  const cumulative = state.stats ? snapshotTrackerStats(state.stats) : aggregateStateStats(state);
+  const rolling = state.stats ? snapshotRollingTrackerStats(state.stats) : aggregateStateRollingStats(state);
   return formatPrometheusMetrics({
     ...cumulative,
+    ...state.delivery,
+    cells: state.swarms.size,
     rollingDlP2p: rolling.dlP2p,
     rollingDlEdge: rolling.dlEdge,
     rollingDlBootstrapOrigin: rolling.dlBootstrapOrigin,

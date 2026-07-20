@@ -5,6 +5,7 @@ import { formatPrometheusMetrics } from "../src/metrics.js";
 test("formatPrometheusMetrics emits core tracker metrics", () => {
   const text = formatPrometheusMetrics({
     peers: 2,
+    cells: 2,
     dlP2p: 100,
     dlEdge: 50,
     dlBootstrapOrigin: 10,
@@ -32,7 +33,11 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     rollingBufferMsAvg: 28000,
     rollingBufferMsMin: 15000,
     wifiFraction: 0.5,
-    superPeerFraction: 0.25
+    superPeerFraction: 0.25,
+    segmentPayloadsEncoded: 4,
+    messagesDropped: 2,
+    backpressureDrops: 1,
+    cellCapacityRejections: 3
   });
 
   assert.match(text, /swarmcast_tracker_peers 2/);
@@ -51,4 +56,8 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
   assert.match(text, /swarmcast_tracker_buffer_ms_avg 30000/);
   assert.match(text, /swarmcast_tracker_buffer_ms_min_5m 15000/);
   assert.match(text, /swarmcast_tracker_super_peer_fraction 0\.25/);
+  assert.match(text, /swarmcast_tracker_segment_payload_encodes_total 4/);
+  assert.match(text, /swarmcast_tracker_backpressure_drops_total 1/);
+  assert.match(text, /swarmcast_tracker_cells 2/);
+  assert.match(text, /swarmcast_tracker_cell_capacity_rejections_total 3/);
 });

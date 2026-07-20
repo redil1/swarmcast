@@ -25,6 +25,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import tv.swarmcast.data.ErrorCodes
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
 import kotlin.random.Random
@@ -36,14 +37,20 @@ sealed class TrackerEvent {
         val edgeTemplate: String,
         val originTemplate: String,
         val swarmMode: String,
-        val superPeer: Boolean
+        val superPeer: Boolean,
+        val cellId: String = "default"
     ) : TrackerEvent()
 
     data class Peers(val peers: List<PeerInfo>) : TrackerEvent()
     data class SwarmMode(val swarmMode: String, val swarmSize: Int) : TrackerEvent()
     data class Signal(val from: String, val data: JsonObject) : TrackerEvent()
     data class Segment(val seq: Int, val sha256: String, val size: Long, val k: Int, val seedTier: Boolean) : TrackerEvent()
-    data class Redirect(val channelId: String, val shardId: String, val trackerUrl: String) : TrackerEvent()
+    data class Redirect(
+        val channelId: String,
+        val shardId: String,
+        val trackerUrl: String,
+        val cellId: String = "default"
+    ) : TrackerEvent()
     data class Error(val code: String, val message: String = "") : TrackerEvent()
     data object Disconnected : TrackerEvent()
 }
@@ -66,6 +73,7 @@ class TrackerClient(
     private var reconnectJob: Job? = null
     private var connectionGeneration = 0L
     private var closedByUser = true
+    private val assignmentKey = UUID.randomUUID().toString()
 
     fun connect(channelId: String, wifi: Boolean, uploadEnabled: Boolean, uplinkKbps: Int = 0) {
         connectionGeneration += 1
@@ -152,6 +160,7 @@ class TrackerClient(
     private fun joinMessage(join: JoinRequest) = buildJsonObject {
         put("t", "join")
         put("channelId", join.channelId)
+        put("assignmentKey", assignmentKey)
         putJsonObject("caps") {
             put("upload", join.uploadEnabled && join.wifi)
             put("transport", if (join.wifi) "wifi" else "cell")
@@ -249,7 +258,8 @@ class TrackerClient(
                 edgeTemplate = obj["edgeUrlTemplate"]!!.jsonPrimitive.content,
                 originTemplate = obj["originUrlTemplate"]!!.jsonPrimitive.content,
                 swarmMode = obj["swarmMode"]?.jsonPrimitive?.contentOrNull ?: "p2p",
-                superPeer = obj["superPeer"]?.jsonPrimitive?.boolean ?: false
+                superPeer = obj["superPeer"]?.jsonPrimitive?.boolean ?: false,
+                cellId = obj["cellId"]?.jsonPrimitive?.contentOrNull ?: "default"
             )
             "peers" -> TrackerEvent.Peers(obj["peers"]!!.jsonArray.map {
                 val peer = it.jsonObject
@@ -277,7 +287,8 @@ class TrackerClient(
             "redirect" -> TrackerEvent.Redirect(
                 channelId = obj["channelId"]!!.jsonPrimitive.content,
                 shardId = obj["shardId"]!!.jsonPrimitive.content,
-                trackerUrl = obj["trackerUrl"]!!.jsonPrimitive.content
+                trackerUrl = obj["trackerUrl"]!!.jsonPrimitive.content,
+                cellId = obj["cellId"]?.jsonPrimitive?.contentOrNull ?: "default"
             )
             "error" -> TrackerEvent.Error(
                 code = obj["code"]?.jsonPrimitive?.contentOrNull ?: ErrorCodes.CONFIG_INVALID,

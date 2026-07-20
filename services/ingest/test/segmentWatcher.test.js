@@ -56,3 +56,20 @@ test("announceSegment posts internal token and segment body", async () => {
     k: 32
   });
 });
+
+test("announceSegment distributes metadata to every tracker cell endpoint and retries failures", async () => {
+  const attempts = new Map();
+  await announceSegment({
+    trackerInternalUrls: ["http://tracker-a.local", "http://tracker-b.local"],
+    internalToken: "secret",
+    segment: { channelId: "demo", seq: 2, sha256: "abc", size: 10, k: 32 },
+    retryDelayMs: 0,
+    fetchFn: async (url) => {
+      attempts.set(url, (attempts.get(url) || 0) + 1);
+      return { ok: !url.includes("tracker-b") || attempts.get(url) >= 2, status: 503 };
+    }
+  });
+
+  assert.equal(attempts.get("http://tracker-a.local/internal/segment"), 1);
+  assert.equal(attempts.get("http://tracker-b.local/internal/segment"), 2);
+});

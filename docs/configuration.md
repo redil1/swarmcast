@@ -24,6 +24,8 @@ SwarmCast services use explicit environment variables and startup validation. Re
 | auth | `AUTH_TOKEN_TTL_SECONDS` | `21600` |
 | ingest | `INGEST_PORT` | `7001` |
 | ingest | `TRACKER_INTERNAL_URL` | `http://tracker:7002` |
+| ingest | `TRACKER_INTERNAL_URLS` | `[]` (JSON list; falls back to `TRACKER_INTERNAL_URL`) |
+| tracker | `TRACKER_CELL_MAX_PEERS` | `20000` |
 | ingest | `HLS_ROOT` | `/var/hls` |
 | ingest | `MAX_CHANNELS` | `140` |
 | ingest | `IDLE_TEARDOWN_MS` | `60000` |

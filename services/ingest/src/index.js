@@ -84,6 +84,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const watcher = watchSegments({
     hlsRoot: runtimeConfig.hlsRoot,
     trackerInternalUrl: runtimeConfig.trackerInternalUrl,
+    trackerInternalUrls: runtimeConfig.trackerInternalUrls,
     internalToken: runtimeConfig.internalToken,
     rlncK: runtimeConfig.rlncK,
     logger,

@@ -12,7 +12,13 @@ import { buildMediaTemplates, resolveChannelPlacement } from "./placementClient.
 import { parseTrackerPolicy, swarmModeForSize } from "./policy.js";
 import { announceSegmentToState } from "./segments.js";
 import { routeTrackerJoin } from "./sharding.js";
-import { recordPeerStats } from "./stats.js";
+import {
+  addPeerToTrackerStats,
+  createTrackerStats,
+  recordPeerStats,
+  recordTrackerStats,
+  removePeerFromTrackerStats
+} from "./stats.js";
 
 const DEFAULT_CONFIG = loadTrackerConfig();
 const TRACKER_POLICY = parseTrackerPolicy();
@@ -20,13 +26,38 @@ const TRACKER_POLICY = parseTrackerPolicy();
 export function createTrackerState() {
   return {
     swarms: new Map(),
-    peersById: new Map()
+    channelSwarms: new Map(),
+    peersById: new Map(),
+    stats: createTrackerStats(),
+    delivery: {
+      segmentPayloadsEncoded: 0,
+      messagesDropped: 0,
+      backpressureDrops: 0,
+      cellCapacityRejections: 0
+    }
   };
 }
 
-export function swarmFor(state, channelId) {
-  if (!state.swarms.has(channelId)) state.swarms.set(channelId, new Swarm(channelId));
-  return state.swarms.get(channelId);
+export function swarmKey(channelId, cellId = "default") {
+  return cellId === "default" ? channelId : `${channelId}::${cellId}`;
+}
+
+export function swarmFor(state, channelId, cellId = "default") {
+  const key = swarmKey(channelId, cellId);
+  if (!state.swarms.has(key)) {
+    state.swarms.set(key, new Swarm(channelId, cellId));
+    const keys = state.channelSwarms.get(channelId) || new Set();
+    keys.add(key);
+    state.channelSwarms.set(channelId, keys);
+  }
+  return state.swarms.get(key);
+}
+
+export function swarmsForChannel(state, channelId) {
+  const keys = state.channelSwarms.get(channelId);
+  if (keys) return [...keys].map((key) => state.swarms.get(key)).filter(Boolean);
+  const legacy = state.swarms.get(channelId);
+  return legacy ? [legacy] : [];
 }
 
 export function createPeer(userData = {}) {
@@ -34,6 +65,7 @@ export function createPeer(userData = {}) {
     ...userData,
     id: randomUUID(),
     channelId: null,
+    cellId: null,
     transport: "cell",
     uploadEnabled: false,
     uplinkKbps: 0,
@@ -57,12 +89,33 @@ export function canAcceptTrackerConnection(state, maxConnections = DEFAULT_CONFI
   return state.peersById.size < maxConnections;
 }
 
-function sendToPeer(state, peer, message, send = null) {
+export function createTrackerSender({ state, maxBackpressureBytes }) {
+  return (peer, obj, encoded = null) => {
+    const ws = state.peersById.get(peer.id);
+    if (!ws) return false;
+    const payload = encoded || (typeof obj === "string" ? obj : JSON.stringify(obj));
+    if ((ws.getBufferedAmount?.() || 0) + Buffer.byteLength(payload) > maxBackpressureBytes) {
+      state.delivery.messagesDropped += 1;
+      state.delivery.backpressureDrops += 1;
+      return false;
+    }
+    const status = ws.send(payload);
+    if (status === 2) {
+      state.delivery.messagesDropped += 1;
+      return false;
+    }
+    return true;
+  };
+}
+
+function sendToPeer(state, peer, message, send = null, encoded = null) {
   if (send) {
-    send(peer, message);
-    return;
+    return send(peer, message, encoded) !== false;
   }
-  state.peersById.get(peer.id)?.send?.(JSON.stringify(message));
+  const target = state.peersById.get(peer.id);
+  if (!target?.send) return false;
+  target.send(encoded || (typeof message === "string" ? message : JSON.stringify(message)));
+  return true;
 }
 
 function broadcastSwarmMode(state, swarm, policy, send = null, excludedPeerId = null) {
@@ -80,15 +133,29 @@ function broadcastSwarmMode(state, swarm, policy, send = null, excludedPeerId = 
 export function removePeerFromState(state, peer, { policy = TRACKER_POLICY, send = null } = {}) {
   if (!peer?.id) return;
   state.peersById.delete(peer.id);
+  detachPeerFromSwarm(state, peer, { policy, send });
+}
+
+function detachPeerFromSwarm(state, peer, { policy = TRACKER_POLICY, send = null } = {}) {
   if (peer.channelId) {
-    const swarm = state.swarms.get(peer.channelId);
+    const key = swarmKey(peer.channelId, peer.cellId || "default");
+    const swarm = state.swarms.get(key);
     const previousMode = swarm?.mode || (swarm ? swarmModeForSize(swarm.size, policy) : null);
     swarm?.removePeer(peer.id);
+    if (peer.statsRegistered) {
+      removePeerFromTrackerStats(state.stats, peer);
+      peer.statsRegistered = false;
+    }
     if (swarm?.size === 0) {
-      state.swarms.delete(peer.channelId);
+      state.swarms.delete(key);
+      const keys = state.channelSwarms.get(peer.channelId);
+      keys?.delete(key);
+      if (keys?.size === 0) state.channelSwarms.delete(peer.channelId);
     } else if (previousMode !== swarmModeForSize(swarm.size, policy)) {
       broadcastSwarmMode(state, swarm, policy, send);
     }
+    peer.channelId = null;
+    peer.cellId = null;
   }
 }
 
@@ -119,13 +186,21 @@ export async function sendDemandHeartbeats({
   internalToken = DEFAULT_CONFIG.internalToken
 }) {
   const requests = [];
-  for (const [channelId, swarm] of state.swarms) {
+  const swarmsByChannel = new Map();
+  for (const swarm of state.swarms.values()) {
     if (swarm.size === 0) continue;
-    const demandUrl = swarm.demandUrl || ingestUrl;
+    const swarms = swarmsByChannel.get(swarm.channelId) || [];
+    swarms.push(swarm);
+    swarmsByChannel.set(swarm.channelId, swarms);
+  }
+  for (const [channelId, swarms] of swarmsByChannel) {
+    if (swarms.length === 0) continue;
+    const demandUrl = swarms[0].demandUrl || ingestUrl;
+    const swarmSize = swarms.reduce((total, swarm) => total + swarm.size, 0);
     requests.push(fetchFn(`${demandUrl}/channels/${channelId}/demand`, {
       method: "POST",
       headers: { "x-internal-token": internalToken, "content-type": "application/json" },
-      body: JSON.stringify({ swarmSize: swarm.size })
+      body: JSON.stringify({ swarmSize })
     }).catch(() => null));
   }
   await Promise.all(requests);
@@ -150,6 +225,7 @@ export async function handlePeerMessage({
     selfShardId: DEFAULT_CONFIG.trackerShardId,
     shards: DEFAULT_CONFIG.trackerShards
   },
+  cellMaxPeers = DEFAULT_CONFIG.cellMaxPeers,
   logger = null
 }) {
   if (rateLimiter && !rateLimiter.allow(peer)) {
@@ -176,8 +252,12 @@ export async function handlePeerMessage({
   switch (msg.t) {
     case "join": {
       const channelId = String(msg.channelId);
+      const assignmentKey = String(msg.assignmentKey || peer.sub || peer.id).slice(0, 128);
+      const region = String(msg.caps?.region || "").slice(0, 32);
       const shardRoute = routeTrackerJoin({
         channelId,
+        assignmentKey,
+        region,
         selfShardId: trackerShardConfig.selfShardId,
         shards: trackerShardConfig.shards
       });
@@ -185,11 +265,13 @@ export async function handlePeerMessage({
         logger?.info("tracker_shard_redirect", {
           peer_id: peer.id,
           channel_id: channelId,
-          shard_id: shardRoute.redirect.id
+          shard_id: shardRoute.redirect.id,
+          cell_id: shardRoute.cellId
         }, "peer redirected to owning tracker shard");
         ws.send(JSON.stringify({
           t: "redirect",
           channelId,
+          cellId: shardRoute.cellId,
           shardId: shardRoute.redirect.id,
           trackerUrl: shardRoute.redirect.wsUrl
         }));
@@ -197,8 +279,9 @@ export async function handlePeerMessage({
         return;
       }
 
-      if (peer.channelId) state.swarms.get(peer.channelId)?.removePeer(peer.id);
+      if (peer.channelId) detachPeerFromSwarm(state, peer, { policy, send });
       peer.channelId = channelId;
+      peer.cellId = shardRoute.cellId || "default";
       peer.transport = msg.caps?.transport === "wifi" ? "wifi" : "cell";
       peer.uploadEnabled = !!msg.caps?.upload && peer.transport === "wifi";
       peer.uplinkKbps = msg.caps?.uplinkKbps | 0;
@@ -225,16 +308,27 @@ export async function handlePeerMessage({
       });
       const demandUrl = media.demandUrl || ingestUrl;
 
-      const swarm = swarmFor(state, peer.channelId);
+      const swarm = swarmFor(state, peer.channelId, peer.cellId);
+      if (swarm.size >= cellMaxPeers) {
+        state.delivery.cellCapacityRejections += 1;
+        const error = publicError(ERROR_CODES.CAPACITY, "tracker cell is full");
+        ws.send(JSON.stringify({ t: "error", code: error.error, msg: error.message }));
+        peer.channelId = null;
+        peer.cellId = null;
+        return;
+      }
       const previousMode = swarm.mode || swarmModeForSize(swarm.size, policy);
       swarm.demandUrl = demandUrl;
       swarm.addPeer(peer);
+      addPeerToTrackerStats(state.stats, peer);
+      peer.statsRegistered = true;
       const swarmMode = swarmModeForSize(swarm.size, policy);
       swarm.mode = swarmMode;
       logger?.info("tracker_joined", {
         peer_id: peer.id,
         channel_id: peer.channelId,
-        swarm_id: peer.channelId,
+        swarm_id: swarmKey(peer.channelId, peer.cellId),
+        cell_id: peer.cellId,
         swarm_size: swarm.size
       }, "peer joined tracker swarm");
 
@@ -247,6 +341,7 @@ export async function handlePeerMessage({
       ws.send(JSON.stringify({
         t: "joined",
         peerId: peer.id,
+        cellId: peer.cellId,
         swarmSize: swarm.size,
         swarmMode,
         superPeer: peer.superPeer,
@@ -269,11 +364,15 @@ export async function handlePeerMessage({
       }
       return;
     case "stats":
-      recordPeerStats(peer, msg);
+      {
+        const sample = recordPeerStats(peer, msg);
+        if (peer.statsRegistered) recordTrackerStats(state.stats, peer, sample);
+        if (peer.channelId) state.swarms.get(swarmKey(peer.channelId, peer.cellId || "default"))?.refreshPeer(peer);
+      }
       return;
     case "need_peers": {
       if (!peer.channelId) return;
-      const swarm = state.swarms.get(peer.channelId);
+      const swarm = state.swarms.get(swarmKey(peer.channelId, peer.cellId || "default"));
       if (!swarm || swarmModeForSize(swarm.size, policy) !== "p2p") {
         ws.send(JSON.stringify({ t: "peers", peers: [] }));
         return;
@@ -291,12 +390,13 @@ export async function handlePeerMessage({
       const targetId = String(msg.to || "");
       const target = targetId.length <= 128 ? state.peersById.get(targetId) : null;
       const targetPeer = target?.getUserData?.() || target?.peer;
-      if (target && peer.channelId && targetPeer?.channelId === peer.channelId) {
-        target.send?.(JSON.stringify({ t: "signal", from: peer.id, data: msg.data || {} }));
+      if (target && peer.channelId && targetPeer?.channelId === peer.channelId && targetPeer?.cellId === peer.cellId) {
+        sendToPeer(state, targetPeer, { t: "signal", from: peer.id, data: msg.data || {} }, send);
         logger?.debug("tracker_signal_relayed", {
           peer_id: peer.id,
           target_peer_id: target.getUserData?.()?.id || String(msg.to),
-          channel_id: peer.channelId
+          channel_id: peer.channelId,
+          cell_id: peer.cellId
         }, "tracker signal relayed");
       }
       return;
@@ -323,10 +423,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     refillPerSecond: runtimeConfig.rateLimitRefillPerSecond
   });
 
-  const send = (peer, obj) => {
-    const ws = state.peersById.get(peer.id);
-    if (ws) ws.send(JSON.stringify(obj));
-  };
+  const send = createTrackerSender({ state, maxBackpressureBytes: runtimeConfig.maxBackpressureBytes });
 
   uWS.App()
     .ws("/ws", {
@@ -380,6 +477,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           ingestUrl: runtimeConfig.ingestUrl,
           originBase: runtimeConfig.originBase,
           edgeBase: runtimeConfig.edgeBase,
+          trackerShardConfig: {
+            selfShardId: runtimeConfig.trackerShardId,
+            shards: runtimeConfig.trackerShards
+          },
+          cellMaxPeers: runtimeConfig.cellMaxPeers,
           logger
         });
       },
@@ -423,7 +525,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           logger.info("segment_announced", {
             channel_id: result.segment.channelId,
             segment_seq: result.segment.seq,
-            swarm_id: result.segment.channelId,
+            swarm_id: result.cells === 1
+              ? swarmKey(result.segment.channelId, swarmsForChannel(state, result.segment.channelId)[0]?.cellId)
+              : result.segment.channelId,
+            cells: result.cells,
             recipients: result.recipients
           }, "segment announced to swarm");
           res.cork(() => res.end("ok"));

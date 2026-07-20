@@ -26,24 +26,48 @@ export async function describeSegment({ fullPath, relativePath, rlncK }) {
   };
 }
 
-export async function announceSegment({ trackerInternalUrl, internalToken, segment, fetchFn = fetch }) {
-  const response = await fetchFn(`${trackerInternalUrl}/internal/segment`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-internal-token": internalToken
-    },
-    body: JSON.stringify(segment)
-  });
-
-  if (!response.ok) {
-    throw new Error(`tracker segment announce failed: ${response.status}`);
-  }
+export async function announceSegment({
+  trackerInternalUrl,
+  trackerInternalUrls = trackerInternalUrl ? [trackerInternalUrl] : [],
+  internalToken,
+  segment,
+  fetchFn = fetch,
+  attempts = 3,
+  timeoutMs = 2000,
+  retryDelayMs = 50
+}) {
+  if (trackerInternalUrls.length === 0) throw new Error("tracker segment announce requires at least one target");
+  const body = JSON.stringify(segment);
+  await Promise.all(trackerInternalUrls.map(async (baseUrl) => {
+    let lastStatus = "unavailable";
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        const response = await fetchFn(`${baseUrl}/internal/segment`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-internal-token": internalToken
+          },
+          body,
+          signal: AbortSignal.timeout(timeoutMs)
+        });
+        if (response.ok) return;
+        lastStatus = response.status;
+      } catch (error) {
+        lastStatus = error.message;
+      }
+      if (attempt < attempts && retryDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt));
+      }
+    }
+    throw new Error(`tracker segment announce failed for ${baseUrl}: ${lastStatus}`);
+  }));
 }
 
 export function watchSegments({
   hlsRoot,
   trackerInternalUrl,
+  trackerInternalUrls,
   internalToken,
   rlncK,
   logger = createLogger({ service: "ingest" }),
@@ -58,7 +82,7 @@ export function watchSegments({
       const fullPath = path.join(hlsRoot, filename);
       const segment = await describeSegment({ fullPath, relativePath: filename, rlncK });
       if (!segment) return;
-      await announceSegment({ trackerInternalUrl, internalToken, segment, fetchFn });
+      await announceSegment({ trackerInternalUrl, trackerInternalUrls, internalToken, segment, fetchFn });
       onSegment?.(segment);
     } catch (error) {
       logger?.warn?.("segment_announce_failed", {

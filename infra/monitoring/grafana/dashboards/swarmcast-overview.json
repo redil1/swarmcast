@@ -169,7 +169,10 @@
       "targets": [
         { "expr": "swarmcast_tracker_peer_timeouts_5m", "legendFormat": "timeouts 5m" },
         { "expr": "swarmcast_tracker_peer_hash_failures_5m", "legendFormat": "hash failures 5m" },
-        { "expr": "swarmcast_tracker_peer_disconnects_5m", "legendFormat": "disconnects 5m" }
+        { "expr": "swarmcast_tracker_peer_disconnects_5m", "legendFormat": "disconnects 5m" },
+        { "expr": "rate(swarmcast_tracker_backpressure_drops_total[5m])", "legendFormat": "backpressure drops" },
+        { "expr": "rate(swarmcast_tracker_cell_capacity_rejections_total[5m])", "legendFormat": "cell capacity rejects" },
+        { "expr": "swarmcast_tracker_cells", "legendFormat": "active cells" }
       ]
     },
     {

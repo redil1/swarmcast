@@ -42,6 +42,7 @@
     "smoke:rlnc-swarm": "node scripts/smoke-rlnc-swarm.js",
     "smoke:tracker-load": "node scripts/smoke-tracker-load.js",
     "smoke:tracker-sharding": "node scripts/smoke-tracker-sharding.js",
+    "smoke:tracker-ws-cells": "node scripts/smoke-tracker-ws-cells.js",
     "smoke:tracker-ws": "node scripts/smoke-tracker-ws.js",
     "smoke:tracker-ws-load": "node scripts/smoke-tracker-ws-load.js",
     "smoke:tracker-ws-multichannel": "node scripts/smoke-tracker-ws-load.js --channels=5",

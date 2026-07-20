@@ -2845,3 +2845,14 @@ Results:
 - Hardened load-ladder evidence to derive model offload from packet counts, reject omitted helper bootstrap, recompute real-stage `rho` from all delivery categories, and require client edge/origin/relay bytes to reconcile with access-log egress within 5%.
 - Repository-wide verification passes 153 tests. Android unit tests plus debug/release assemblies, including release lint, pass locally; the corrected headless model smoke, the 12-failure-path load-evidence smoke, and `npm run check` also pass.
 - Final commit `55cf6b6` passed remote CI run `29764650180` across Node, deployment-shape, and Android jobs. Build slice 300 is complete; physical-device offload proof remains a launch gate.
+
+## Build Slice 301 In Progress
+
+- Replaced channel-only tracker ownership with stable per-viewer rendezvous assignment across process-owned cells, including optional regional affinity, redirect/join `cellId`, Android reconnect-stable assignment keys, same-cell signaling enforcement, and a configurable 20K peer ceiling per cell.
+- Replaced production full-swarm candidate and seeder sorting with incrementally maintained bounded score buckets and rotating pools.
+- Segment fanout now pre-encodes the seed/non-seed variants once per cell and routes delivery through a per-socket backpressure budget with drop, capacity-rejection, and active-cell metrics plus a critical alert/runbook.
+- Replaced scrape-time peer aggregation with monotonic incremental counters, fixed-size one-second rolling buckets, and an indexed one-entry-per-active-peer buffer-min heap.
+- Added authenticated multi-endpoint ingest announcement fanout with per-attempt timeouts and retries.
+- Added deterministic assignment/distribution/movement/locality, cell-cap, cross-cell signaling, bounded-send, multi-cell fanout, incremental-stat, config, and Android assignment-continuity tests.
+- The real two-process Node 22 WebSocket smoke passes: one channel spans two cells, both receive segment metadata, one cell fails while its client retains owned-edge fallback, the cell restarts, the client rejoins, and both receive the next segment.
+- Repository-wide verification passes 163 tests. Android unit/debug/release builds, tracker sharding smoke, the real two-process Node 22 cell smoke, alert validation, and dashboard validation pass locally. Remote CI remains pending; real 1K/10K/100K per-channel scale evidence remains a hard gate.

@@ -1,4 +1,204 @@
 export const STATS_WINDOW_MS = 5 * 60 * 1000;
+const STATS_BUCKET_MS = 1000;
+const MAX_ROLLING_BUCKETS = Math.ceil(STATS_WINDOW_MS / STATS_BUCKET_MS) + 2;
+
+class MinHeap {
+  constructor() {
+    this.values = [];
+    this.positions = new Map();
+  }
+
+  set(peerId, value) {
+    const existing = this.positions.get(peerId);
+    if (existing !== undefined) {
+      const previous = this.values[existing].value;
+      this.values[existing].value = value;
+      if (value < previous) this.#bubbleUp(existing);
+      else this.#bubbleDown(existing);
+      return;
+    }
+    const entry = { peerId, value };
+    this.values.push(entry);
+    this.positions.set(peerId, this.values.length - 1);
+    this.#bubbleUp(this.values.length - 1);
+  }
+
+  remove(peerId) {
+    const index = this.positions.get(peerId);
+    if (index === undefined) return;
+    const last = this.values.pop();
+    this.positions.delete(peerId);
+    if (index < this.values.length) {
+      this.values[index] = last;
+      this.positions.set(last.peerId, index);
+      this.#bubbleUp(index);
+      this.#bubbleDown(this.positions.get(last.peerId));
+    }
+  }
+
+  peek() {
+    return this.values[0] || null;
+  }
+
+  #bubbleUp(start) {
+    let index = start;
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (this.values[parent].value <= this.values[index].value) break;
+      this.#swap(index, parent);
+      index = parent;
+    }
+  }
+
+  #bubbleDown(start) {
+    let index = start;
+    while (index < this.values.length) {
+      const left = index * 2 + 1;
+      const right = left + 1;
+      if (left >= this.values.length) break;
+      const child = right < this.values.length && this.values[right].value < this.values[left].value ? right : left;
+      if (this.values[index].value <= this.values[child].value) break;
+      this.#swap(index, child);
+      index = child;
+    }
+  }
+
+  #swap(left, right) {
+    [this.values[left], this.values[right]] = [this.values[right], this.values[left]];
+    this.positions.set(this.values[left].peerId, left);
+    this.positions.set(this.values[right].peerId, right);
+  }
+}
+
+function emptyCounters() {
+  return {
+    dlP2p: 0,
+    dlEdge: 0,
+    dlBootstrapOrigin: 0,
+    dlRelay: 0,
+    ul: 0,
+    stalls: 0,
+    peerTimeouts: 0,
+    peerHashFailures: 0,
+    peerDisconnects: 0,
+    startupLatencyMsTotal: 0,
+    startupLatencySamples: 0,
+    bufferMsTotal: 0,
+    bufferSamples: 0,
+    bufferMsMin: null
+  };
+}
+
+export function createTrackerStats() {
+  return {
+    peers: 0,
+    wifi: 0,
+    superPeers: 0,
+    cumulative: emptyCounters(),
+    rollingBuckets: new Map(),
+    bufferByPeer: new Map(),
+    bufferMinHeap: new MinHeap(),
+    bufferMsTotal: 0
+  };
+}
+
+export function addPeerToTrackerStats(stats, peer) {
+  stats.peers += 1;
+  if (peer.transport === "wifi") stats.wifi += 1;
+  if (peer.superPeer) stats.superPeers += 1;
+}
+
+export function removePeerFromTrackerStats(stats, peer) {
+  stats.peers = Math.max(0, stats.peers - 1);
+  if (peer.transport === "wifi") stats.wifi = Math.max(0, stats.wifi - 1);
+  if (peer.superPeer) stats.superPeers = Math.max(0, stats.superPeers - 1);
+  const previous = stats.bufferByPeer.get(peer.id);
+  if (previous !== undefined) {
+    stats.bufferByPeer.delete(peer.id);
+    stats.bufferMsTotal -= previous;
+    stats.bufferMinHeap.remove(peer.id);
+  }
+}
+
+function addSample(target, sample) {
+  for (const key of [
+    "dlP2p", "dlEdge", "dlBootstrapOrigin", "dlRelay", "ul", "stalls",
+    "peerTimeouts", "peerHashFailures", "peerDisconnects"
+  ]) target[key] += sample[key] || 0;
+  if (sample.startupLatencyMs !== undefined) {
+    target.startupLatencyMsTotal += sample.startupLatencyMs;
+    target.startupLatencySamples += 1;
+  }
+  if (sample.bufferMs !== undefined) {
+    target.bufferMsTotal += sample.bufferMs;
+    target.bufferSamples += 1;
+    target.bufferMsMin = minMetric(target.bufferMsMin, sample.bufferMs);
+  }
+}
+
+export function recordTrackerStats(stats, peer, sample, nowMs = sample.ts) {
+  addSample(stats.cumulative, sample);
+  const bucketStart = Math.floor(nowMs / STATS_BUCKET_MS) * STATS_BUCKET_MS;
+  const bucket = stats.rollingBuckets.get(bucketStart) || emptyCounters();
+  addSample(bucket, sample);
+  stats.rollingBuckets.set(bucketStart, bucket);
+  while (stats.rollingBuckets.size > MAX_ROLLING_BUCKETS) {
+    stats.rollingBuckets.delete(stats.rollingBuckets.keys().next().value);
+  }
+
+  if (sample.bufferMs !== undefined) {
+    const previous = stats.bufferByPeer.get(peer.id);
+    if (previous !== undefined) stats.bufferMsTotal -= previous;
+    stats.bufferByPeer.set(peer.id, sample.bufferMs);
+    stats.bufferMsTotal += sample.bufferMs;
+    stats.bufferMinHeap.set(peer.id, sample.bufferMs);
+  }
+}
+
+function currentBufferMin(stats) {
+  return stats.bufferMinHeap.peek()?.value || 0;
+}
+
+function snapshotCounters(stats, counters, { currentBuffers = false } = {}) {
+  const bufferSamples = currentBuffers ? stats.bufferByPeer.size : counters.bufferSamples;
+  const bufferMsTotal = currentBuffers ? stats.bufferMsTotal : counters.bufferMsTotal;
+  const bufferMsMin = currentBuffers ? currentBufferMin(stats) : counters.bufferMsMin;
+  return summary({
+    peers: stats.peers,
+    ...counters,
+    wifi: stats.wifi,
+    superPeers: stats.superPeers,
+    bufferSamples,
+    bufferMsTotal,
+    bufferMsMin
+  });
+}
+
+export function snapshotTrackerStats(stats) {
+  return snapshotCounters(stats, stats.cumulative, { currentBuffers: true });
+}
+
+export function snapshotRollingTrackerStats(stats, nowMs = Date.now(), windowMs = STATS_WINDOW_MS) {
+  const cutoff = nowMs - windowMs;
+  const counters = emptyCounters();
+  for (const [bucketStart, bucket] of stats.rollingBuckets) {
+    if (bucketStart < cutoff) {
+      stats.rollingBuckets.delete(bucketStart);
+      continue;
+    }
+    addSample(counters, {
+      ...bucket,
+      startupLatencyMs: undefined,
+      bufferMs: undefined
+    });
+    counters.startupLatencyMsTotal += bucket.startupLatencyMsTotal;
+    counters.startupLatencySamples += bucket.startupLatencySamples;
+    counters.bufferMsTotal += bucket.bufferMsTotal;
+    counters.bufferSamples += bucket.bufferSamples;
+    counters.bufferMsMin = minMetric(counters.bufferMsMin, bucket.bufferMsMin);
+  }
+  return snapshotCounters(stats, counters);
+}
 
 function nonNegativeInt(value) {
   return Math.max(0, Number.parseInt(value || 0, 10) || 0);
@@ -108,6 +308,7 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
   peer.statsWindow.push(sample);
   const cutoff = nowMs - windowMs;
   peer.statsWindow = peer.statsWindow.filter((entry) => entry.ts >= cutoff);
+  return sample;
 }
 
 export function aggregatePeerStats(peers) {

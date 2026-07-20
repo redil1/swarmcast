@@ -517,11 +517,27 @@ for (const check of [
   },
   {
     file: "scripts/smoke-tracker-sharding.js",
-    required: ["loadTrackerConfig", "selectTrackerShard", "trackerShardConfig", "tracker shard redirect", "wrong shard must redirect before demand", "tracker sharding smoke OK"]
+    required: ["loadTrackerConfig", "selectTrackerCell", "assignmentKey", "trackerShardConfig", "tracker shard redirect", "wrong shard must redirect before demand", "tracker sharding smoke OK"]
   },
   {
     file: "services/tracker/src/sharding.js",
-    required: ["rankTrackerShards", "selectTrackerShard", "routeTrackerJoin", "createHash", "localeCompare"]
+    required: ["rankTrackerShards", "selectTrackerShard", "rankTrackerCells", "selectTrackerCell", "assignmentKey", "region", "routeTrackerJoin", "createHash", "localeCompare"]
+  },
+  {
+    file: "services/tracker/src/peerIndex.js",
+    required: ["class PeerPool", "positions", "SCORE_BUCKETS", "takeSuper", "takeNormal", "membership"]
+  },
+  {
+    file: "services/tracker/src/stats.js",
+    required: ["createTrackerStats", "recordTrackerStats", "snapshotTrackerStats", "snapshotRollingTrackerStats", "MAX_ROLLING_BUCKETS", "class MinHeap"]
+  },
+  {
+    file: "services/tracker/src/metrics.js",
+    required: ["swarmcast_tracker_cells", "swarmcast_tracker_segment_payload_encodes_total", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_rejections_total"]
+  },
+  {
+    file: "scripts/smoke-tracker-ws-cells.js",
+    required: ["spawnTracker", "selectTrackerCell", "announceSegment", "TRACKER_CELL_MAX_PEERS", "assignmentKey", "edgeUrlTemplate", "tracker cell WebSocket smoke OK"]
   },
   {
     file: "scripts/smoke-tracker-ws.js",
@@ -2959,11 +2975,11 @@ for (const check of [
   },
   {
     file: "services/ingest/src/segmentWatcher.js",
-    required: ["segment_announce_failed", "createLogger"]
+    required: ["segment_announce_failed", "createLogger", "trackerInternalUrls", "AbortSignal.timeout", "Promise.all"]
   },
   {
     file: "services/tracker/src/index.js",
-    required: ["tracker_joined", "tracker_signal_relayed", "tracker_peer_dropped", "tracker_idle_peers_closed", "segment_announced", "announceSegmentToState"]
+    required: ["tracker_joined", "tracker_signal_relayed", "tracker_peer_dropped", "tracker_idle_peers_closed", "segment_announced", "announceSegmentToState", "cell_id", "cellMaxPeers", "createTrackerSender"]
   },
   {
     file: "services/retention-worker/src/index.js",
@@ -3393,7 +3409,7 @@ for (const check of [
   },
   {
     file: "services/tracker/src/index.js",
-    required: ["loadTrackerConfig", "requireSecrets: true", "authJwtAudience", "authJwtIssuer", "routeTrackerJoin", "tracker_shard_redirect", "t: \"redirect\""]
+    required: ["loadTrackerConfig", "requireSecrets: true", "authJwtAudience", "authJwtIssuer", "routeTrackerJoin", "tracker_shard_redirect", "assignmentKey", "cellId", "t: \"redirect\""]
   },
   {
     file: "services/retention-worker/src/index.js",
@@ -3401,7 +3417,7 @@ for (const check of [
   },
   {
     file: "packages/config/src/env.js",
-    required: ["loadFeatureFlags", "loadRetentionWorkerConfig", "validateIngestNodes", "validateTrackerShards", "validateTrackerShardId", "validateSourceUrl", "sourcePolicyFromEnv", "requireAllowedHosts", "SOURCE_ALLOWED_HOSTS is required when production validation is enabled", "SOURCE_ALLOWED_HOSTS", "SOURCE_ALLOW_PRIVATE_NETWORKS", "ownedUrlEnv", "keyIdEnv", "jwtClaimEnv", "AUTH_KEY_ID", "AUTH_PREVIOUS_JWKS_PATH", "AUTH_JWT_AUDIENCE", "AUTH_JWT_ISSUER", "AUTH_TOKEN_TTL_SECONDS", "third-party CDN provider", "RETENTION_WORKER_PORT", "RETENTION_INTERVAL_MS", "RETENTION_EXECUTE", "TAIL_ADMISSION_MAX_CHANNELS", "TAIL_DOWNSCALE_VIDEO_KBPS", "TAIL_DOWNSCALE_AUDIO_KBPS", "TRACKER_MAX_PAYLOAD_BYTES", "TRACKER_MAX_CONNECTIONS", "TRACKER_IDLE_TIMEOUT_SECONDS", "TRACKER_DEMAND_HEARTBEAT_SECONDS", "TRACKER_SHARD_ID", "TRACKER_SHARDS"]
+    required: ["loadFeatureFlags", "loadRetentionWorkerConfig", "validateIngestNodes", "validateTrackerShards", "validateTrackerShardId", "validateSourceUrl", "sourcePolicyFromEnv", "requireAllowedHosts", "SOURCE_ALLOWED_HOSTS is required when production validation is enabled", "SOURCE_ALLOWED_HOSTS", "SOURCE_ALLOW_PRIVATE_NETWORKS", "ownedUrlEnv", "keyIdEnv", "jwtClaimEnv", "AUTH_KEY_ID", "AUTH_PREVIOUS_JWKS_PATH", "AUTH_JWT_AUDIENCE", "AUTH_JWT_ISSUER", "AUTH_TOKEN_TTL_SECONDS", "third-party CDN provider", "RETENTION_WORKER_PORT", "RETENTION_INTERVAL_MS", "RETENTION_EXECUTE", "TAIL_ADMISSION_MAX_CHANNELS", "TAIL_DOWNSCALE_VIDEO_KBPS", "TAIL_DOWNSCALE_AUDIO_KBPS", "TRACKER_MAX_PAYLOAD_BYTES", "TRACKER_MAX_CONNECTIONS", "TRACKER_CELL_MAX_PEERS", "TRACKER_INTERNAL_URLS", "TRACKER_IDLE_TIMEOUT_SECONDS", "TRACKER_DEMAND_HEARTBEAT_SECONDS", "TRACKER_SHARD_ID", "TRACKER_SHARDS"]
   }
 ]) {
   const text = readFileSync(check.file, "utf8");
@@ -4623,6 +4639,8 @@ const androidTextChecks = [
       "hash_failures",
       "peer_disconnects",
       "TrackerEvent.Redirect",
+      "assignmentKey",
+      "cellId",
       "MAX_TRACKER_REDIRECTS",
       "MAX_RECONNECT_DELAY_MS",
       "scheduleReconnect()",

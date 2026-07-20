@@ -31,6 +31,7 @@ export function score(peer) {
 }
 
 export function electSeeders(swarm, count) {
+  if (swarm.peerIndex) return swarm.peerIndex.takeSuper(count);
   const eligible = [...swarm.peers.values()]
     .filter((peer) => peer.transport === "wifi" && peer.uploadEnabled && (peer.superPeer || isSuperPeer(peer)))
     .sort((a, b) => score(b) - score(a));
@@ -57,6 +58,23 @@ function shuffled(peers) {
 }
 
 export function candidatePeers(swarm, forPeer, count = 12, excludedPeerIds = new Set()) {
+  if (swarm.peerIndex) {
+    const selectedIds = new Set();
+    const superTarget = forPeer.transport === "cell" ? count : Math.ceil(count / 3);
+    const supers = swarm.peerIndex.takeSuper(superTarget, excludedPeerIds, forPeer.id, selectedIds);
+    const normals = swarm.peerIndex.takeNormal(count - supers.length, excludedPeerIds, forPeer.id, selectedIds);
+    const extraSupers = swarm.peerIndex.takeSuper(
+      count - supers.length - normals.length,
+      excludedPeerIds,
+      forPeer.id,
+      selectedIds
+    );
+    return [...supers, ...normals, ...extraSupers].map((peer) => ({
+      id: peer.id,
+      transport: peer.transport,
+      superPeer: !!(peer.superPeer || isSuperPeer(peer))
+    }));
+  }
   const others = [...swarm.peers.values()].filter((peer) =>
     peer.id !== forPeer.id && !excludedPeerIds.has(peer.id)
   );

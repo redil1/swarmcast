@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   canAcceptTrackerConnection,
+  createTrackerSender,
   createPeer,
   createTrackerState,
   handlePeerMessage,
@@ -9,7 +10,7 @@ import {
   removePeerFromState,
   sendDemandHeartbeats
 } from "../src/index.js";
-import { selectTrackerShard } from "../src/sharding.js";
+import { selectTrackerCell } from "../src/sharding.js";
 import { Swarm } from "../src/swarm.js";
 
 function fakeWs(peer = null) {
@@ -62,7 +63,8 @@ test("join redirects to owning tracker shard before creating swarm state", async
     { id: "tracker-b", wsUrl: "wss://tracker-b.example.tv/ws" }
   ];
   const channelId = "sharded-demo";
-  const target = selectTrackerShard(channelId, shards);
+  const assignmentKey = "viewer-sharded-demo";
+  const { shard: target, cellId } = selectTrackerCell({ channelId, assignmentKey, shards });
   const wrongShard = shards.find((shard) => shard.id !== target.id);
 
   await handlePeerMessage({
@@ -76,6 +78,7 @@ test("join redirects to owning tracker shard before creating swarm state", async
     raw: Buffer.from(JSON.stringify({
       t: "join",
       channelId,
+      assignmentKey,
       caps: { transport: "wifi", upload: true, uplinkKbps: 20_000 }
     })),
     fetchFn: async () => {
@@ -88,10 +91,37 @@ test("join redirects to owning tracker shard before creating swarm state", async
   assert.deepEqual(ws.sent, [{
     t: "redirect",
     channelId,
+    cellId,
     shardId: target.id,
     trackerUrl: target.wsUrl
   }]);
   assert.deepEqual(ws.ended, [{ code: 1012, reason: "tracker shard redirect" }]);
+});
+
+test("cell capacity rejects joins before a cell exceeds its configured ceiling", async () => {
+  const state = createTrackerState();
+  const existing = createPeer();
+  existing.id = "existing";
+  existing.channelId = "demo";
+  existing.cellId = "default";
+  const swarm = new Swarm("demo");
+  swarm.addPeer(existing);
+  state.swarms.set("demo", swarm);
+
+  const peer = createPeer();
+  const ws = fakeWs(peer);
+  await handlePeerMessage({
+    state,
+    peer,
+    ws,
+    cellMaxPeers: 1,
+    raw: Buffer.from(JSON.stringify({ t: "join", channelId: "demo", caps: {} })),
+    fetchFn: async () => ({ ok: true })
+  });
+
+  assert.equal(ws.sent.at(-1).code, "capacity");
+  assert.equal(swarm.size, 1);
+  assert.equal(peer.channelId, null);
 });
 
 test("join feature flags can force Delivery-Fleet-only mode", async () => {
@@ -289,6 +319,39 @@ test("signal relay rejects targets outside the sender swarm", async () => {
   });
 
   assert.deepEqual(targetWs.sent, []);
+});
+
+test("signal relay rejects targets in another cell of the same channel", async () => {
+  const state = createTrackerState();
+  const fromPeer = { ...createPeer(), id: "from", channelId: "demo", cellId: "cell-a" };
+  const targetPeer = { ...createPeer(), id: "to", channelId: "demo", cellId: "cell-b" };
+  const targetWs = fakeWs(targetPeer);
+  state.peersById.set(targetPeer.id, targetWs);
+
+  await handlePeerMessage({
+    state,
+    peer: fromPeer,
+    ws: fakeWs(fromPeer),
+    raw: Buffer.from(JSON.stringify({ t: "signal", to: targetPeer.id, data: { kind: "offer" } }))
+  });
+
+  assert.deepEqual(targetWs.sent, []);
+});
+
+test("bounded sender drops segment delivery before exceeding backpressure", () => {
+  const state = createTrackerState();
+  const peer = createPeer();
+  let sends = 0;
+  state.peersById.set(peer.id, {
+    getBufferedAmount: () => 1000,
+    send: () => { sends += 1; return 1; }
+  });
+  const send = createTrackerSender({ state, maxBackpressureBytes: 1024 });
+
+  assert.equal(send(peer, { t: "segment" }, "x".repeat(30)), false);
+  assert.equal(sends, 0);
+  assert.equal(state.delivery.messagesDropped, 1);
+  assert.equal(state.delivery.backpressureDrops, 1);
 });
 
 test("stats accumulates peer counters", async () => {

@@ -83,3 +83,23 @@ test("announceSegmentToState accepts valid segment when swarm is empty", () => {
   assert.equal(result.ok, true);
   assert.equal(result.recipients, 0);
 });
+
+test("announceSegmentToState fans one channel announcement across local cells with two encodes per cell", () => {
+  const state = createTrackerState();
+  const cellA = swarmFor(state, "demo", "cell-a");
+  const cellB = swarmFor(state, "demo", "cell-b");
+  cellA.addPeer({ ...createPeer(), id: "a", channelId: "demo", cellId: "cell-a" });
+  cellB.addPeer({ ...createPeer(), id: "b", channelId: "demo", cellId: "cell-b" });
+  const encodedPayloads = [];
+
+  const result = announceSegmentToState({
+    state,
+    segment: segment(3),
+    send: (_peer, _message, encoded) => encodedPayloads.push(encoded)
+  });
+
+  assert.equal(result.cells, 2);
+  assert.equal(result.recipients, 2);
+  assert.equal(state.delivery.segmentPayloadsEncoded, 4);
+  assert.equal(encodedPayloads.every((payload) => typeof payload === "string"), true);
+});

@@ -51,8 +51,10 @@ export const ENV_DEFAULTS = Object.freeze({
   TRACKER_DEMAND_HEARTBEAT_SECONDS: 30,
   TRACKER_INTERNAL_PORT: 7002,
   TRACKER_INTERNAL_URL: "http://tracker:7002",
+  TRACKER_INTERNAL_URLS: [],
   TRACKER_IDLE_TIMEOUT_SECONDS: 120,
   TRACKER_MAX_BACKPRESSURE_BYTES: 256 * 1024,
+  TRACKER_CELL_MAX_PEERS: 20_000,
   TRACKER_MAX_CONNECTIONS: 100_000,
   TRACKER_MAX_PAYLOAD_BYTES: 16 * 1024,
   TRACKER_PORT: 7000,
@@ -315,13 +317,27 @@ export function validateTrackerShards(shards, key = "TRACKER_SHARDS") {
     if (ids.has(id)) throw new ConfigError(`${key} contains duplicate shard id: ${id}`, { key });
     ids.add(id);
 
-    return {
+    const normalized = {
       id,
       wsUrl: normalizedUrlValue(shard?.wsUrl, wsUrlKey, {
         protocols: ["ws:", "wss:"],
         rejectThirdPartyCdn: true
       })
     };
+    if (shard?.internalUrl) {
+      normalized.internalUrl = normalizedUrlValue(shard.internalUrl, `${key}[${index}].internalUrl`, {
+        protocols: ["http:", "https:"],
+        rejectThirdPartyCdn: true
+      });
+    }
+    if (shard?.region) {
+      const region = String(shard.region).trim().toLowerCase();
+      if (!/^[a-z0-9][a-z0-9._-]{0,31}$/.test(region)) {
+        throw new ConfigError(`${key}[${index}].region must be a valid region identifier`, { key });
+      }
+      normalized.region = region;
+    }
+    return normalized;
   });
 }
 
@@ -357,6 +373,18 @@ export function loadAuthConfig(env = process.env, { requireSecrets = false } = {
 export function loadIngestConfig(env = process.env, { requireSecrets = false } = {}) {
   const internalToken = requireSecrets ? requiredEnv(env, "INTERNAL_TOKEN") : stringEnv(env, "INTERNAL_TOKEN");
   const flags = loadFeatureFlags(env);
+  const trackerInternalUrl = urlEnv(env, "TRACKER_INTERNAL_URL", ENV_DEFAULTS.TRACKER_INTERNAL_URL, { protocols: ["http:", "https:"] });
+  const trackerInternalUrlsInput = jsonEnv(env, "TRACKER_INTERNAL_URLS", ENV_DEFAULTS.TRACKER_INTERNAL_URLS);
+  if (!Array.isArray(trackerInternalUrlsInput)) {
+    throw new ConfigError("TRACKER_INTERNAL_URLS must be a JSON array", { key: "TRACKER_INTERNAL_URLS" });
+  }
+  const trackerInternalUrls = trackerInternalUrlsInput.length > 0
+    ? [...new Set(trackerInternalUrlsInput.map((value, index) => normalizedUrlValue(
+      value,
+      `TRACKER_INTERNAL_URLS[${index}]`,
+      { protocols: ["http:", "https:"], rejectThirdPartyCdn: true }
+    )))]
+    : [trackerInternalUrl];
   return {
     m3uPath: stringEnv(env, "M3U_PATH", ENV_DEFAULTS.M3U_PATH),
     hlsRoot: stringEnv(env, "HLS_ROOT", ENV_DEFAULTS.HLS_ROOT),
@@ -372,7 +400,8 @@ export function loadIngestConfig(env = process.env, { requireSecrets = false } =
     windowSegments: intEnv(env, "WINDOW_SEGMENTS", ENV_DEFAULTS.WINDOW_SEGMENTS, { min: 1 }),
     sourcePolicy: sourcePolicyFromEnv(env, { requireAllowedHosts: requireSecrets }),
     restApiPort: intEnv(env, "INGEST_PORT", ENV_DEFAULTS.INGEST_PORT, { min: 1, max: 65535 }),
-    trackerInternalUrl: urlEnv(env, "TRACKER_INTERNAL_URL", ENV_DEFAULTS.TRACKER_INTERNAL_URL, { protocols: ["http:", "https:"] }),
+    trackerInternalUrl,
+    trackerInternalUrls,
     internalToken,
     ffmpegBin: stringEnv(env, "FFMPEG_BIN", ENV_DEFAULTS.FFMPEG_BIN),
     restartBackoffMs: ENV_DEFAULTS.RESTART_BACKOFF_MS,
@@ -409,6 +438,7 @@ export function loadTrackerConfig(env = process.env, { requireSecrets = false } 
     controlPlaneUrl: urlEnv(env, "CONTROL_PLANE_URL", "", { protocols: ["http:", "https:"] }),
     maxPayloadBytes: intEnv(env, "TRACKER_MAX_PAYLOAD_BYTES", ENV_DEFAULTS.TRACKER_MAX_PAYLOAD_BYTES, { min: 1024 }),
     maxBackpressureBytes: intEnv(env, "TRACKER_MAX_BACKPRESSURE_BYTES", ENV_DEFAULTS.TRACKER_MAX_BACKPRESSURE_BYTES, { min: 1024 }),
+    cellMaxPeers: intEnv(env, "TRACKER_CELL_MAX_PEERS", ENV_DEFAULTS.TRACKER_CELL_MAX_PEERS, { min: 2 }),
     maxConnections: intEnv(env, "TRACKER_MAX_CONNECTIONS", ENV_DEFAULTS.TRACKER_MAX_CONNECTIONS, { min: 1 }),
     idleTimeoutSeconds,
     demandHeartbeatSeconds: intEnv(env, "TRACKER_DEMAND_HEARTBEAT_SECONDS", ENV_DEFAULTS.TRACKER_DEMAND_HEARTBEAT_SECONDS, { min: 1 }),

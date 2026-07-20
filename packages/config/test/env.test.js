@@ -71,6 +71,7 @@ test("service config loaders preserve current defaults", () => {
   assert.equal(loadAuthConfig().jwtIssuer, "swarmcast-auth");
   assert.equal(loadAuthConfig().tokenTtlSeconds, 21_600);
   assert.equal(loadIngestConfig().trackerInternalUrl, "http://tracker:7002");
+  assert.deepEqual(loadIngestConfig().trackerInternalUrls, ["http://tracker:7002"]);
   assert.equal(loadIngestConfig().idleTeardownMs, 60_000);
   assert.equal(loadIngestConfig().tailSwarmThreshold, 5);
   assert.equal(loadIngestConfig().tailAdmissionMaxChannels, 0);
@@ -84,6 +85,7 @@ test("service config loaders preserve current defaults", () => {
   assert.equal(loadTrackerConfig().authJwtIssuer, "swarmcast-auth");
   assert.equal(loadTrackerConfig().maxPayloadBytes, 16 * 1024);
   assert.equal(loadTrackerConfig().maxConnections, 100_000);
+  assert.equal(loadTrackerConfig().cellMaxPeers, 20_000);
   assert.equal(loadTrackerConfig().idleTimeoutSeconds, 120);
   assert.equal(loadTrackerConfig().demandHeartbeatSeconds, 30);
   assert.equal(loadTrackerConfig().trackerShardId, "");
@@ -229,19 +231,21 @@ test("tracker runtime limits are configurable", () => {
   const cfg = loadTrackerConfig({
     TRACKER_MAX_PAYLOAD_BYTES: "32768",
     TRACKER_MAX_BACKPRESSURE_BYTES: "524288",
+    TRACKER_CELL_MAX_PEERS: "250",
     TRACKER_MAX_CONNECTIONS: "500",
     TRACKER_IDLE_TIMEOUT_SECONDS: "60",
     TRACKER_DEMAND_HEARTBEAT_SECONDS: "5",
     TRACKER_RATE_LIMIT_CAPACITY: "100",
     TRACKER_RATE_LIMIT_REFILL_PER_SECOND: "75",
     TRACKER_SHARD_ID: "tracker-a",
-    TRACKER_SHARDS: '[{"id":"tracker-a","wsUrl":"wss://tracker-a.example.tv/ws/"},{"id":"tracker-b","wsUrl":"wss://tracker-b.example.tv/ws"}]',
+    TRACKER_SHARDS: '[{"id":"tracker-a","wsUrl":"wss://tracker-a.example.tv/ws/","internalUrl":"https://tracker-a-internal.example.tv/","region":"EU"},{"id":"tracker-b","wsUrl":"wss://tracker-b.example.tv/ws"}]',
     AUTH_JWT_AUDIENCE: "swarmcast-viewers",
     AUTH_JWT_ISSUER: "swarmcast-auth-prod"
   });
 
   assert.equal(cfg.maxPayloadBytes, 32768);
   assert.equal(cfg.maxBackpressureBytes, 524288);
+  assert.equal(cfg.cellMaxPeers, 250);
   assert.equal(cfg.maxConnections, 500);
   assert.equal(cfg.idleTimeoutSeconds, 60);
   assert.equal(cfg.demandHeartbeatSeconds, 5);
@@ -249,7 +253,7 @@ test("tracker runtime limits are configurable", () => {
   assert.equal(cfg.rateLimitRefillPerSecond, 75);
   assert.equal(cfg.trackerShardId, "tracker-a");
   assert.deepEqual(cfg.trackerShards, [
-    { id: "tracker-a", wsUrl: "wss://tracker-a.example.tv/ws" },
+    { id: "tracker-a", wsUrl: "wss://tracker-a.example.tv/ws", internalUrl: "https://tracker-a-internal.example.tv", region: "eu" },
     { id: "tracker-b", wsUrl: "wss://tracker-b.example.tv/ws" }
   ]);
   assert.equal(cfg.authJwtAudience, "swarmcast-viewers");
@@ -277,4 +281,19 @@ test("tracker runtime limits are configurable", () => {
   assert.throws(() => validateTrackerShards([
     { id: "tracker-a", wsUrl: "wss://d123.cloudfront.net/ws" }
   ]), /third-party CDN/);
+  assert.throws(() => validateTrackerShards([
+    { id: "tracker-a", wsUrl: "wss://tracker-a.example.tv/ws", region: "bad region" }
+  ]), /valid region identifier/);
+});
+
+test("ingest tracker fanout endpoints are normalized and deduplicated", () => {
+  const cfg = loadIngestConfig({
+    TRACKER_INTERNAL_URLS: '["https://tracker-a.example.tv/","https://tracker-a.example.tv","https://tracker-b.example.tv"]'
+  });
+  assert.deepEqual(cfg.trackerInternalUrls, [
+    "https://tracker-a.example.tv",
+    "https://tracker-b.example.tv"
+  ]);
+  assert.throws(() => loadIngestConfig({ TRACKER_INTERNAL_URLS: '{}' }), /must be a JSON array/);
+  assert.throws(() => loadIngestConfig({ TRACKER_INTERNAL_URLS: '["ftp://tracker.example.tv"]' }), /must use one of/);
 });

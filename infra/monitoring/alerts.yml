@@ -31,6 +31,16 @@ groups:
           description: "Tracker peer count fell by more than 100 within 5 minutes."
           runbook_url: "docs/runbooks/tracker-peer-drops.md"
 
+      - alert: SwarmcastTrackerBackpressureDrops
+        expr: increase(swarmcast_tracker_backpressure_drops_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tracker is dropping messages under backpressure"
+          description: "At least one tracker message exceeded the configured per-socket backpressure budget in the last 5 minutes."
+          runbook_url: "docs/runbooks/tracker-backpressure.md"
+
       - alert: SwarmcastPeerHashFailures
         expr: increase(swarmcast_tracker_peer_hash_failures_total[5m]) > 0
         for: 2m
