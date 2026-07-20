@@ -45,7 +45,6 @@ export function createServiceLifecycle({
     let timeout;
     const deadline = new Promise((_, reject) => {
       timeout = setTimeout(() => reject(new Error(`shutdown exceeded ${timeoutMs}ms`)), timeoutMs);
-      timeout.unref?.();
     });
 
     shutdownTask = Promise.race([
