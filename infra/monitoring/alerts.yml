@@ -41,6 +41,26 @@ groups:
           description: "At least one tracker message exceeded the configured per-socket backpressure budget in the last 5 minutes."
           runbook_url: "docs/runbooks/tracker-backpressure.md"
 
+      - alert: SwarmcastTrackerCellSpilloverRate
+        expr: increase(swarmcast_tracker_cell_capacity_spillovers_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tracker cells are spilling viewers at a sustained rate"
+          description: "More than 100 joins were redirected from full tracker cells in 5 minutes. Cell occupancy or rendezvous distribution needs attention."
+          runbook_url: "docs/runbooks/tracker-cell-capacity.md"
+
+      - alert: SwarmcastTrackerCellCapacityExhausted
+        expr: increase(swarmcast_tracker_cell_capacity_rejections_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "All eligible tracker cells are exhausted"
+          description: "At least one viewer could not be assigned after every ranked tracker cell reached its configured peer ceiling."
+          runbook_url: "docs/runbooks/tracker-cell-capacity.md"
+
       - alert: SwarmcastPeerHashFailures
         expr: increase(swarmcast_tracker_peer_hash_failures_total[5m]) > 0
         for: 2m

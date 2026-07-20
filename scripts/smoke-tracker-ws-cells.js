@@ -123,7 +123,7 @@ function assignmentFor(shardId, shards) {
   throw new Error(`could not find assignment for ${shardId}`);
 }
 
-async function connectClient({ shard, assignmentKey, token }) {
+async function openClient({ shard, assignmentKey, token, cellRouteToken = "" }) {
   const ws = new WebSocket(`${shard.wsUrl}?token=${encodeURIComponent(token)}`);
   const messages = [];
   ws.addEventListener("message", (event) => messages.push(JSON.parse(event.data)));
@@ -135,8 +135,15 @@ async function connectClient({ shard, assignmentKey, token }) {
     t: "join",
     channelId: CHANNEL_ID,
     assignmentKey,
+    ...(cellRouteToken ? { cellRouteToken } : {}),
     caps: { transport: "wifi", upload: true, uplinkKbps: 20_000 }
   }));
+  return { ws, messages };
+}
+
+async function connectClient({ shard, assignmentKey, token, cellRouteToken = "" }) {
+  const client = await openClient({ shard, assignmentKey, token, cellRouteToken });
+  const { ws, messages } = client;
   const joined = await waitFor(() => messages.find((message) => message.t === "joined"));
   if (joined.cellId !== shard.id) throw new Error(`expected ${shard.id}, got ${joined.cellId}`);
   return { ws, messages, joined };
@@ -223,7 +230,29 @@ try {
   });
   await waitFor(() => clients.every((client) => client.messages.some((message) => message.t === "segment" && message.seq === 2)));
 
-  console.log(`tracker cell WebSocket smoke OK: channel=${CHANNEL_ID} cells=2 peers=2 fanout=2 cellFailure=edge-fallback rejoin=pass`);
+  const primaryShard = shards[0];
+  const primaryAssignment = assignmentFor(primaryShard.id, shards);
+  for (let index = 0; index < 3; index += 1) {
+    clients.push(await connectClient({ shard: primaryShard, assignmentKey: primaryAssignment, token }));
+  }
+  const overflowAttempt = await openClient({ shard: primaryShard, assignmentKey: primaryAssignment, token });
+  const overflowRedirect = await waitFor(() => overflowAttempt.messages.find((message) => message.t === "redirect"));
+  if (overflowRedirect.cellId !== shards[1].id || typeof overflowRedirect.cellRouteToken !== "string") {
+    throw new Error("full tracker cell did not issue an authenticated spillover redirect");
+  }
+  await waitForClose(overflowAttempt.ws);
+  clients.push(await connectClient({
+    shard: shards[1],
+    assignmentKey: primaryAssignment,
+    token,
+    cellRouteToken: overflowRedirect.cellRouteToken
+  }));
+  const primaryMetrics = await (await fetch(`${primaryShard.internalUrl}/metrics`)).text();
+  if (!primaryMetrics.includes("swarmcast_tracker_cell_capacity_spillovers_total 1")) {
+    throw new Error("tracker spillover metric was not incremented");
+  }
+
+  console.log(`tracker cell WebSocket smoke OK: channel=${CHANNEL_ID} cells=2 peers=6 fanout=2 cellFailure=edge-fallback rejoin=pass capacitySpillover=pass`);
 } finally {
   await Promise.all(clients.map(closeClient));
   await Promise.all([...running.values()].map(stopTracker));

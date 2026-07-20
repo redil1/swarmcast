@@ -10,7 +10,7 @@ import {
   removePeerFromState,
   sendDemandHeartbeats
 } from "../src/index.js";
-import { selectTrackerCell } from "../src/sharding.js";
+import { rankTrackerCells, selectTrackerCell } from "../src/sharding.js";
 import { Swarm } from "../src/swarm.js";
 
 function fakeWs(peer = null) {
@@ -122,6 +122,69 @@ test("cell capacity rejects joins before a cell exceeds its configured ceiling",
   assert.equal(ws.sent.at(-1).code, "capacity");
   assert.equal(swarm.size, 1);
   assert.equal(peer.channelId, null);
+});
+
+test("full tracker cells issue an authenticated redirect to the next ranked cell", async () => {
+  const shards = [
+    { id: "tracker-a", wsUrl: "wss://tracker-a.example.tv/ws" },
+    { id: "tracker-b", wsUrl: "wss://tracker-b.example.tv/ws" },
+    { id: "tracker-c", wsUrl: "wss://tracker-c.example.tv/ws" }
+  ];
+  const channelId = "mega-event";
+  const assignmentKey = "overflow-viewer";
+  const ranked = rankTrackerCells({ channelId, assignmentKey, shards });
+  const primary = ranked[0].shard;
+  const secondary = ranked[1].shard;
+  const state = createTrackerState();
+  const existing = { ...createPeer(), id: "existing", channelId, cellId: primary.id };
+  const fullSwarm = new Swarm(channelId, primary.id);
+  fullSwarm.addPeer(existing);
+  state.swarms.set(`${channelId}::${primary.id}`, fullSwarm);
+
+  const peer = createPeer();
+  const ws = fakeWs(peer);
+  await handlePeerMessage({
+    state,
+    peer,
+    ws,
+    internalToken: "route-secret",
+    trackerShardConfig: { selfShardId: primary.id, shards },
+    cellMaxPeers: 1,
+    raw: Buffer.from(JSON.stringify({ t: "join", channelId, assignmentKey, caps: {} })),
+    fetchFn: async () => ({ ok: true })
+  });
+
+  const redirect = ws.sent.at(-1);
+  assert.equal(redirect.t, "redirect");
+  assert.equal(redirect.cellId, secondary.id);
+  assert.equal(typeof redirect.cellRouteToken, "string");
+  assert.deepEqual(ws.ended, [{ code: 1012, reason: "tracker cell spillover" }]);
+  assert.equal(state.delivery.cellCapacitySpillovers, 1);
+  assert.equal(state.delivery.cellCapacityRejections, 0);
+
+  const secondaryState = createTrackerState();
+  const redirectedPeer = createPeer();
+  const redirectedWs = fakeWs(redirectedPeer);
+  await handlePeerMessage({
+    state: secondaryState,
+    peer: redirectedPeer,
+    ws: redirectedWs,
+    internalToken: "route-secret",
+    trackerShardConfig: { selfShardId: secondary.id, shards },
+    cellMaxPeers: 1,
+    raw: Buffer.from(JSON.stringify({
+      t: "join",
+      channelId,
+      assignmentKey,
+      cellRouteToken: redirect.cellRouteToken,
+      caps: {}
+    })),
+    fetchFn: async () => ({ ok: true })
+  });
+
+  assert.equal(redirectedWs.sent[0].t, "joined");
+  assert.equal(redirectedWs.sent[0].cellId, secondary.id);
+  assert.equal(redirectedPeer.cellId, secondary.id);
 });
 
 test("join feature flags can force Delivery-Fleet-only mode", async () => {

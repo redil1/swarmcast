@@ -734,7 +734,7 @@ for (const check of [
   },
   {
     file: "services/tracker/src/sharding.js",
-    required: ["rankTrackerShards", "selectTrackerShard", "rankTrackerCells", "selectTrackerCell", "assignmentKey", "region", "routeTrackerJoin", "createHash", "localeCompare"]
+    required: ["rankTrackerShards", "selectTrackerShard", "rankTrackerCells", "selectTrackerCell", "selectTrackerSpillover", "createTrackerCellRouteToken", "verifyTrackerCellRouteToken", "assignmentKey", "region", "routeTrackerJoin", "createHash", "createHmac", "timingSafeEqual", "localeCompare"]
   },
   {
     file: "services/tracker/src/peerIndex.js",
@@ -746,11 +746,11 @@ for (const check of [
   },
   {
     file: "services/tracker/src/metrics.js",
-    required: ["swarmcast_tracker_cells", "swarmcast_tracker_segment_payload_encodes_total", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_rejections_total"]
+    required: ["swarmcast_tracker_cells", "swarmcast_tracker_segment_payload_encodes_total", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_spillovers_total", "swarmcast_tracker_cell_capacity_rejections_total"]
   },
   {
     file: "scripts/smoke-tracker-ws-cells.js",
-    required: ["spawnTracker", "selectTrackerCell", "announceSegment", "TRACKER_CELL_MAX_PEERS", "assignmentKey", "edgeUrlTemplate", "tracker cell WebSocket smoke OK"]
+    required: ["spawnTracker", "selectTrackerCell", "announceSegment", "TRACKER_CELL_MAX_PEERS", "assignmentKey", "cellRouteToken", "swarmcast_tracker_cell_capacity_spillovers_total 1", "capacitySpillover=pass", "edgeUrlTemplate", "tracker cell WebSocket smoke OK"]
   },
   {
     file: "scripts/smoke-tracker-ws.js",

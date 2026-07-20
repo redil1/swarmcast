@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  createTrackerCellRouteToken,
   rankTrackerCells,
   rankTrackerShards,
   routeTrackerJoin,
   selectTrackerCell,
+  selectTrackerSpillover,
   selectTrackerShard
 } from "../src/sharding.js";
 
@@ -79,7 +81,7 @@ test("adding a tracker cell has bounded rendezvous movement", () => {
   assert.ok(moved > 350 && moved < 650, `unexpected movement: ${moved}`);
 });
 
-test("cell ranking prefers matching regions when regional cells exist", () => {
+test("cell ranking prefers matching regions before cross-region spillover", () => {
   const regionalShards = [
     { id: "eu-a", region: "eu", wsUrl: "wss://eu-a.example.tv/ws" },
     { id: "eu-b", region: "eu", wsUrl: "wss://eu-b.example.tv/ws" },
@@ -91,5 +93,88 @@ test("cell ranking prefers matching regions when regional cells exist", () => {
     region: "eu",
     shards: regionalShards
   });
-  assert.deepEqual(new Set(ranked.map((entry) => entry.shard.region)), new Set(["eu"]));
+  assert.deepEqual(ranked.slice(0, 2).map((entry) => entry.shard.region), ["eu", "eu"]);
+  assert.equal(ranked[2].shard.region, "us");
+});
+
+test("cell spillover follows rendezvous order and excludes attempted cells", () => {
+  const ranked = rankTrackerCells({ channelId: "final", assignmentKey: "viewer", shards });
+  const spillover = selectTrackerSpillover({
+    channelId: "final",
+    assignmentKey: "viewer",
+    shards,
+    excludedCellIds: [ranked[0].cellId]
+  });
+  assert.equal(spillover.cellId, ranked[1].cellId);
+  assert.equal(selectTrackerSpillover({
+    channelId: "final",
+    assignmentKey: "viewer",
+    shards,
+    excludedCellIds: ranked.map((entry) => entry.cellId)
+  }), null);
+});
+
+test("signed spillover routes are scoped, expiring, and accepted only by their target", () => {
+  const nowMs = 1_800_000_000_000;
+  const ranked = rankTrackerCells({ channelId: "final", assignmentKey: "viewer", shards });
+  const target = ranked[1];
+  const token = createTrackerCellRouteToken({
+    channelId: "final",
+    assignmentKey: "viewer",
+    cellId: target.cellId,
+    excludedCellIds: [ranked[0].cellId],
+    shards,
+    secret: "route-secret",
+    nowMs,
+    ttlMs: 60_000
+  });
+  const route = routeTrackerJoin({
+    channelId: "final",
+    assignmentKey: "viewer",
+    shards,
+    selfShardId: target.cellId,
+    cellRouteToken: token,
+    routeTokenSecret: "route-secret",
+    nowMs
+  });
+  assert.equal(route.local, true);
+  assert.equal(route.cellId, target.cellId);
+  assert.deepEqual(route.excludedCellIds, [ranked[0].cellId]);
+
+  const wrongViewer = routeTrackerJoin({
+    channelId: "final",
+    assignmentKey: "another-viewer",
+    shards,
+    selfShardId: target.cellId,
+    cellRouteToken: token,
+    routeTokenSecret: "route-secret",
+    nowMs
+  });
+  assert.equal(wrongViewer.cellId, selectTrackerCell({
+    channelId: "final",
+    assignmentKey: "another-viewer",
+    shards
+  }).cellId);
+
+  const expired = routeTrackerJoin({
+    channelId: "final",
+    assignmentKey: "viewer",
+    shards,
+    selfShardId: target.cellId,
+    cellRouteToken: token,
+    routeTokenSecret: "route-secret",
+    nowMs: nowMs + 60_000
+  });
+  assert.equal(expired.cellId, ranked[0].cellId);
+
+  const tampered = routeTrackerJoin({
+    channelId: "final",
+    assignmentKey: "viewer",
+    shards,
+    selfShardId: target.cellId,
+    cellRouteToken: `${token.slice(0, -1)}${token.endsWith("a") ? "b" : "a"}`,
+    routeTokenSecret: "route-secret",
+    nowMs
+  });
+  assert.equal(tampered.cellId, ranked[0].cellId);
 });

@@ -116,4 +116,73 @@ class TrackerClientTest {
             server.shutdown()
         }
     }
+
+    @Test
+    fun carriesAuthenticatedCellRouteTokenToSpilloverTracker() {
+        val primary = MockWebServer()
+        val spillover = MockWebServer()
+        val primaryJoin = AtomicReference<String>()
+        val spilloverJoins = CopyOnWriteArrayList<String>()
+        val redirected = CountDownLatch(2)
+        val spilloverConnections = AtomicInteger()
+        val spilloverListener = object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                if (!text.contains("\"t\":\"join\"")) return
+                spilloverJoins.add(text)
+                redirected.countDown()
+                if (spilloverConnections.getAndIncrement() == 0) webSocket.close(1011, "forced spillover reconnect")
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+            }
+        }
+        spillover.enqueue(MockResponse().withWebSocketUpgrade(spilloverListener))
+        spillover.enqueue(MockResponse().withWebSocketUpgrade(spilloverListener))
+        spillover.start()
+        val spilloverUrl = spillover.url("/ws").toString().replaceFirst("http", "ws").removeSuffix("/")
+        primary.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                if (!text.contains("\"t\":\"join\"")) return
+                primaryJoin.set(text)
+                webSocket.send(
+                    """{"t":"redirect","channelId":"demo","shardId":"cell-b","trackerUrl":"$spilloverUrl","cellId":"cell-b","cellRouteToken":"signed-route-token"}"""
+                )
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+            }
+        }))
+        primary.start()
+
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val client = TrackerClient(
+            initialWsUrl = primary.url("/ws").toString().replaceFirst("http", "ws").removeSuffix("/"),
+            tokenProvider = { "token" },
+            scope = scope
+        )
+
+        try {
+            client.connect("demo", wifi = true, uploadEnabled = true)
+            assertTrue("tracker did not preserve spillover routing across reconnect", redirected.await(8, TimeUnit.SECONDS))
+            assertTrue(!primaryJoin.get().contains("cellRouteToken"))
+            assertEquals(2, spilloverJoins.size)
+            assertTrue(spilloverJoins.all { it.contains("\"cellRouteToken\":\"signed-route-token\"") })
+            val assignmentPattern = Regex("\"assignmentKey\":\"([^\"]+)\"")
+            assertEquals(
+                assignmentPattern.find(primaryJoin.get())?.groupValues?.get(1),
+                assignmentPattern.find(spilloverJoins[0])?.groupValues?.get(1)
+            )
+            assertEquals(
+                assignmentPattern.find(spilloverJoins[0])?.groupValues?.get(1),
+                assignmentPattern.find(spilloverJoins[1])?.groupValues?.get(1)
+            )
+        } finally {
+            client.close()
+            scope.cancel()
+            primary.shutdown()
+            spillover.shutdown()
+        }
+    }
 }

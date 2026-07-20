@@ -12,6 +12,8 @@ const requiredLaunchAlerts = [
   "SwarmcastLowOffloadRatio",
   "SwarmcastLowSuperPeerFraction",
   "SwarmcastTrackerPeerDrops",
+  "SwarmcastTrackerCellSpilloverRate",
+  "SwarmcastTrackerCellCapacityExhausted",
   "SwarmcastPeerHashFailures",
   "SwarmcastPeerDisconnectSpike",
   "SwarmcastPeerTimeoutSpike",

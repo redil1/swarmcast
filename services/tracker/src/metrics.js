@@ -77,6 +77,7 @@ export function formatPrometheusMetrics(stats) {
     line("swarmcast_tracker_segment_payload_encodes_total", stats.segmentPayloadsEncoded || 0, "Pre-encoded segment payload variants", "counter"),
     line("swarmcast_tracker_messages_dropped_total", stats.messagesDropped || 0, "Tracker messages dropped before delivery", "counter"),
     line("swarmcast_tracker_backpressure_drops_total", stats.backpressureDrops || 0, "Tracker messages dropped by the backpressure budget", "counter"),
+    line("swarmcast_tracker_cell_capacity_spillovers_total", stats.cellCapacitySpillovers || 0, "Tracker joins redirected from a full swarm cell", "counter"),
     line("swarmcast_tracker_cell_capacity_rejections_total", stats.cellCapacityRejections || 0, "Tracker joins rejected by a full swarm cell", "counter"),
     ...iceMetricsByNetwork(stats.iceByNetwork)
   ].join("\n") + "\n";

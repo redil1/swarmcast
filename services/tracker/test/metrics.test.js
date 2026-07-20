@@ -37,6 +37,7 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     segmentPayloadsEncoded: 4,
     messagesDropped: 2,
     backpressureDrops: 1,
+    cellCapacitySpillovers: 5,
     cellCapacityRejections: 3,
     iceByNetwork: {
       cellular: {
@@ -67,6 +68,7 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
   assert.match(text, /swarmcast_tracker_super_peer_fraction 0\.25/);
   assert.match(text, /swarmcast_tracker_segment_payload_encodes_total 4/);
   assert.match(text, /swarmcast_tracker_backpressure_drops_total 1/);
+  assert.match(text, /swarmcast_tracker_cell_capacity_spillovers_total 5/);
   assert.match(text, /swarmcast_tracker_cells 2/);
   assert.match(text, /swarmcast_tracker_cell_capacity_rejections_total 3/);
   assert.match(text, /swarmcast_tracker_ice_attempts_total\{network_class="cellular"\} 10/);
