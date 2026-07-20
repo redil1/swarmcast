@@ -2888,7 +2888,7 @@ Results:
 - Android unit/debug/release builds, 49 targeted tracker tests, and repository-wide verification with 163 tests pass.
 - Commit `94b9efa` passed remote CI run `29769852588` across Node, deployment-shape, and Android jobs. Real devices across carriers are still required to decide whether STUN-only operation is economically acceptable or TURN must be provisioned.
 
-## Build Slice 305 In Progress
+## Build Slice 305 Complete
 
 - Superseded the STUN-only decision with an owned TURN relay design using short-lived, subject-bound coturn REST credentials returned with viewer tokens.
 - Android validates and caches ICE responses, refreshes before the earliest token/TURN expiry, applies credentialed ICE servers before peer creation, and no longer contains third-party STUN defaults.
@@ -2899,4 +2899,6 @@ Results:
 - Added deterministic live smoke coverage for STUN, authenticated UDP relay, authenticated TLS relay, and Prometheus metrics; every external probe has a bounded timeout.
 - Extended release, SBOM, scan, dependency, host, deployment, secrets, security, threat, rollback, and launch evidence contracts from 12 to 13 runtime images/components where applicable.
 - `npm run verify` passes 166 tests. Android unit tests and debug/release assemblies pass. The local hardened TURN image build, scan, and live relay smoke pass.
-- Remote CI and a clean signed 13-image staging publication remain required before this slice is complete. Physical carrier/device relay proof, measured relay capacity/egress, and production provisioning remain launch gates.
+- Commits `9fa0b11` and `cb1a5ae` passed corrective remote CI run `29775041681` across Node, deployment-shape, and Android jobs, including the Linux TURN build and live smoke.
+- Staging release `v0.1.0-rc4` run `29775245373` passed all jobs. Independently downloaded evidence confirms 13 immutable image digests, 13 non-empty Cosign verifications, 13 CycloneDX image SBOMs, 13 Trivy scans with zero HIGH/CRITICAL findings, and a release manifest bound to commit `cb1a5ae76a6e24604bcaae561780fe1fe2f41296`.
+- Physical relay proof across two WiFi networks and two carriers, measured relay capacity and egress reconciliation, production provisioning, and the real single-channel 1K/10K/100K cell ladder remain external launch gates.
