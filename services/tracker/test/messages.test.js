@@ -373,6 +373,11 @@ test("stats accumulates peer counters", async () => {
       peer_timeouts: 2,
       hash_failures: 1,
       peer_disconnects: 1,
+      ice_attempts: 4,
+      ice_successes: 3,
+      ice_failures: 1,
+      ice_candidate_host: 1,
+      ice_candidate_srflx: 2,
       startup_ms: 1350,
       buffer_ms: 31000
     }))

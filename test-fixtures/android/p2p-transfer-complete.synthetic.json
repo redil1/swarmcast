@@ -90,6 +90,25 @@
       "evidence": ["device-lab/p2p/cellular-receive-only.cellular-no-upload.synthetic.json", "android/app/src/main/java/tv/swarmcast/p2p/NetworkPolicy.kt"]
     }
   ],
+  "connectivity": {
+    "networks": [
+      {
+        "network": "wifi",
+        "attempts": 20,
+        "successes": 18,
+        "failures": 2,
+        "selectedCandidates": { "host": 2, "srflx": 16, "prflx": 0, "relay": 0, "unknown": 0 }
+      },
+      {
+        "network": "cellular",
+        "attempts": 20,
+        "successes": 12,
+        "failures": 8,
+        "selectedCandidates": { "host": 0, "srflx": 10, "prflx": 2, "relay": 0, "unknown": 0 }
+      }
+    ],
+    "evidence": ["tracker-metrics/ice-network-class.ice-selected-candidate-type.synthetic.prom"]
+  },
   "transfer": {
     "channelId": "synthetic-news",
     "deliveryMode": "p2p-with-edge-fallback",

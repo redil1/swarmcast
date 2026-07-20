@@ -34,6 +34,9 @@ class PeerConnectionManager(
     private val factory: PeerConnectionFactory
     private val peers = LinkedHashMap<String, PeerConnection>()
     private val channels = LinkedHashMap<String, DataChannel>()
+    private val iceTelemetry = IceConnectivityTelemetry()
+    private val iceAttempts = LinkedHashMap<String, IceAttempt>()
+    private var nextIceAttemptId = 1L
     private val iceServers = iceServerUrls.map {
         PeerConnection.IceServer.builder(it).createIceServer()
     }
@@ -43,6 +46,8 @@ class PeerConnectionManager(
 
     val peerIds: Set<String>
         get() = peers.keys.toSet()
+
+    fun drainIceTelemetry(): IceConnectivityDelta = iceTelemetry.drain()
 
     init {
         PeerConnectionFactory.initialize(
@@ -146,6 +151,7 @@ class PeerConnectionManager(
 
             override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {
                 if (state.isTerminal()) {
+                    if (state == PeerConnection.PeerConnectionState.FAILED) recordIceFailure(peerId)
                     close(peerId)
                 }
             }
@@ -156,6 +162,7 @@ class PeerConnectionManager(
                     state == PeerConnection.IceConnectionState.CLOSED ||
                     state == PeerConnection.IceConnectionState.DISCONNECTED
                 ) {
+                    if (state == PeerConnection.IceConnectionState.FAILED) recordIceFailure(peerId)
                     close(peerId)
                 }
             }
@@ -169,6 +176,10 @@ class PeerConnectionManager(
         }) ?: return null
 
         peers[peerId] = pc
+        synchronized(iceAttempts) {
+            iceAttempts[peerId] = IceAttempt(nextIceAttemptId++)
+        }
+        iceTelemetry.recordAttempt()
         return pc
     }
 
@@ -182,6 +193,7 @@ class PeerConnectionManager(
                 when (channel.state()) {
                     DataChannel.State.OPEN -> if (!opened) {
                         opened = true
+                        recordIceSuccess(peerId)
                         onOpen(peerId, channel) { close(peerId) }
                     }
                     DataChannel.State.CLOSED -> close(peerId)
@@ -204,6 +216,38 @@ class PeerConnectionManager(
             this == PeerConnection.PeerConnectionState.CLOSED ||
             this == PeerConnection.PeerConnectionState.DISCONNECTED
 
+    private fun recordIceSuccess(peerId: String) {
+        val peer = peers[peerId] ?: return
+        val attemptId = synchronized(iceAttempts) {
+            val attempt = iceAttempts[peerId] ?: return
+            if (attempt.outcome != null) return
+            attempt.outcome = "pending-success"
+            attempt.id
+        }
+        peer.getStats { report ->
+            val shouldRecord = synchronized(iceAttempts) {
+                val attempt = iceAttempts[peerId]
+                if (attempt?.id != attemptId || attempt.outcome != "pending-success") false
+                else {
+                    attempt.outcome = "success"
+                    true
+                }
+            }
+            if (shouldRecord) iceTelemetry.recordSuccess(selectedIceCandidateType(report))
+        }
+    }
+
+    private fun recordIceFailure(peerId: String) {
+        val shouldRecord = synchronized(iceAttempts) {
+            val attempt = iceAttempts[peerId] ?: return
+            if (attempt.outcome != null) false else {
+                attempt.outcome = "failure"
+                true
+            }
+        }
+        if (shouldRecord) iceTelemetry.recordFailure()
+    }
+
     private fun closeDataChannel(channel: DataChannel) {
         runCatching { channel.unregisterObserver() }
         runCatching { channel.close() }
@@ -221,4 +265,6 @@ class PeerConnectionManager(
         override fun onCreateFailure(error: String) {}
         override fun onSetFailure(error: String) {}
     }
+
+    private data class IceAttempt(val id: Long, var outcome: String? = null)
 }

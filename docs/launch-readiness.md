@@ -132,7 +132,7 @@ Required gate IDs:
 - `android-release-config`
 - `android-ci-build` with `android:ci:evidence:validate`, `swarmcast-android-debug-apk`, and `swarmcast-android-release-unsigned-apk`
 - `android-device-playback` with `android:playback:evidence:validate`, `delivery-fleet-only`, `30m-soak`, `wifi`, and `cellular`
-- `android-p2p-transfer` with `android:p2p:evidence:validate`, `webrtc-datachannel`, `tracker-signaling-relay`, `verified-segment-hash`, and `cellular-no-upload`
+- `android-p2p-transfer` with `android:p2p:evidence:validate`, `webrtc-datachannel`, `tracker-signaling-relay`, `verified-segment-hash`, `cellular-no-upload`, `ice-network-class`, and `ice-selected-candidate-type`
 - `android-rlnc-decision` with `android:rlnc:decision:validate`
 - `threat-model-signoff` with `threat:model:validate`
 - `security-review` with `security:review:validate`

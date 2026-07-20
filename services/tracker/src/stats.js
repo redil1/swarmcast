@@ -81,6 +81,14 @@ function emptyCounters() {
     peerTimeouts: 0,
     peerHashFailures: 0,
     peerDisconnects: 0,
+    iceAttempts: 0,
+    iceSuccesses: 0,
+    iceFailures: 0,
+    iceCandidateHost: 0,
+    iceCandidateSrflx: 0,
+    iceCandidatePrflx: 0,
+    iceCandidateRelay: 0,
+    iceCandidateUnknown: 0,
     startupLatencyMsTotal: 0,
     startupLatencySamples: 0,
     bufferMsTotal: 0,
@@ -98,7 +106,8 @@ export function createTrackerStats() {
     rollingBuckets: new Map(),
     bufferByPeer: new Map(),
     bufferMinHeap: new MinHeap(),
-    bufferMsTotal: 0
+    bufferMsTotal: 0,
+    iceByNetwork: new Map()
   };
 }
 
@@ -123,7 +132,8 @@ export function removePeerFromTrackerStats(stats, peer) {
 function addSample(target, sample) {
   for (const key of [
     "dlP2p", "dlEdge", "dlBootstrapOrigin", "dlRelay", "ul", "stalls",
-    "peerTimeouts", "peerHashFailures", "peerDisconnects"
+    "peerTimeouts", "peerHashFailures", "peerDisconnects", "iceAttempts", "iceSuccesses", "iceFailures",
+    "iceCandidateHost", "iceCandidateSrflx", "iceCandidatePrflx", "iceCandidateRelay", "iceCandidateUnknown"
   ]) target[key] += sample[key] || 0;
   if (sample.startupLatencyMs !== undefined) {
     target.startupLatencyMsTotal += sample.startupLatencyMs;
@@ -138,6 +148,11 @@ function addSample(target, sample) {
 
 export function recordTrackerStats(stats, peer, sample, nowMs = sample.ts) {
   addSample(stats.cumulative, sample);
+  const networkClass = peer.transport === "cell" ? "cellular" :
+    (["wifi", "cellular", "ethernet"].includes(peer.transport) ? peer.transport : "unknown");
+  const iceCounters = stats.iceByNetwork.get(networkClass) || emptyCounters();
+  addSample(iceCounters, sample);
+  stats.iceByNetwork.set(networkClass, iceCounters);
   const bucketStart = Math.floor(nowMs / STATS_BUCKET_MS) * STATS_BUCKET_MS;
   const bucket = stats.rollingBuckets.get(bucketStart) || emptyCounters();
   addSample(bucket, sample);
@@ -163,7 +178,8 @@ function snapshotCounters(stats, counters, { currentBuffers = false } = {}) {
   const bufferSamples = currentBuffers ? stats.bufferByPeer.size : counters.bufferSamples;
   const bufferMsTotal = currentBuffers ? stats.bufferMsTotal : counters.bufferMsTotal;
   const bufferMsMin = currentBuffers ? currentBufferMin(stats) : counters.bufferMsMin;
-  return summary({
+  return {
+    ...summary({
     peers: stats.peers,
     ...counters,
     wifi: stats.wifi,
@@ -171,7 +187,9 @@ function snapshotCounters(stats, counters, { currentBuffers = false } = {}) {
     bufferSamples,
     bufferMsTotal,
     bufferMsMin
-  });
+    }),
+    iceByNetwork: Object.fromEntries([...stats.iceByNetwork].map(([network, values]) => [network, summary({ peers: 0, wifi: 0, superPeers: 0, ...values })]))
+  };
 }
 
 export function snapshotTrackerStats(stats) {
@@ -232,6 +250,14 @@ function summary({
   peerTimeouts = 0,
   peerHashFailures = 0,
   peerDisconnects = 0,
+  iceAttempts = 0,
+  iceSuccesses = 0,
+  iceFailures = 0,
+  iceCandidateHost = 0,
+  iceCandidateSrflx = 0,
+  iceCandidatePrflx = 0,
+  iceCandidateRelay = 0,
+  iceCandidateUnknown = 0,
   wifi,
   superPeers,
   startupLatencyMsTotal = 0,
@@ -252,6 +278,14 @@ function summary({
     peerTimeouts,
     peerHashFailures,
     peerDisconnects,
+    iceAttempts,
+    iceSuccesses,
+    iceFailures,
+    iceCandidateHost,
+    iceCandidateSrflx,
+    iceCandidatePrflx,
+    iceCandidateRelay,
+    iceCandidateUnknown,
     stallRate: peers === 0 ? 0 : stalls / peers,
     offloadRatio: totalDownload === 0 ? 0 : dlP2p / totalDownload,
     wifiFraction: peers === 0 ? 0 : wifi / peers,
@@ -271,6 +305,16 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
   const peerTimeouts = nonNegativeInt(msg.peer_timeouts ?? msg.peerTimeouts);
   const peerHashFailures = nonNegativeInt(msg.hash_failures ?? msg.hashFailures);
   const peerDisconnects = nonNegativeInt(msg.peer_disconnects ?? msg.peerDisconnects);
+  const iceFailures = nonNegativeInt(msg.ice_failures ?? msg.iceFailures);
+  const iceCandidateHost = nonNegativeInt(msg.ice_candidate_host ?? msg.iceCandidateHost);
+  const iceCandidateSrflx = nonNegativeInt(msg.ice_candidate_srflx ?? msg.iceCandidateSrflx);
+  const iceCandidatePrflx = nonNegativeInt(msg.ice_candidate_prflx ?? msg.iceCandidatePrflx);
+  const iceCandidateRelay = nonNegativeInt(msg.ice_candidate_relay ?? msg.iceCandidateRelay);
+  let iceCandidateUnknown = nonNegativeInt(msg.ice_candidate_unknown ?? msg.iceCandidateUnknown);
+  const classifiedIceSuccesses = iceCandidateHost + iceCandidateSrflx + iceCandidatePrflx + iceCandidateRelay + iceCandidateUnknown;
+  const iceSuccesses = Math.max(nonNegativeInt(msg.ice_successes ?? msg.iceSuccesses), classifiedIceSuccesses);
+  iceCandidateUnknown += iceSuccesses - classifiedIceSuccesses;
+  const iceAttempts = Math.max(nonNegativeInt(msg.ice_attempts ?? msg.iceAttempts), iceSuccesses + iceFailures);
   const sample = {
     ts: nowMs,
     dlP2p: nonNegativeInt(msg.dl_p2p),
@@ -281,7 +325,15 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
     stalls: nonNegativeInt(msg.stalls),
     peerTimeouts,
     peerHashFailures,
-    peerDisconnects
+    peerDisconnects,
+    iceAttempts,
+    iceSuccesses,
+    iceFailures,
+    iceCandidateHost,
+    iceCandidateSrflx,
+    iceCandidatePrflx,
+    iceCandidateRelay,
+    iceCandidateUnknown
   };
   if (startupLatencyMs !== null) sample.startupLatencyMs = startupLatencyMs;
   if (bufferMs !== null) sample.bufferMs = bufferMs;

@@ -37,7 +37,16 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     segmentPayloadsEncoded: 4,
     messagesDropped: 2,
     backpressureDrops: 1,
-    cellCapacityRejections: 3
+    cellCapacityRejections: 3,
+    iceByNetwork: {
+      cellular: {
+        iceAttempts: 10,
+        iceSuccesses: 6,
+        iceFailures: 4,
+        iceCandidateHost: 1,
+        iceCandidateSrflx: 5
+      }
+    }
   });
 
   assert.match(text, /swarmcast_tracker_peers 2/);
@@ -60,4 +69,9 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
   assert.match(text, /swarmcast_tracker_backpressure_drops_total 1/);
   assert.match(text, /swarmcast_tracker_cells 2/);
   assert.match(text, /swarmcast_tracker_cell_capacity_rejections_total 3/);
+  assert.match(text, /swarmcast_tracker_ice_attempts_total\{network_class="cellular"\} 10/);
+  assert.match(text, /swarmcast_tracker_ice_successes_total\{network_class="cellular"\} 6/);
+  assert.match(text, /swarmcast_tracker_ice_failures_total\{network_class="cellular"\} 4/);
+  assert.match(text, /swarmcast_tracker_ice_selected_candidate_total\{network_class="cellular",candidate_type="srflx"\} 5/);
+  assert.equal((text.match(/# HELP swarmcast_tracker_ice_attempts_total/g) || []).length, 1);
 });

@@ -212,5 +212,37 @@ expectFailure(
   }),
   /transfer\.evidence evidence reference looks like it may contain sensitive material/
 );
+expectFailure(
+  "missing cellular ICE outcomes",
+  writeVariant("missing-cellular-ice", (record) => {
+    record.connectivity.networks = record.connectivity.networks.filter((row) => row.network !== "cellular");
+    return record;
+  }),
+  /connectivity must include cellular ICE outcomes/
+);
+expectFailure(
+  "ICE outcomes exceed attempts",
+  writeVariant("ice-outcomes-over-attempts", (record) => {
+    record.connectivity.networks[0].failures = 3;
+    return record;
+  }),
+  /connectivity\.wifi outcomes exceed attempts/
+);
+expectFailure(
+  "selected ICE candidates do not reconcile",
+  writeVariant("ice-candidate-mismatch", (record) => {
+    record.connectivity.networks[1].selectedCandidates.srflx = 9;
+    return record;
+  }),
+  /connectivity\.cellular selected candidates must sum to successes/
+);
+expectFailure(
+  "missing selected candidate evidence",
+  writeVariant("missing-selected-candidate-evidence", (record) => {
+    record.connectivity.evidence = ["tracker-metrics/ice-network-class.synthetic.prom"];
+    return record;
+  }),
+  /connectivity\.evidence must mention ice-selected-candidate-type/
+);
 
-console.log("Android P2P evidence validation smoke OK: pass=1 failures=21");
+console.log("Android P2P evidence validation smoke OK: pass=1 failures=25");

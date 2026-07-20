@@ -15,8 +15,62 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 class TrackerClientTest {
+    @Test
+    fun reportsNetworkClassAndIceTelemetry() {
+        val server = MockWebServer()
+        val joined = CountDownLatch(1)
+        val statsReceived = CountDownLatch(1)
+        val joinMessage = AtomicReference<String>()
+        val statsMessage = AtomicReference<String>()
+        server.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                when {
+                    text.contains("\"t\":\"join\"") -> {
+                        joinMessage.set(text)
+                        joined.countDown()
+                    }
+                    text.contains("\"t\":\"stats\"") -> {
+                        statsMessage.set(text)
+                        statsReceived.countDown()
+                    }
+                }
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+            }
+        }))
+        server.start()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val client = TrackerClient(
+            initialWsUrl = server.url("/ws").toString().replaceFirst("http", "ws").removeSuffix("/"),
+            tokenProvider = { "token" },
+            scope = scope
+        )
+
+        try {
+            client.connect("demo", wifi = false, uploadEnabled = false, networkClass = "cellular")
+            assertTrue(joined.await(3, TimeUnit.SECONDS))
+            client.reportStats(
+                dlP2p = 0,
+                dlEdge = 0,
+                ul = 0,
+                ice = IceConnectivityDelta(attempts = 2, successes = 1, failures = 1, srflxSuccesses = 1)
+            )
+            assertTrue(statsReceived.await(3, TimeUnit.SECONDS))
+            assertTrue(joinMessage.get().contains("\"transport\":\"cellular\""))
+            assertTrue(statsMessage.get().contains("\"ice_attempts\":2"))
+            assertTrue(statsMessage.get().contains("\"ice_candidate_srflx\":1"))
+        } finally {
+            client.close()
+            scope.cancel()
+            server.shutdown()
+        }
+    }
+
     @Test
     fun reconnectsAndRejoinsAfterSocketFailure() {
         val server = MockWebServer()

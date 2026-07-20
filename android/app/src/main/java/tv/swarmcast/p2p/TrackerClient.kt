@@ -75,13 +75,19 @@ class TrackerClient(
     private var closedByUser = true
     private val assignmentKey = UUID.randomUUID().toString()
 
-    fun connect(channelId: String, wifi: Boolean, uploadEnabled: Boolean, uplinkKbps: Int = 0) {
+    fun connect(
+        channelId: String,
+        wifi: Boolean,
+        uploadEnabled: Boolean,
+        uplinkKbps: Int = 0,
+        networkClass: String = if (wifi) "wifi" else "cellular"
+    ) {
         connectionGeneration += 1
         ws?.close(1000, "replaced")
         ws = null
         reconnectJob?.cancel()
         reconnectJob = null
-        activeJoin = JoinRequest(channelId, wifi, uploadEnabled, uplinkKbps)
+        activeJoin = JoinRequest(channelId, wifi, uploadEnabled, uplinkKbps, networkClass)
         redirectHops = 0
         reconnectAttempt = 0
         targetWsUrl = initialWsUrl
@@ -163,7 +169,7 @@ class TrackerClient(
         put("assignmentKey", assignmentKey)
         putJsonObject("caps") {
             put("upload", join.uploadEnabled && join.wifi)
-            put("transport", if (join.wifi) "wifi" else "cell")
+            put("transport", join.networkClass.takeIf { it in NETWORK_CLASSES } ?: "unknown")
             put("uplinkKbps", join.uplinkKbps)
         }
     }
@@ -218,7 +224,8 @@ class TrackerClient(
         bufferMs: Long? = null,
         peerTimeouts: Long = 0,
         hashFailures: Long = 0,
-        peerDisconnects: Long = 0
+        peerDisconnects: Long = 0,
+        ice: IceConnectivityDelta = IceConnectivityDelta()
     ) = sendJson(buildJsonObject {
         put("t", "stats")
         put("dl_p2p", dlP2p)
@@ -230,6 +237,14 @@ class TrackerClient(
         put("peer_timeouts", peerTimeouts.coerceAtLeast(0L))
         put("hash_failures", hashFailures.coerceAtLeast(0L))
         put("peer_disconnects", peerDisconnects.coerceAtLeast(0L))
+        put("ice_attempts", ice.attempts.coerceAtLeast(0L))
+        put("ice_successes", ice.successes.coerceAtLeast(0L))
+        put("ice_failures", ice.failures.coerceAtLeast(0L))
+        put("ice_candidate_host", ice.hostSuccesses.coerceAtLeast(0L))
+        put("ice_candidate_srflx", ice.srflxSuccesses.coerceAtLeast(0L))
+        put("ice_candidate_prflx", ice.prflxSuccesses.coerceAtLeast(0L))
+        put("ice_candidate_relay", ice.relaySuccesses.coerceAtLeast(0L))
+        put("ice_candidate_unknown", ice.unknownSuccesses.coerceAtLeast(0L))
         startupMs?.let { put("startup_ms", it.coerceAtLeast(0L)) }
         bufferMs?.let { put("buffer_ms", it.coerceAtLeast(0L)) }
     })
@@ -302,7 +317,8 @@ class TrackerClient(
         val channelId: String,
         val wifi: Boolean,
         val uploadEnabled: Boolean,
-        val uplinkKbps: Int
+        val uplinkKbps: Int,
+        val networkClass: String
     )
 
     companion object {
@@ -311,5 +327,6 @@ class TrackerClient(
         private const val BASE_RECONNECT_DELAY_MS = 1_000L
         private const val MAX_RECONNECT_DELAY_MS = 30_000L
         private const val MAX_RECONNECT_EXPONENT = 5
+        private val NETWORK_CLASSES = setOf("wifi", "cellular", "ethernet", "unknown")
     }
 }

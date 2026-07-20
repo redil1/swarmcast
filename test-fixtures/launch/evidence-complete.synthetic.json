@@ -69,6 +69,8 @@
         "android:p2p:evidence:validate synthetic-pass",
         "webrtc-datachannel tracker-signaling-relay synthetic-pass",
         "verified-segment-hash cellular-no-upload synthetic-pass",
+        "ice-network-class synthetic-pass",
+        "ice-selected-candidate-type synthetic-pass",
         "device-lab/webrtc-datachannel-transfer/synthetic-report"
       ]
     },

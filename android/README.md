@@ -103,7 +103,7 @@ Local guard coverage remains:
 npm run smoke:android-playback-evidence-validation
 ```
 
-Android P2P transfer evidence must include WebRTC DataChannel, tracker-signaling relay, verified segment hashes, edge fallback, P2P-disable closure, and cellular receive-only/no-upload proof, then be validated with:
+Android P2P transfer evidence must include WebRTC DataChannel, tracker-signaling relay, verified segment hashes, edge fallback, P2P-disable closure, cellular receive-only/no-upload proof, and reconciled ICE attempts/outcomes/selected candidate types for WiFi and cellular, then be validated with:
 
 ```bash
 npm run android:p2p:evidence:validate -- path/to/android-p2p-evidence.json

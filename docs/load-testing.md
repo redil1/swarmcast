@@ -51,6 +51,7 @@ Each staging run must record:
 - rolling `rho` computed as direct P2P bytes divided by direct P2P, edge, origin-bootstrap, and relay bytes; stall rate, startup latency, buffer health, tracker p95 message cost, and memory per peer
 - separate client P2P/edge/origin-bootstrap/relay byte counters reconciled within 5% of edge, origin, and relay access-log egress; cache hit ratio and alert state
 - for each single-channel cell stage: tracker process/cell counts, configured cell ceiling, exact per-cell peer counts, all-cell segment fanout, zero backpressure drops, zero capacity rejections, zero cross-cell signaling, owned-edge fallback during one cell failure, stable cell rejoin, and p95 recovery within 30 seconds
+- for physical-device stages: ICE attempts, successes, failures, and selected `host`/`srflx`/`prflx`/`relay`/unknown candidate counts split by WiFi, cellular, and Ethernet where present; selected-candidate counts must reconcile to successes
 - self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, every preloaded helper charged as bootstrap packets, and packet-derived model `rho` per fraction
 
 Validate the final ladder evidence before launch:

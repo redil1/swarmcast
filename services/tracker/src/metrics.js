@@ -11,6 +11,36 @@ function line(name, value, help, type = "gauge") {
 ${name} ${Number.isFinite(value) ? value : 0}`;
 }
 
+function labeledCounterFamily(name, help, samples) {
+  const rows = samples.map(({ value, labels }) => {
+    const rendered = Object.entries(labels).map(([key, label]) => `${key}="${label}"`).join(",");
+    return `${name}{${rendered}} ${Number.isFinite(value) ? value : 0}`;
+  });
+  return [`# HELP ${name} ${help}`, `# TYPE ${name} counter`, ...rows].join("\n");
+}
+
+function iceMetricsByNetwork(iceByNetwork = {}) {
+  const attempts = [];
+  const successes = [];
+  const failures = [];
+  const candidates = [];
+  for (const networkClass of ["wifi", "cellular", "ethernet", "unknown"]) {
+    const stats = iceByNetwork[networkClass] || {};
+    attempts.push({ value: stats.iceAttempts || 0, labels: { network_class: networkClass } });
+    successes.push({ value: stats.iceSuccesses || 0, labels: { network_class: networkClass } });
+    failures.push({ value: stats.iceFailures || 0, labels: { network_class: networkClass } });
+    for (const [candidateType, key] of [["host", "iceCandidateHost"], ["srflx", "iceCandidateSrflx"], ["prflx", "iceCandidatePrflx"], ["relay", "iceCandidateRelay"], ["unknown", "iceCandidateUnknown"]]) {
+      candidates.push({ value: stats[key] || 0, labels: { network_class: networkClass, candidate_type: candidateType } });
+    }
+  }
+  return [
+    labeledCounterFamily("swarmcast_tracker_ice_attempts_total", "Client ICE attempts by network class", attempts),
+    labeledCounterFamily("swarmcast_tracker_ice_successes_total", "Client ICE successes by network class", successes),
+    labeledCounterFamily("swarmcast_tracker_ice_failures_total", "Client ICE failures by network class", failures),
+    labeledCounterFamily("swarmcast_tracker_ice_selected_candidate_total", "Successful ICE connections by network class and selected candidate type", candidates)
+  ];
+}
+
 export function formatPrometheusMetrics(stats) {
   return [
     line("swarmcast_tracker_peers", stats.peers, "Connected tracker peers"),
@@ -47,7 +77,8 @@ export function formatPrometheusMetrics(stats) {
     line("swarmcast_tracker_segment_payload_encodes_total", stats.segmentPayloadsEncoded || 0, "Pre-encoded segment payload variants", "counter"),
     line("swarmcast_tracker_messages_dropped_total", stats.messagesDropped || 0, "Tracker messages dropped before delivery", "counter"),
     line("swarmcast_tracker_backpressure_drops_total", stats.backpressureDrops || 0, "Tracker messages dropped by the backpressure budget", "counter"),
-    line("swarmcast_tracker_cell_capacity_rejections_total", stats.cellCapacityRejections || 0, "Tracker joins rejected by a full swarm cell", "counter")
+    line("swarmcast_tracker_cell_capacity_rejections_total", stats.cellCapacityRejections || 0, "Tracker joins rejected by a full swarm cell", "counter"),
+    ...iceMetricsByNetwork(stats.iceByNetwork)
   ].join("\n") + "\n";
 }
 

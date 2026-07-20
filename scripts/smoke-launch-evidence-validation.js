@@ -149,6 +149,15 @@ expectFailure(
   /android-p2p-transfer evidence must mention cellular-no-upload/
 );
 expectFailure(
+  "missing Android ICE candidate launch evidence",
+  writeVariant("missing-android-ice-candidate-evidence", (record) => {
+    const androidP2p = gate(record, "android-p2p-transfer");
+    androidP2p.evidence = androidP2p.evidence.filter((evidence) => !evidence.includes("ice-selected-candidate-type"));
+    return record;
+  }),
+  /android-p2p-transfer evidence must mention ice-selected-candidate-type/
+);
+expectFailure(
   "missing threat model launch evidence",
   writeVariant("missing-threat-model-evidence", (record) => {
     const threatModel = gate(record, "threat-model-signoff");
@@ -382,4 +391,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=37");
+console.log("launch evidence validation smoke OK: pass=1 failures=38");

@@ -148,6 +148,10 @@ test("incremental tracker stats preserve counters after disconnect without scann
     peerTimeouts: 0,
     peerHashFailures: 1,
     peerDisconnects: 1,
+    iceAttempts: 3,
+    iceSuccesses: 2,
+    iceFailures: 1,
+    iceCandidateSrflx: 2,
     startupLatencyMs: 2000,
     bufferMs: 10000
   }, 6000);
@@ -161,6 +165,10 @@ test("incremental tracker stats preserve counters after disconnect without scann
   assert.equal(cumulative.dlEdge, 1000);
   assert.equal(cumulative.bufferMsMin, 30000);
   assert.equal(cumulative.offloadRatio, 1000 / 2150);
+  assert.equal(cumulative.iceAttempts, 3);
+  assert.equal(cumulative.iceSuccesses, 2);
+  assert.equal(cumulative.iceFailures, 1);
+  assert.equal(cumulative.iceByNetwork.cellular.iceCandidateSrflx, 2);
   assert.equal(rolling.dlP2p, 100);
   assert.equal(rolling.dlEdge, 900);
   assert.equal(rolling.dlRelay, 100);

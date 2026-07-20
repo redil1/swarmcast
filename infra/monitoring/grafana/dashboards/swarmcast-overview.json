@@ -193,6 +193,26 @@
       "targets": [
         { "expr": "ALERTS{alertstate=\"firing\",alertname=~\"Swarmcast.*\"}", "legendFormat": "{{alertname}} {{severity}}" }
       ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "ICE Success By Network",
+      "gridPos": { "x": 0, "y": 56, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (network_class) (rate(swarmcast_tracker_ice_attempts_total[5m]))", "legendFormat": "{{network_class}} attempts" },
+        { "expr": "sum by (network_class) (rate(swarmcast_tracker_ice_successes_total[5m]))", "legendFormat": "{{network_class}} successes" },
+        { "expr": "sum by (network_class) (rate(swarmcast_tracker_ice_failures_total[5m]))", "legendFormat": "{{network_class}} failures" }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Selected ICE Candidate Types",
+      "gridPos": { "x": 12, "y": 56, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum by (network_class, candidate_type) (rate(swarmcast_tracker_ice_selected_candidate_total[5m]))", "legendFormat": "{{network_class}} {{candidate_type}}" }
+      ]
     }
   ]
 }

@@ -68,6 +68,7 @@ function numberField(name, value, { min = Number.NEGATIVE_INFINITY, max = Number
 function integerField(name, value, { min = Number.NEGATIVE_INFINITY, max = Number.POSITIVE_INFINITY } = {}) {
   if (!Number.isInteger(value)) fail(`${name} must be an integer`);
   if (value < min || value > max) fail(`${name} must be between ${min} and ${max}`);
+  return value;
 }
 
 function validateEvidenceList(name, evidence) {
@@ -149,6 +150,36 @@ function validateTransfer(record, devices) {
   }
 }
 
+function validateConnectivity(record) {
+  if (!record.connectivity || !Array.isArray(record.connectivity.networks)) {
+    fail("connectivity.networks must be an array");
+  }
+  const networks = new Set();
+  for (const row of record.connectivity.networks) {
+    const network = cleanString("connectivity.network", row.network, /^(wifi|cellular|ethernet)$/);
+    if (networks.has(network)) fail(`duplicate connectivity network ${network}`);
+    networks.add(network);
+    const attempts = integerField(`connectivity.${network}.attempts`, row.attempts, { min: 1 });
+    const successes = integerField(`connectivity.${network}.successes`, row.successes, { min: 0 });
+    const failures = integerField(`connectivity.${network}.failures`, row.failures, { min: 0 });
+    if (successes + failures > attempts) fail(`connectivity.${network} outcomes exceed attempts`);
+    if (!row.selectedCandidates || typeof row.selectedCandidates !== "object") {
+      fail(`connectivity.${network}.selectedCandidates is required`);
+    }
+    const classified = ["host", "srflx", "prflx", "relay", "unknown"].reduce((total, type) =>
+      total + integerField(`connectivity.${network}.selectedCandidates.${type}`, row.selectedCandidates[type], { min: 0 }), 0);
+    if (classified !== successes) fail(`connectivity.${network} selected candidates must sum to successes`);
+  }
+  for (const network of requiredDeviceNetworks) {
+    if (!networks.has(network)) fail(`connectivity must include ${network} ICE outcomes`);
+  }
+  validateEvidenceList("connectivity.evidence", record.connectivity.evidence);
+  const evidence = record.connectivity.evidence.join("\n");
+  for (const marker of ["ice-network-class", "ice-selected-candidate-type"]) {
+    if (!evidence.includes(marker)) fail(`connectivity.evidence must mention ${marker}`);
+  }
+}
+
 function validateRecord(record, file) {
   cleanString("reviewId", record.reviewId, /^[a-z0-9][a-z0-9._-]*$/);
   cleanString("environment", record.environment, /^(staging|production)$/);
@@ -159,6 +190,7 @@ function validateRecord(record, file) {
   const devices = validateDevices(record);
   validateChecks(record, devices);
   validateTransfer(record, devices);
+  validateConnectivity(record);
   return `${file}: Android P2P evidence OK: devices=${devices.size}, checks=${requiredChecks.length}, verifiedSegments=${record.transfer.verifiedSegments}`;
 }
 

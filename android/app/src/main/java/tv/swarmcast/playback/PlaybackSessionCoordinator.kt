@@ -89,7 +89,8 @@ class PlaybackSessionCoordinator(
             channelId = channelId,
             wifi = networkSnapshot.transport == "wifi" && !networkSnapshot.metered,
             uploadEnabled = uploadAllowed,
-            uplinkKbps = networkSnapshot.uplinkKbps
+            uplinkKbps = networkSnapshot.uplinkKbps,
+            networkClass = networkSnapshot.transport
         )
     }
 
@@ -208,7 +209,8 @@ class PlaybackSessionCoordinator(
             bufferMs = playerHolder.bufferedDurationMs(),
             peerTimeouts = current.peerTimeouts - lastStats.peerTimeouts,
             hashFailures = current.peerHashFailures - lastStats.peerHashFailures,
-            peerDisconnects = current.peerDisconnects - lastStats.peerDisconnects
+            peerDisconnects = current.peerDisconnects - lastStats.peerDisconnects,
+            ice = peerManager.drainIceTelemetry()
         )
         lastStats = current
         lastStalls = currentStalls

@@ -1206,6 +1206,10 @@ for (const metric of [
   "swarmcast_tracker_startup_latency_ms_avg_5m",
   "swarmcast_tracker_buffer_ms_min_5m",
   "Peer Health",
+  "ICE Success By Network",
+  "Selected ICE Candidate Types",
+  "swarmcast_tracker_ice_attempts_total",
+  "swarmcast_tracker_ice_selected_candidate_total",
   "swarmcast_tracker_peer_timeouts_5m",
   "swarmcast_tracker_peer_hash_failures_5m",
   "swarmcast_tracker_peer_disconnects_5m",
@@ -1844,6 +1848,8 @@ for (const required of [
   "tracker-signaling-relay",
   "verified-segment-hash",
   "cellular-no-upload",
+  "ice-network-class",
+  "ice-selected-candidate-type",
   "android-rlnc-decision",
   "android:rlnc:decision:validate",
   "threat-model-signoff",
@@ -2037,6 +2043,8 @@ for (const required of [
   "tracker-signaling-relay",
   "verified-segment-hash",
   "cellular-no-upload",
+  "ice-network-class",
+  "ice-selected-candidate-type",
   "\"android-rlnc-decision\"",
   "android:rlnc:decision:validate",
   "\"threat-model-signoff\"",
@@ -3983,7 +3991,7 @@ for (const required of [
   "npm run android:playback:evidence:validate -- path/to/android-playback-evidence.json",
   "npm run smoke:android-playback-evidence-validation",
   "test-fixtures/android/playback-delivery-fleet-complete.synthetic.json",
-  "Android P2P transfer evidence must include WebRTC DataChannel, tracker-signaling relay, verified segment hashes",
+  "Android P2P transfer evidence must include WebRTC DataChannel, tracker-signaling relay, verified segment hashes, edge fallback, P2P-disable closure, cellular receive-only/no-upload proof, and reconciled ICE attempts/outcomes/selected candidate types for WiFi and cellular",
   "npm run android:p2p:evidence:validate -- path/to/android-p2p-evidence.json",
   "npm run smoke:android-p2p-evidence-validation",
   "test-fixtures/android/p2p-transfer-complete.synthetic.json"
@@ -4217,6 +4225,9 @@ for (const required of [
   "cellular-no-upload",
   "transfer source device must be wifi for upload evidence",
   "transfer sink device must be cellular for receive-only evidence",
+  "connectivity.networks must be an array",
+  "ice-network-class",
+  "ice-selected-candidate-type",
   "edge-fallback",
   "p2p-with-edge-fallback",
   "synthetic Android P2P evidence requires --allow-synthetic",
@@ -4253,7 +4264,11 @@ for (const required of [
   "transfer\\.bufferMsMin must be between 10000 and Infinity",
   "transfer\\.evidence must mention webrtc-datachannel",
   "transfer\\.evidence evidence reference looks like it may contain sensitive material",
-  "Android P2P evidence validation smoke OK: pass=1 failures=21"
+  "connectivity must include cellular ICE outcomes",
+  "connectivity\\.wifi outcomes exceed attempts",
+  "connectivity\\.cellular selected candidates must sum to successes",
+  "connectivity\\.evidence must mention ice-selected-candidate-type",
+  "Android P2P evidence validation smoke OK: pass=1 failures=25"
 ]) {
   if (!androidP2pEvidenceSmokeText.includes(required)) {
     console.error(`scripts/smoke-android-p2p-evidence-validation.js: missing Android P2P smoke text: ${required}`);
@@ -4277,6 +4292,8 @@ for (const required of [
   "\"verifiedSegments\": 24",
   "\"hashFailures\": 0",
   "\"offloadRatio\": 0.86",
+  "\"selectedCandidates\"",
+  "ice-network-class.ice-selected-candidate-type",
   "\"synthetic\": true"
 ]) {
   if (!androidP2pEvidenceFixtureText.includes(required)) {

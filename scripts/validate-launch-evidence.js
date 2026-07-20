@@ -28,7 +28,7 @@ const requiredGates = [
   { id: "android-device-playback", requiredEvidence: ["android:playback:evidence:validate", "delivery-fleet-only", "30m-soak", "wifi", "cellular"] },
   {
     id: "android-p2p-transfer",
-    requiredEvidence: ["android:p2p:evidence:validate", "webrtc-datachannel", "tracker-signaling-relay", "verified-segment-hash", "cellular-no-upload"]
+    requiredEvidence: ["android:p2p:evidence:validate", "webrtc-datachannel", "tracker-signaling-relay", "verified-segment-hash", "cellular-no-upload", "ice-network-class", "ice-selected-candidate-type"]
   },
   { id: "android-rlnc-decision", requiredEvidence: ["android:rlnc:decision:validate"] },
   { id: "threat-model-signoff", requiredEvidence: ["threat:model:validate"] },
