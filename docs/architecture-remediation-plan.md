@@ -72,6 +72,7 @@ Target topology:
 Deliverables:
 
 - Add stable cell assignment and redirect contracts.
+- Spill full cells through the locality-first rendezvous ranking with signed, expiring route assignments; reject only after all eligible cells are exhausted.
 - Key tracker swarm state by channel and cell.
 - Replace full-swarm peer sorting with bounded score buckets/reservoir selection maintained incrementally.
 - Maintain seeder pools incrementally instead of sorting all peers per segment.
@@ -80,8 +81,8 @@ Deliverables:
 
 Acceptance evidence:
 
-- Deterministic assignment, bounded movement, cell-cap, redirect, and same-cell signaling tests.
-- Multi-process WebSocket smoke proving one channel spans cells and survives one cell failure through edge fallback/rejoin.
+- Deterministic assignment, bounded movement, authenticated capacity spillover, cell-cap exhaustion, redirect, and same-cell signaling tests.
+- Multi-process WebSocket smoke proving one channel spans cells, spills a full cell, and survives one cell failure through edge fallback/rejoin.
 - Staged ladder at 1K, 10K, and 100K active viewers per channel shape before any extrapolation to 1M.
 - A 1M single-channel claim remains prohibited until the production-equivalent distributed test passes every budget.
 

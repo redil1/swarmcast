@@ -49,7 +49,8 @@ sealed class TrackerEvent {
         val channelId: String,
         val shardId: String,
         val trackerUrl: String,
-        val cellId: String = "default"
+        val cellId: String = "default",
+        val cellRouteToken: String? = null
     ) : TrackerEvent()
     data class Error(val code: String, val message: String = "") : TrackerEvent()
     data object Disconnected : TrackerEvent()
@@ -69,6 +70,7 @@ class TrackerClient(
     private var activeJoin: JoinRequest? = null
     private var redirectHops = 0
     private var targetWsUrl = initialWsUrl
+    private var cellRouteToken: String? = null
     private var reconnectAttempt = 0
     private var reconnectJob: Job? = null
     private var connectionGeneration = 0L
@@ -91,6 +93,7 @@ class TrackerClient(
         redirectHops = 0
         reconnectAttempt = 0
         targetWsUrl = initialWsUrl
+        cellRouteToken = null
         closedByUser = false
         scope.launch {
             openWebSocket(targetWsUrl, activeJoin ?: return@launch)
@@ -167,6 +170,7 @@ class TrackerClient(
         put("t", "join")
         put("channelId", join.channelId)
         put("assignmentKey", assignmentKey)
+        cellRouteToken?.takeIf { it.isNotBlank() }?.let { put("cellRouteToken", it) }
         putJsonObject("caps") {
             put("upload", join.uploadEnabled && join.wifi)
             put("transport", join.networkClass.takeIf { it in NETWORK_CLASSES } ?: "unknown")
@@ -182,6 +186,7 @@ class TrackerClient(
         }
         redirectHops += 1
         targetWsUrl = event.trackerUrl
+        cellRouteToken = event.cellRouteToken
         connectionGeneration += 1
         val previous = ws
         ws = null
@@ -303,7 +308,8 @@ class TrackerClient(
                 channelId = obj["channelId"]!!.jsonPrimitive.content,
                 shardId = obj["shardId"]!!.jsonPrimitive.content,
                 trackerUrl = obj["trackerUrl"]!!.jsonPrimitive.content,
-                cellId = obj["cellId"]?.jsonPrimitive?.contentOrNull ?: "default"
+                cellId = obj["cellId"]?.jsonPrimitive?.contentOrNull ?: "default",
+                cellRouteToken = obj["cellRouteToken"]?.jsonPrimitive?.contentOrNull
             )
             "error" -> TrackerEvent.Error(
                 code = obj["code"]?.jsonPrimitive?.contentOrNull ?: ErrorCodes.CONFIG_INVALID,
@@ -322,7 +328,7 @@ class TrackerClient(
     )
 
     companion object {
-        private const val MAX_TRACKER_REDIRECTS = 3
+        private const val MAX_TRACKER_REDIRECTS = 64
         private const val MAX_EXCLUDED_PEERS = 64
         private const val BASE_RECONNECT_DELAY_MS = 1_000L
         private const val MAX_RECONNECT_DELAY_MS = 30_000L

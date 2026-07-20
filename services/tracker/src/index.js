@@ -12,7 +12,11 @@ import { metricsForState } from "./metrics.js";
 import { buildMediaTemplates, resolveChannelPlacement } from "./placementClient.js";
 import { parseTrackerPolicy, swarmModeForSize } from "./policy.js";
 import { announceSegmentToState } from "./segments.js";
-import { routeTrackerJoin } from "./sharding.js";
+import {
+  createTrackerCellRouteToken,
+  routeTrackerJoin,
+  selectTrackerSpillover
+} from "./sharding.js";
 import {
   addPeerToTrackerStats,
   createTrackerStats,
@@ -34,6 +38,7 @@ export function createTrackerState() {
       segmentPayloadsEncoded: 0,
       messagesDropped: 0,
       backpressureDrops: 0,
+      cellCapacitySpillovers: 0,
       cellCapacityRejections: 0
     }
   };
@@ -255,12 +260,15 @@ export async function handlePeerMessage({
       const channelId = String(msg.channelId);
       const assignmentKey = String(msg.assignmentKey || peer.sub || peer.id).slice(0, 128);
       const region = String(msg.caps?.region || "").slice(0, 32);
+      const cellRouteToken = typeof msg.cellRouteToken === "string" ? msg.cellRouteToken.slice(0, 8192) : "";
       const shardRoute = routeTrackerJoin({
         channelId,
         assignmentKey,
         region,
         selfShardId: trackerShardConfig.selfShardId,
-        shards: trackerShardConfig.shards
+        shards: trackerShardConfig.shards,
+        cellRouteToken,
+        routeTokenSecret: internalToken
       });
       if (shardRoute.redirect) {
         logger?.info("tracker_shard_redirect", {
@@ -311,6 +319,44 @@ export async function handlePeerMessage({
 
       const swarm = swarmFor(state, peer.channelId, peer.cellId);
       if (swarm.size >= cellMaxPeers) {
+        const excludedCellIds = [...new Set([...(shardRoute.excludedCellIds || []), peer.cellId])];
+        const spillover = selectTrackerSpillover({
+          channelId,
+          assignmentKey,
+          region,
+          shards: trackerShardConfig.shards,
+          excludedCellIds
+        });
+        if (spillover && internalToken) {
+          const spilloverToken = createTrackerCellRouteToken({
+            channelId,
+            assignmentKey,
+            cellId: spillover.cellId,
+            excludedCellIds,
+            shards: trackerShardConfig.shards,
+            secret: internalToken
+          });
+          state.delivery.cellCapacitySpillovers += 1;
+          logger?.info("tracker_cell_spillover", {
+            peer_id: peer.id,
+            channel_id: channelId,
+            cell_id: peer.cellId,
+            target_cell_id: spillover.cellId,
+            attempted_cells: excludedCellIds.length
+          }, "peer redirected from full tracker cell");
+          ws.send(JSON.stringify({
+            t: "redirect",
+            channelId,
+            cellId: spillover.cellId,
+            shardId: spillover.shard.id,
+            trackerUrl: spillover.shard.wsUrl,
+            cellRouteToken: spilloverToken
+          }));
+          peer.channelId = null;
+          peer.cellId = null;
+          ws.end?.(1012, "tracker cell spillover");
+          return;
+        }
         state.delivery.cellCapacityRejections += 1;
         const error = publicError(ERROR_CODES.CAPACITY, "tracker cell is full");
         ws.send(JSON.stringify({ t: "error", code: error.error, msg: error.message }));
