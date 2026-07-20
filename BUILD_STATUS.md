@@ -2878,11 +2878,12 @@ Results:
 - Capacity validation passes 2 positive shapes and rejects 15 invalid or unproved cases; launch evidence validation passes one synthetic shape and rejects 37 failure cases. Repository-wide verification passes 163 tests.
 - Commit `aede0e8` passed remote CI run `29768513960` across Node, deployment-shape, and Android jobs. Real offload, throughput, provider-terms, and scale evidence remain launch gates.
 
-## Build Slice 304 In Progress
+## Build Slice 304 Complete
 
 - Added Android ICE attempt/outcome telemetry using the selected WebRTC candidate-pair stats rather than inferring connectivity from SDP.
 - Successful paths are classified as `host`, `srflx`, `prflx`, `relay`, or `unknown`; relay takes precedence when either selected endpoint is relayed.
 - Tracker stats reconcile success classifications and export attempts, successes, failures, and selected candidate types by joined WiFi, cellular, Ethernet, or unknown network class.
 - Added Grafana panels for ICE outcomes by network and selected candidate types.
 - Android P2P launch evidence now requires WiFi and cellular ICE outcomes, reconciled selected-candidate counts, and sanitized network/candidate evidence markers; its smoke now rejects 25 failure paths.
-- Android unit/debug/release builds and 49 tracker tests pass. Repository-wide verification and remote CI remain; real devices across carriers are still required to decide whether STUN-only operation is economically acceptable or TURN must be provisioned.
+- Android unit/debug/release builds, 49 targeted tracker tests, and repository-wide verification with 163 tests pass.
+- Commit `94b9efa` passed remote CI run `29769852588` across Node, deployment-shape, and Android jobs. Real devices across carriers are still required to decide whether STUN-only operation is economically acceptable or TURN must be provisioned.
