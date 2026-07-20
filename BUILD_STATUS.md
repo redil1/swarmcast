@@ -2833,7 +2833,7 @@ Results:
 - Extended real WebSocket load smokes to close 60 of 200 clients and prove 20 sampled topologies recover target candidate degree using only live same-channel replacements; both one-channel and five-channel shapes pass at `rho=0.900` with join p95 below 100 ms.
 - `npm run verify` passes 153 repository tests; Android unit tests, the tracker Docker build, and remote CI run `29763105754` pass. Physical-device connectivity/no-upload evidence remains open as a launch gate.
 
-## Build Slice 300 In Progress
+## Build Slice 300 Complete
 
 - Phase B commit `4073fdf` passed remote CI run `29763105754` across Node, deployment-shape, and Android jobs.
 - Android SegmentScheduler now consumes tracker `seedTier` and `originTemplate`; only designated super-peers can bootstrap from owned origin, and advertised peer supply suppresses redundant origin pulls.
@@ -2843,4 +2843,5 @@ Results:
 - Added Prometheus series and Grafana download panels for origin-bootstrap and relay bytes.
 - Corrected the 500-peer helper model to charge every preloaded super-peer segment as bootstrap traffic. Its best and flatten offload are both `0.850`, replacing the invalid `0.997` synthetic claim.
 - Hardened load-ladder evidence to derive model offload from packet counts, reject omitted helper bootstrap, recompute real-stage `rho` from all delivery categories, and require client edge/origin/relay bytes to reconcile with access-log egress within 5%.
-- Repository-wide verification passes 153 tests. Android unit tests plus debug/release assemblies, including release lint, pass locally; the corrected headless model smoke, the 12-failure-path load-evidence smoke, and `npm run check` also pass. Remote CI remains pending.
+- Repository-wide verification passes 153 tests. Android unit tests plus debug/release assemblies, including release lint, pass locally; the corrected headless model smoke, the 12-failure-path load-evidence smoke, and `npm run check` also pass.
+- Final commit `55cf6b6` passed remote CI run `29764650180` across Node, deployment-shape, and Android jobs. Build slice 300 is complete; physical-device offload proof remains a launch gate.
