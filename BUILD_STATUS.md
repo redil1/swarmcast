@@ -2846,7 +2846,7 @@ Results:
 - Repository-wide verification passes 153 tests. Android unit tests plus debug/release assemblies, including release lint, pass locally; the corrected headless model smoke, the 12-failure-path load-evidence smoke, and `npm run check` also pass.
 - Final commit `55cf6b6` passed remote CI run `29764650180` across Node, deployment-shape, and Android jobs. Build slice 300 is complete; physical-device offload proof remains a launch gate.
 
-## Build Slice 301 In Progress
+## Build Slice 301 Complete
 
 - Replaced channel-only tracker ownership with stable per-viewer rendezvous assignment across process-owned cells, including optional regional affinity, redirect/join `cellId`, Android reconnect-stable assignment keys, same-cell signaling enforcement, and a configurable 20K peer ceiling per cell.
 - Replaced production full-swarm candidate and seeder sorting with incrementally maintained bounded score buckets and rotating pools.
@@ -2855,4 +2855,5 @@ Results:
 - Added authenticated multi-endpoint ingest announcement fanout with per-attempt timeouts and retries.
 - Added deterministic assignment/distribution/movement/locality, cell-cap, cross-cell signaling, bounded-send, multi-cell fanout, incremental-stat, config, and Android assignment-continuity tests.
 - The real two-process Node 22 WebSocket smoke passes: one channel spans two cells, both receive segment metadata, one cell fails while its client retains owned-edge fallback, the cell restarts, the client rejoins, and both receive the next segment.
-- Repository-wide verification passes 163 tests. Android unit/debug/release builds, tracker sharding smoke, the real two-process Node 22 cell smoke, alert validation, and dashboard validation pass locally. Remote CI remains pending; real 1K/10K/100K per-channel scale evidence remains a hard gate.
+- Repository-wide verification passes 163 tests. Android unit/debug/release builds, tracker sharding smoke, the real two-process Node 22 cell smoke, alert validation, and dashboard validation pass locally.
+- Commit `8952b9e` passed remote CI run `29766749092`; the Node job independently passed the two-process cell smoke, the Android job passed unit/debug/release builds and artifact uploads, and the deployment-shape job passed. Real 1K/10K/100K per-channel scale evidence remains a hard gate.
