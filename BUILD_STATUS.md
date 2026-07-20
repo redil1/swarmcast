@@ -2944,3 +2944,10 @@ Results:
 - Protected PR #3 passed duplicate Node, Android, and deployment-shape checks and merged as `3af4119`. Main CI run `29784199843` passed all three jobs, including clean image builds and real lifecycle container execution.
 - Staging release `v0.1.0-rc6` run `29784363993` passed all jobs. Independently downloaded evidence verifies 13 immutable digest bindings, 13 non-empty Cosign verification records, 13 CycloneDX image SBOMs, 13 Trivy reports with zero HIGH/CRITICAL findings, an 84-component source SBOM, and a manifest bound to commit `3af41195fb635d01b5b0f343ee6ac56133ecd7c0`.
 - Overall production readiness is now 92%. Remaining gates require real infrastructure, devices, networks, capacity, approvals, drills, and owner sign-off; repository-only evidence cannot legitimately replace them.
+
+## Build Slice 310 In Progress
+
+- Downloaded the Android debug and unsigned release artifacts from protected `main` CI run `29785361703`; both portable SHA-256 sidecars pass after download.
+- Refreshed the non-synthetic Android CI record with job `88495625463`, artifact IDs `8478269815` and `8478270597`, exact APK sizes and hashes, and commit `6ffcb8335108b18253280d7929d59ba15d6cd297`.
+- Added `npm run evidence:committed:validate` to the mandatory repository check so the real Android CI and repository-governance records cannot silently become invalid while synthetic fixture tests continue to pass.
+- Corrected active launch/dependency references from 12 to the current 13-image release inventory. Local committed-evidence, configuration, and full check gates pass; protected remote CI remains open.

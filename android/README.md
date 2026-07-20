@@ -25,7 +25,7 @@ Current status:
 Not yet verified in this workspace:
 
 - Real-device Media3 playback, tracker connectivity, WebRTC peer links, and RLNC Android integration remain open backlog work.
-- Remote CI run `29327610922` passed unit tests, debug/release assembly, portable SHA-256 sidecars, and both artifact uploads; the non-synthetic evidence record is `evidence/android/ci-build-29327610922.json`.
+- Protected `main` CI run `29785361703` passed unit tests, debug/release assembly, portable SHA-256 sidecars, and both artifact uploads; the non-synthetic evidence record is `evidence/android/ci-build-29785361703.json`.
 
 Expected local verification:
 
@@ -67,7 +67,7 @@ npm run android:ci:evidence:validate -- path/to/android-ci-evidence.json
 The current real record validates with:
 
 ```bash
-npm run android:ci:evidence:validate -- evidence/android/ci-build-29327610922.json
+npm run android:ci:evidence:validate -- evidence/android/ci-build-29785361703.json
 ```
 
 Expected CI artifacts:
