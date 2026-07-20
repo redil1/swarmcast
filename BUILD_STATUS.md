@@ -2925,3 +2925,9 @@ Results:
 - GitHub now enforces strict app-bound Node, Android, and deployment-shape checks on protected `main`, pull-request-only changes for administrators, stale-review dismissal, conversation resolution, linear history, and disabled force-push/deletion.
 - Dependabot security updates, secret scanning, and push protection are enabled. Protected PR #1 passed both remote CI runs `29780792392` and `29780796759` and merged as `0d79d193`.
 - Non-synthetic governance evidence is recorded at `evidence/security/repository-governance-main-20260720.json`; the sole-maintainer policy intentionally requires zero approving reviews while retaining protected green-PR enforcement.
+
+## Build Slice 308 Complete
+
+- Remote CI run `29781121582` exposed a startup race in the tracker-cell WebSocket smoke: its readiness probe observed the internal metrics listener before the separate viewer listener was accepting connections.
+- The smoke now waits for both tracker listeners with bounded retries before opening viewer WebSockets.
+- Thirty consecutive executions pass under Node 22.23.1; corrected protected remote CI remains the merge gate for PR #2.
