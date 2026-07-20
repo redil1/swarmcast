@@ -16,6 +16,14 @@ export const ENV_DEFAULTS = Object.freeze({
   AUTH_JWT_AUDIENCE: "swarmcast",
   AUTH_JWT_ISSUER: "swarmcast-auth",
   AUTH_TOKEN_TTL_SECONDS: 21_600,
+  AUTH_PLAY_INTEGRITY_ENABLED: false,
+  AUTH_PLAY_INTEGRITY_PACKAGE_NAME: "tv.swarmcast",
+  AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH: "",
+  AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS: [],
+  AUTH_PLAY_INTEGRITY_MAX_TOKEN_AGE_SECONDS: 120,
+  AUTH_ATTESTATION_CHALLENGE_SECRET: "",
+  AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET: "",
+  AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS: 120,
   ICE_STUN_URLS: ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"],
   ICE_SERVER_ALLOWED_HOSTS: "",
   TURN_ENABLED: false,
@@ -410,6 +418,84 @@ export function missingRequiredEnvExampleKeys(text, requiredKeys = REQUIRED_ENV_
 export function loadAuthConfig(env = process.env, { requireSecrets = false } = {}) {
   const appApiKey = requireSecrets ? requiredEnv(env, "APP_API_KEY") : stringEnv(env, "APP_API_KEY");
   const tokenTtlSeconds = intEnv(env, "AUTH_TOKEN_TTL_SECONDS", ENV_DEFAULTS.AUTH_TOKEN_TTL_SECONDS, { min: 300, max: 86_400 });
+  const playIntegrityEnabled = boolEnv(env, "AUTH_PLAY_INTEGRITY_ENABLED", ENV_DEFAULTS.AUTH_PLAY_INTEGRITY_ENABLED);
+  const playIntegrityPackageName = stringEnv(
+    env,
+    "AUTH_PLAY_INTEGRITY_PACKAGE_NAME",
+    ENV_DEFAULTS.AUTH_PLAY_INTEGRITY_PACKAGE_NAME
+  ).trim();
+  if (!/^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(playIntegrityPackageName)) {
+    throw new ConfigError("AUTH_PLAY_INTEGRITY_PACKAGE_NAME must be a valid Android package name", {
+      key: "AUTH_PLAY_INTEGRITY_PACKAGE_NAME"
+    });
+  }
+  const playIntegrityServiceAccountPath = playIntegrityEnabled
+    ? requiredEnv(env, "AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH").trim()
+    : stringEnv(env, "AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH").trim();
+  const playIntegrityCertificateDigestsInput = jsonEnv(
+    env,
+    "AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS",
+    ENV_DEFAULTS.AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS
+  );
+  if (!Array.isArray(playIntegrityCertificateDigestsInput)) {
+    throw new ConfigError("AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS must be a JSON array", {
+      key: "AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS"
+    });
+  }
+  const playIntegrityCertificateDigests = [...new Set(playIntegrityCertificateDigestsInput.map((value, index) => {
+    if (typeof value !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(value)) {
+      throw new ConfigError(`AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS[${index}] must be an unpadded base64url SHA-256 digest`, {
+        key: "AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS"
+      });
+    }
+    return value;
+  }))];
+  if (playIntegrityEnabled && playIntegrityCertificateDigests.length === 0) {
+    throw new ConfigError("AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS must not be empty when Play Integrity is enabled", {
+      key: "AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS"
+    });
+  }
+  const playIntegrityMaxTokenAgeSeconds = intEnv(
+    env,
+    "AUTH_PLAY_INTEGRITY_MAX_TOKEN_AGE_SECONDS",
+    ENV_DEFAULTS.AUTH_PLAY_INTEGRITY_MAX_TOKEN_AGE_SECONDS,
+    { min: 30, max: 300 }
+  );
+  const attestationChallengeSecret = playIntegrityEnabled
+    ? requiredEnv(env, "AUTH_ATTESTATION_CHALLENGE_SECRET").trim()
+    : stringEnv(env, "AUTH_ATTESTATION_CHALLENGE_SECRET").trim();
+  if (playIntegrityEnabled && !/^[A-Za-z0-9_-]{32,256}$/.test(attestationChallengeSecret)) {
+    throw new ConfigError("AUTH_ATTESTATION_CHALLENGE_SECRET must be 32-256 URL-safe characters", {
+      key: "AUTH_ATTESTATION_CHALLENGE_SECRET"
+    });
+  }
+  const attestationPreviousChallengeSecret = stringEnv(
+    env,
+    "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET",
+    ENV_DEFAULTS.AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET
+  ).trim();
+  if (attestationPreviousChallengeSecret && !/^[A-Za-z0-9_-]{32,256}$/.test(attestationPreviousChallengeSecret)) {
+    throw new ConfigError("AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET must be 32-256 URL-safe characters", {
+      key: "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET"
+    });
+  }
+  if (attestationPreviousChallengeSecret && attestationPreviousChallengeSecret === attestationChallengeSecret) {
+    throw new ConfigError("AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET must differ from the current secret", {
+      key: "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET"
+    });
+  }
+  const attestationChallengeTtlSeconds = intEnv(
+    env,
+    "AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS",
+    ENV_DEFAULTS.AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS,
+    { min: 30, max: 300 }
+  );
+  if (playIntegrityEnabled && attestationChallengeTtlSeconds > playIntegrityMaxTokenAgeSeconds) {
+    throw new ConfigError(
+      "AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS must not exceed AUTH_PLAY_INTEGRITY_MAX_TOKEN_AGE_SECONDS",
+      { key: "AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS" }
+    );
+  }
   const iceServerAllowedHosts = parseSourceAllowedHosts(stringEnv(env, "ICE_SERVER_ALLOWED_HOSTS", ENV_DEFAULTS.ICE_SERVER_ALLOWED_HOSTS));
   if (requireSecrets && iceServerAllowedHosts.length === 0) {
     throw new ConfigError("ICE_SERVER_ALLOWED_HOSTS is required when production validation is enabled", { key: "ICE_SERVER_ALLOWED_HOSTS" });
@@ -449,6 +535,14 @@ export function loadAuthConfig(env = process.env, { requireSecrets = false } = {
     jwtAudience: jwtClaimEnv(env, "AUTH_JWT_AUDIENCE", ENV_DEFAULTS.AUTH_JWT_AUDIENCE),
     jwtIssuer: jwtClaimEnv(env, "AUTH_JWT_ISSUER", ENV_DEFAULTS.AUTH_JWT_ISSUER),
     tokenTtlSeconds,
+    playIntegrityEnabled,
+    playIntegrityPackageName,
+    playIntegrityServiceAccountPath,
+    playIntegrityCertificateDigests,
+    playIntegrityMaxTokenAgeSeconds,
+    attestationChallengeSecret,
+    attestationPreviousChallengeSecret,
+    attestationChallengeTtlSeconds,
     stunUrls,
     iceServerAllowedHosts,
     turnEnabled,

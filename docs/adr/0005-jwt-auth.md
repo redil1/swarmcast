@@ -17,4 +17,4 @@ Use ES256 JWTs with a JWKS endpoint. nginx validates media requests through an a
 - Media URLs include `?token=...`.
 - Signing keys must be stored on persistent volumes and backed up.
 - Key rotation policy is required before production launch.
-- App API key gating is acceptable only for early builds; Play Integrity or equivalent attestation is required before public scale.
+- App API key gating remains a coarse abuse control; production token issuance additionally requires the request-bound Play Integrity flow in ADR 0010.

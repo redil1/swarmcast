@@ -1,0 +1,32 @@
+{
+  "reviewId": "android-attestation-synthetic",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "appVersion": "v0.1.0-rc5",
+  "testedAt": "2026-07-20T00:00:00.000Z",
+  "synthetic": true,
+  "packageName": "tv.swarmcast",
+  "cloudProjectNumber": "123456789012",
+  "certificateSha256Digest": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "playConsoleLinked": true,
+  "apiEnabled": true,
+  "serviceAccountAuthorized": true,
+  "verdict": {
+    "appRecognitionVerdict": "PLAY_RECOGNIZED",
+    "appLicensingVerdict": "LICENSED",
+    "deviceRecognitionVerdict": ["MEETS_DEVICE_INTEGRITY"],
+    "packageMatched": true,
+    "certificateMatched": true,
+    "requestHashMatched": true,
+    "replayRejected": true,
+    "authTokenIssued": true,
+    "rawIntegrityTokenStored": false,
+    "timestampAgeSeconds": 3
+  },
+  "evidence": [
+    "play-console-linked play-integrity-api-enabled synthetic-check",
+    "request-hash-match automatic-replay-protection synthetic-check",
+    "play-recognized licensed meets-device-integrity synthetic-check",
+    "auth-token-issued no-raw-integrity-token synthetic-check"
+  ]
+}

@@ -5,7 +5,10 @@
 - JWT audience, issuer, expiry, and key rotation are verified.
 - Auth token endpoint is rate-limited by client IP.
 - JWKS endpoint exposes only public key material.
-- App API key extraction risk is documented and mitigated with rate limits and anomaly detection.
+- App API key extraction risk is mitigated with rate limits plus production-required Play Integrity standard requests.
+- Attestation challenges are signed, short-lived, request-hash bound, and rejected after expiry or signature mismatch.
+- Auth requires `PLAY_RECOGNIZED`, `LICENSED`, `MEETS_DEVICE_INTEGRITY`, the configured package, and an approved Play signing-certificate digest.
+- Integrity tokens, decoded device identifiers, service-account credentials, and challenge secrets are excluded from logs and evidence.
 
 ## Internal APIs
 

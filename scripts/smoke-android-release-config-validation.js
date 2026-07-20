@@ -78,6 +78,21 @@ expectFailure(
   /SWARMCAST_APP_API_KEY must be 64 hex characters/
 );
 expectFailure(
+  "missing Play Integrity flag",
+  writeVariant("missing-play-integrity", removeLine("SWARMCAST_PLAY_INTEGRITY_ENABLED")),
+  /SWARMCAST_PLAY_INTEGRITY_ENABLED is required/
+);
+expectFailure(
+  "Play Integrity disabled",
+  writeVariant("play-integrity-disabled", replaceLine("SWARMCAST_PLAY_INTEGRITY_ENABLED", "false")),
+  /SWARMCAST_PLAY_INTEGRITY_ENABLED must be true/
+);
+expectFailure(
+  "invalid Play Integrity project number",
+  writeVariant("play-integrity-project", replaceLine("SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "123")),
+  /must be a 6-20 digit positive project number/
+);
+expectFailure(
   "RLNC enabled without approval",
   writeVariant("rlnc-enabled", replaceLine("SWARMCAST_RLNC_ENABLED", "true")),
   /SWARMCAST_RLNC_ENABLED requires --rlnc-decision/
@@ -98,4 +113,4 @@ expectFailure(
   /SWARMCAST_API_BASE must not point to a third-party CDN provider/
 );
 
-console.log("Android release config validation smoke OK: pass=1 failures=8");
+console.log("Android release config validation smoke OK: pass=1 failures=11");

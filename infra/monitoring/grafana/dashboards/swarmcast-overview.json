@@ -92,7 +92,9 @@
       "targets": [
         { "expr": "rate(swarmcast_auth_tokens_issued_total[5m])", "legendFormat": "tokens issued" },
         { "expr": "rate(swarmcast_auth_verify_ok_total[5m])", "legendFormat": "verify ok" },
-        { "expr": "rate(swarmcast_auth_verify_fail_total[5m])", "legendFormat": "verify fail" }
+        { "expr": "rate(swarmcast_auth_verify_fail_total[5m])", "legendFormat": "verify fail" },
+        { "expr": "rate(swarmcast_auth_attestation_verify_ok_total[5m])", "legendFormat": "attestation ok" },
+        { "expr": "rate(swarmcast_auth_attestation_verify_fail_total[5m])", "legendFormat": "attestation fail" }
       ]
     },
     {

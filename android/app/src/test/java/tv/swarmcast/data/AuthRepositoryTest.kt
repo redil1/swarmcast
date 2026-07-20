@@ -9,6 +9,45 @@ import org.junit.Test
 
 class AuthRepositoryTest {
     @Test
+    fun bindsPlayIntegrityTokenToServerChallenge() {
+        val server = MockWebServer()
+        val nowMs = 1_700_000_000_000L
+        server.enqueue(
+            MockResponse()
+                .setHeader("content-type", "application/json")
+                .setBody("""{"challenge":"signed-attestation-challenge-value-1234567890","expiresAt":1700000120}""")
+        )
+        server.enqueue(tokenResponse("attested-token", 1_700_000_600L))
+        server.start()
+        val repository = AuthRepository(
+            apiBase = server.url("/").toString().removeSuffix("/"),
+            appApiKey = "app-key",
+            appAttestor = object : AppAttestor {
+                override suspend fun attest(challenge: String): String {
+                    assertEquals("signed-attestation-challenge-value-1234567890", challenge)
+                    return "integrity-token"
+                }
+            },
+            clockMs = { nowMs }
+        )
+
+        try {
+            assertEquals("attested-token", runBlocking { repository.token() })
+            val challengeRequest = server.takeRequest()
+            assertEquals("/attestation/challenge", challengeRequest.path)
+            assertEquals("app-key", challengeRequest.getHeader("x-app-key"))
+            val tokenRequest = server.takeRequest()
+            assertEquals("/token", tokenRequest.path)
+            assertEquals("app-key", tokenRequest.getHeader("x-app-key"))
+            val body = tokenRequest.body.readUtf8()
+            assertTrue(body.contains("\"challenge\":\"signed-attestation-challenge-value-1234567890\""))
+            assertTrue(body.contains("\"integrityToken\":\"integrity-token\""))
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
     fun appliesTurnExpiryToCacheAndRefreshesCredentials() {
         val server = MockWebServer()
         var nowMs = 1_700_000_000_000L

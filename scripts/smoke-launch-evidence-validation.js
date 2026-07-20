@@ -347,6 +347,16 @@ expectFailure(
   /production-environment evidence must mention env:production:validate/
 );
 expectFailure(
+  "missing app attestation replay evidence",
+  writeVariant("missing-app-attestation-replay", (record) => {
+    const attestation = gate(record, "android-app-attestation");
+    attestation.evidence = attestation.evidence.map((evidence) =>
+      evidence.replace("automatic-replay-protection", "replay-check-omitted"));
+    return record;
+  }),
+  /android-app-attestation evidence must mention automatic-replay-protection/
+);
+expectFailure(
   "missing production smoke area launch evidence",
   writeVariant("missing-production-smoke-area", (record) => {
     const productionSmokes = gate(record, "production-smokes");
@@ -400,4 +410,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=39");
+console.log("launch evidence validation smoke OK: pass=1 failures=40");

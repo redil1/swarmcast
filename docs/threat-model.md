@@ -7,7 +7,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 ## Assets
 
 - Upstream source URLs and source credentials.
-- Auth signing keys, JWKS, app API key, and internal service token.
+- Auth signing keys, JWKS, app API key, Play Integrity challenge secret and service-account credential, and internal service token.
 - Media playlists, init segments, media segments, and segment SHA-256 manifests.
 - Tracker peer IDs, peer IP-adjacent operational metadata, peer stats, and signaling payloads.
 - Control-plane placement state, ingest node inventory, and edge/origin routing templates.
@@ -20,7 +20,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 
 | Boundary | Direction | Required Controls |
 |---|---|---|
-| Android app to auth/catalog/tracker/edge | Public internet to service edge | Short-lived JWTs, app key throttling, rate limits, no source URL exposure, TLS in production. |
+| Android app to auth/catalog/tracker/edge | Public internet to service edge | Request-bound Play Integrity verdict, short-lived JWTs, app key throttling, rate limits, no source URL exposure, TLS in production. |
 | Nginx edge to auth/origin | Edge proxy to internal services | `auth_request`, cache lock, protected origin paths, no third-party CDN endpoints. |
 | Tracker to control plane | Internal service call | `x-internal-token`, strict payload validation, placement response sanitization. |
 | Ingest to tracker | Internal segment announce | `x-internal-token`, SHA-256 manifest, bounded channel lifecycle. |
@@ -35,7 +35,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 
 | ID | Threat | Existing Mitigation | Open Launch Gate |
 |---|---|---|---|
-| T-001 | Unauthorized viewers scrape playlists or segments from origin/edge. | JWT media tokens, nginx `auth_request`, tracker JWT upgrade validation, token endpoint rate limiting, and local origin TLS playback smoke. | Confirm real edge-node TLS smoke and production token evidence. |
+| T-001 | Unauthorized or modified clients acquire tokens and scrape playlists or segments. | Request-bound Play Integrity checks package, Play signing digest, recognition, license, device integrity, freshness, and replay behavior before JWT/TURN issuance; nginx and tracker then enforce JWTs. | Prove Play Console linking and real Play-installed device verdicts, then confirm real edge-node TLS smoke. |
 | T-002 | Upstream source URLs leak to Android clients, logs, metrics, or public catalog responses. | Public channel sanitization, source URL protection checklist, logging standard. | Enforce structured logging in all services before launch. |
 | T-003 | Tracker is flooded with oversized or high-rate signaling messages. | Payload size cap, JSON parser rejection, token-bucket peer limiter, disconnect on abuse. | Run VM/WebRTC load ladder and alert on peer drops. |
 | T-004 | Malicious peers poison whole segments or RLNC decoded bytes. | Segment SHA-256 manifests, verified `SegmentStore`, coded receiver hash verification, reputation disconnect after repeated mismatches. | Real Android device swarm with chosen RLNC library and malformed-packet fuzzing. |
@@ -55,6 +55,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 ## Abuse Cases To Test
 
 - Invalid, expired, wrong-audience, and tampered JWTs against origin, edge, and tracker.
+- Forged, expired, stale, wrong-package, wrong-certificate, unlicensed, compromised-device, request-hash-mismatched, and replayed Play Integrity verdicts against `/token`.
 - Replayed media URLs after token expiry.
 - Oversized tracker messages and rapid-fire signaling.
 - Peer sends wrong segment bytes, malformed CODED frames, dependent RLNC packets, and bad rank claims.

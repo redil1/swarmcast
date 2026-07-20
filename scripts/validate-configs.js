@@ -47,6 +47,11 @@ const checks = [
       "AUTH_JWT_AUDIENCE",
       "AUTH_JWT_ISSUER",
       "AUTH_TOKEN_TTL_SECONDS",
+      "AUTH_PLAY_INTEGRITY_ENABLED",
+      "AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH",
+      "AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS",
+      "AUTH_ATTESTATION_CHALLENGE_SECRET",
+      "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET",
       "M3U_PATH: ${M3U_PATH:-/config/source.m3u}",
       "SOURCE_ALLOWED_HOSTS",
       "SOURCE_ALLOW_PRIVATE_NETWORKS",
@@ -256,6 +261,30 @@ const checks = [
       "Delivery Fleet"
     ],
     forbidden: []
+  },
+  {
+    file: "docs/runbooks/app-attestation.md",
+    required: [
+      "Play Integrity",
+      "AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH",
+      "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET",
+      "AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS",
+      "SwarmcastAppAttestationFailures",
+      "android:attestation:evidence:validate"
+    ],
+    forbidden: []
+  },
+  {
+    file: "scripts/validate-android-attestation-evidence.js",
+    required: [
+      "packageName",
+      "cloudProjectNumber",
+      "certificateSha256Digest",
+      "requestHashMatched",
+      "replayRejected",
+      "rawIntegrityTokenStored"
+    ],
+    forbidden: []
   }
 ];
 
@@ -334,7 +363,7 @@ for (const file of jsonFiles) {
 if (failed) process.exit(1);
 const packageText = readFileSync("package.json", "utf8");
 for (const required of [
-  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && node scripts/validate-configs.js\"",
+  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && node scripts/validate-configs.js\"",
   "\"smoke:compose-production-env\": \"node scripts/smoke-compose-production-env.js\"",
   "\"smoke:production-env-validation\": \"node scripts/smoke-production-env-validation.js\"",
   "\"smoke:release-images-validation\": \"node scripts/smoke-release-images-validation.js\"",
@@ -352,6 +381,7 @@ for (const required of [
   "\"smoke:catalog-import-validation\": \"node scripts/smoke-catalog-import-validation.js\"",
   "\"smoke:android-ci-evidence-validation\": \"node scripts/smoke-android-ci-evidence-validation.js\"",
   "\"smoke:android-release-config-validation\": \"node scripts/smoke-android-release-config-validation.js\"",
+  "\"smoke:android-attestation-evidence-validation\": \"node scripts/smoke-android-attestation-evidence-validation.js\"",
   "\"smoke:android-playback-evidence-validation\": \"node scripts/smoke-android-playback-evidence-validation.js\"",
   "\"smoke:android-p2p-evidence-validation\": \"node scripts/smoke-android-p2p-evidence-validation.js\"",
   "\"smoke:android-rlnc-decision-validation\": \"node scripts/smoke-android-rlnc-decision-validation.js\"",
@@ -396,6 +426,7 @@ for (const required of [
   "\"canary:rollout:evidence:validate\": \"node scripts/validate-canary-rollout-evidence.js\"",
   "\"capacity:plan:validate\": \"node scripts/validate-capacity-plan.js\"",
   "\"android:release-config:validate\": \"node scripts/validate-android-release-config.js\"",
+  "\"android:attestation:evidence:validate\": \"node scripts/validate-android-attestation-evidence.js\"",
   "\"android:ci:evidence:validate\": \"node scripts/validate-android-ci-evidence.js\"",
   "\"android:accessibility:validate\": \"node scripts/validate-android-accessibility-evidence.js\"",
   "\"android:playback:evidence:validate\": \"node scripts/validate-android-playback-evidence.js\"",
@@ -818,7 +849,7 @@ for (const check of [
   },
   {
     file: "package.json",
-    required: ["alertmanager:fire-drill:validate", "alertmanager:receivers:validate", "android:accessibility:validate", "android:ci:evidence:validate", "android:p2p:evidence:validate", "android:playback:evidence:validate", "android:rlnc:decision:validate", "canary:metrics:validate", "canary:rollout:evidence:validate", "capacity:plan:validate", "catalog:import:validate", "chaos:staging:validate", "dependency:review:validate", "deployment:evidence:validate", "edge:metrics", "env:production:validate", "grafana:dashboard:validate", "host:provisioning:evidence:validate", "image:scan:bundle:validate", "launch:evidence:validate", "legal:approval:validate", "load:ladder:validate", "nginx:tls:evidence:validate", "privacy:store:validate", "production:smoke:evidence:validate", "prometheus:alerts:validate", "restore:evidence:validate", "rollback:evidence:validate", "retention:approval:validate", "retention:execution:evidence:validate", "secrets:evidence:validate", "security:review:validate", "smoke:alertmanager-fire-drill-validation", "smoke:alertmanager-receivers-validation", "smoke:alertmanager-routing", "smoke:android-accessibility-evidence-validation", "smoke:android-ci-evidence-validation", "smoke:android-p2p-evidence-validation", "smoke:android-playback-evidence-validation", "smoke:android-rlnc-decision-validation", "smoke:canary-metrics-validation", "smoke:canary-rollout-evidence-validation", "smoke:capacity-plan-validation", "smoke:catalog-import-validation", "smoke:catalog-source-preflight", "smoke:catalog-sqlite", "smoke:catalog-sqlite-20k", "smoke:compose-production-env", "smoke:control-plane-placement-restart", "smoke:control-plane-placement-sqlite", "smoke:dependency-review-validation", "smoke:deployment-evidence-validation", "smoke:edge-cache-metrics", "smoke:edge-cache-metrics-server", "smoke:headless-super-peer-sweep", "smoke:host-provisioning-evidence-validation", "smoke:image-scan-bundle-validation", "smoke:image-scan-report-validation", "smoke:ingest-demand-playlist", "smoke:ingest-ffmpeg-chaos", "smoke:ingest-tail-admission", "smoke:ingest-tail-downscale", "smoke:launch-evidence-validation", "smoke:legal-approval-validation", "smoke:load-ladder-evidence-validation", "smoke:multi-ingest-routing", "smoke:nginx-edge-cache", "smoke:nginx-origin-playback", "smoke:nginx-tls-evidence-validation", "smoke:placement-movement", "smoke:privacy-store-compliance-validation", "smoke:production-env-validation", "smoke:production-smoke-evidence-validation", "smoke:prometheus-alerts-validation", "smoke:grafana-dashboard-validation", "smoke:release-images-validation", "smoke:release-manifest-production", "smoke:restore-evidence-validation", "smoke:retention-approval-validation", "smoke:retention-execute", "smoke:retention-execution-evidence-validation", "smoke:retention-http-store", "smoke:retention-redaction", "smoke:rollback-evidence-validation", "smoke:secrets-evidence-validation", "smoke:security-review-validation", "smoke:source-allowlist-evidence-validation", "smoke:source-policy", "smoke:sqlite-backup-restore", "smoke:staging-chaos-evidence-validation", "smoke:threat-model-review-validation", "smoke:tracker-load", "smoke:tracker-sharding", "smoke:tracker-ws", "smoke:tracker-ws-load", "smoke:tracker-ws-multichannel", "smoke:tracker-ws-restart", "source:allowlist:evidence:validate", "source:preflight", "threat:model:validate"]
+    required: ["alertmanager:fire-drill:validate", "alertmanager:receivers:validate", "android:accessibility:validate", "android:attestation:evidence:validate", "android:ci:evidence:validate", "android:p2p:evidence:validate", "android:playback:evidence:validate", "android:rlnc:decision:validate", "canary:metrics:validate", "canary:rollout:evidence:validate", "capacity:plan:validate", "catalog:import:validate", "chaos:staging:validate", "dependency:review:validate", "deployment:evidence:validate", "edge:metrics", "env:production:validate", "grafana:dashboard:validate", "host:provisioning:evidence:validate", "image:scan:bundle:validate", "launch:evidence:validate", "legal:approval:validate", "load:ladder:validate", "nginx:tls:evidence:validate", "privacy:store:validate", "production:smoke:evidence:validate", "prometheus:alerts:validate", "restore:evidence:validate", "rollback:evidence:validate", "retention:approval:validate", "retention:execution:evidence:validate", "secrets:evidence:validate", "security:review:validate", "smoke:alertmanager-fire-drill-validation", "smoke:alertmanager-receivers-validation", "smoke:alertmanager-routing", "smoke:android-accessibility-evidence-validation", "smoke:android-attestation-evidence-validation", "smoke:android-ci-evidence-validation", "smoke:android-p2p-evidence-validation", "smoke:android-playback-evidence-validation", "smoke:android-rlnc-decision-validation", "smoke:canary-metrics-validation", "smoke:canary-rollout-evidence-validation", "smoke:capacity-plan-validation", "smoke:catalog-import-validation", "smoke:catalog-source-preflight", "smoke:catalog-sqlite", "smoke:catalog-sqlite-20k", "smoke:compose-production-env", "smoke:control-plane-placement-restart", "smoke:control-plane-placement-sqlite", "smoke:dependency-review-validation", "smoke:deployment-evidence-validation", "smoke:edge-cache-metrics", "smoke:edge-cache-metrics-server", "smoke:headless-super-peer-sweep", "smoke:host-provisioning-evidence-validation", "smoke:image-scan-bundle-validation", "smoke:image-scan-report-validation", "smoke:ingest-demand-playlist", "smoke:ingest-ffmpeg-chaos", "smoke:ingest-tail-admission", "smoke:ingest-tail-downscale", "smoke:launch-evidence-validation", "smoke:legal-approval-validation", "smoke:load-ladder-evidence-validation", "smoke:multi-ingest-routing", "smoke:nginx-edge-cache", "smoke:nginx-origin-playback", "smoke:nginx-tls-evidence-validation", "smoke:placement-movement", "smoke:privacy-store-compliance-validation", "smoke:production-env-validation", "smoke:production-smoke-evidence-validation", "smoke:prometheus-alerts-validation", "smoke:grafana-dashboard-validation", "smoke:release-images-validation", "smoke:release-manifest-production", "smoke:restore-evidence-validation", "smoke:retention-approval-validation", "smoke:retention-execute", "smoke:retention-execution-evidence-validation", "smoke:retention-http-store", "smoke:retention-redaction", "smoke:rollback-evidence-validation", "smoke:secrets-evidence-validation", "smoke:security-review-validation", "smoke:source-allowlist-evidence-validation", "smoke:source-policy", "smoke:sqlite-backup-restore", "smoke:staging-chaos-evidence-validation", "smoke:threat-model-review-validation", "smoke:tracker-load", "smoke:tracker-sharding", "smoke:tracker-ws", "smoke:tracker-ws-load", "smoke:tracker-ws-multichannel", "smoke:tracker-ws-restart", "source:allowlist:evidence:validate", "source:preflight", "threat:model:validate"]
   },
   {
     file: "package.json",
@@ -4170,6 +4201,8 @@ for (const required of [
   "SWARMCAST_API_BASE",
   "SWARMCAST_TRACKER_WS_URL",
   "SWARMCAST_APP_API_KEY",
+  "SWARMCAST_PLAY_INTEGRITY_ENABLED",
+  "SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER",
   "SWARMCAST_RLNC_ENABLED requires --rlnc-decision with approved non-synthetic evidence",
   "scripts/validate-android-rlnc-decision.js",
   "ownedUrlEnv",
@@ -4191,9 +4224,11 @@ for (const required of [
   "SWARMCAST_APP_API_KEY still contains a placeholder value",
   "SWARMCAST_APP_API_KEY must be 64 hex characters",
   "SWARMCAST_RLNC_ENABLED requires --rlnc-decision",
+  "SWARMCAST_PLAY_INTEGRITY_ENABLED must be true",
+  "SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER",
   "synthetic Android RLNC decision requires --allow-synthetic",
   "SWARMCAST_API_BASE must not point to a third-party CDN provider",
-  "Android release config validation smoke OK: pass=1 failures=8"
+  "Android release config validation smoke OK: pass=1 failures=11"
 ]) {
   if (!androidReleaseConfigSmokeText.includes(required)) {
     console.error(`scripts/smoke-android-release-config-validation.js: missing Android release config smoke text: ${required}`);
@@ -4208,7 +4243,9 @@ for (const required of [
   "SWARMCAST_APP_API_KEY=fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
   "SWARMCAST_P2P_ENABLED=1",
   "SWARMCAST_EDGE_ONLY_MODE=0",
-  "SWARMCAST_RLNC_ENABLED=0"
+  "SWARMCAST_RLNC_ENABLED=0",
+  "SWARMCAST_PLAY_INTEGRITY_ENABLED=1",
+  "SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER=123456789012"
 ]) {
   if (!androidReleaseConfigFixtureText.includes(required)) {
     console.error(`test-fixtures/android/release-config.complete.properties: missing Android release config fixture text: ${required}`);

@@ -5,6 +5,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -14,6 +15,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 class AuthRepository(
     private val apiBase: String,
     private val appApiKey: String,
+    private val appAttestor: AppAttestor? = null,
     private val http: OkHttpClient = OkHttpClient(),
     private val json: Json = Json { ignoreUnknownKeys = true },
     private val clockMs: () -> Long = System::currentTimeMillis
@@ -37,9 +39,17 @@ class AuthRepository(
     suspend fun refresh(): TokenResponse = refreshMutex.withLock { fetch() }
 
     private suspend fun fetch(): TokenResponse = withContext(Dispatchers.IO) {
+        val requestBody = if (appAttestor == null) {
+            ByteArray(0).toRequestBody("application/json".toMediaType())
+        } else {
+            val challenge = fetchAttestationChallenge()
+            val integrityToken = appAttestor.attest(challenge.challenge)
+            json.encodeToString(TokenRequest(challenge.challenge, integrityToken))
+                .toRequestBody("application/json".toMediaType())
+        }
         val request = Request.Builder()
             .url("$apiBase/token")
-            .post(ByteArray(0).toRequestBody("application/json".toMediaType()))
+            .post(requestBody)
             .header("x-app-key", appApiKey)
             .build()
 
@@ -53,6 +63,41 @@ class AuthRepository(
                 issuedAtMs = clockMs()
             }
         }
+    }
+
+    private fun fetchAttestationChallenge(): AttestationChallenge {
+        val request = Request.Builder()
+            .url("$apiBase/attestation/challenge")
+            .post(ByteArray(0).toRequestBody("application/json".toMediaType()))
+            .header("x-app-key", appApiKey)
+            .build()
+        http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw apiExceptionFromResponse(json, response.body?.string(), response.code)
+            }
+            val body = response.body?.string() ?: error("empty attestation challenge response")
+            return json.decodeFromString<AttestationChallenge>(body).validated(clockMs())
+        }
+    }
+}
+
+@Serializable
+private data class TokenRequest(
+    val challenge: String,
+    val integrityToken: String
+)
+
+@Serializable
+data class AttestationChallenge(
+    val challenge: String,
+    val expiresAt: Long
+) {
+    fun validated(nowMs: Long): AttestationChallenge {
+        require(challenge.length in 40..1024) { "attestation challenge is invalid" }
+        require(expiresAt in (nowMs / 1000L + 1)..(nowMs / 1000L + 300)) {
+            "attestation challenge is expired or exceeds the maximum lifetime"
+        }
+        return this
     }
 }
 

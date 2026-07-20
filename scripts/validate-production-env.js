@@ -25,6 +25,13 @@ const requiredProductionKeys = [
   "AUTH_JWT_AUDIENCE",
   "AUTH_JWT_ISSUER",
   "AUTH_TOKEN_TTL_SECONDS",
+  "AUTH_PLAY_INTEGRITY_ENABLED",
+  "AUTH_PLAY_INTEGRITY_PACKAGE_NAME",
+  "AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH",
+  "AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS",
+  "AUTH_PLAY_INTEGRITY_MAX_TOKEN_AGE_SECONDS",
+  "AUTH_ATTESTATION_CHALLENGE_SECRET",
+  "AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS",
   "ICE_SERVER_ALLOWED_HOSTS",
   "ICE_STUN_URLS",
   "TURN_ENABLED",
@@ -194,6 +201,19 @@ function validateProductionEnv(env, file) {
   jwtClaimEnv(env, "AUTH_JWT_ISSUER", "");
   intEnv(env, "AUTH_TOKEN_TTL_SECONDS", 21_600, { min: 300, max: 86_400 });
   const authConfig = loadAuthConfig(env, { requireSecrets: true });
+  if (!authConfig.playIntegrityEnabled) fail("AUTH_PLAY_INTEGRITY_ENABLED must be 1 for production token issuance");
+  const serviceAccountPath = requirePresent(env, "AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH");
+  if (!serviceAccountPath.startsWith("/") || serviceAccountPath.includes("..") || !serviceAccountPath.endsWith(".json")) {
+    fail("AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH must be an absolute non-traversing JSON path");
+  }
+  requireHexSecret(env, "AUTH_ATTESTATION_CHALLENGE_SECRET");
+  const previousChallengeSecret = stringEnv(env, "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET").trim();
+  if (previousChallengeSecret) {
+    requireHexSecret(env, "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET");
+    if (previousChallengeSecret === authConfig.attestationChallengeSecret) {
+      fail("AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET must differ from AUTH_ATTESTATION_CHALLENGE_SECRET");
+    }
+  }
   if (!authConfig.turnEnabled) fail("TURN_ENABLED must be 1 for production mobile reachability");
   if (boolEnv(env, "TURN_ALLOW_PRIVATE_PEERS", false)) fail("TURN_ALLOW_PRIVATE_PEERS must be 0 for production");
   requireHexSecret(env, "TURN_SHARED_SECRET");

@@ -27,6 +27,10 @@ android {
             providers.gradleProperty("SWARMCAST_EDGE_ONLY_MODE").orElse("false").get()
         manifestPlaceholders["swarmcastRlncEnabled"] =
             providers.gradleProperty("SWARMCAST_RLNC_ENABLED").orElse("false").get()
+        manifestPlaceholders["swarmcastPlayIntegrityEnabled"] =
+            providers.gradleProperty("SWARMCAST_PLAY_INTEGRITY_ENABLED").orElse("false").get()
+        manifestPlaceholders["swarmcastPlayIntegrityCloudProjectNumber"] =
+            providers.gradleProperty("SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER").orElse("0").get()
     }
 
     buildFeatures {
@@ -58,6 +62,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.getstream:stream-webrtc-android:1.3.8")
     implementation("com.github.Backblaze:JavaReedSolomon:d3c481dc69471e0c47ff6f67f33d53bde941675e")
+    implementation("com.google.android.play:integrity:1.6.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

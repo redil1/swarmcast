@@ -8,9 +8,10 @@ The auth service is unavailable, cannot issue viewer JWTs, cannot publish JWKS, 
 
 1. Check `/health` on each auth instance from the service network and edge network.
 2. Check `/jwks` returns the expected current `kid` and no private key fields.
-3. Check `/token` with the production app key from a controlled operator host.
-4. Check `/verify` with a newly issued token.
-5. Compare auth `verify` failures, token issuance rate, process restarts, and host disk state.
+3. Check `/attestation/challenge` with the production app key from a controlled operator host.
+4. Check `/token` with a fresh challenge and a real Play Integrity token from the approved Android release.
+5. Check `/verify` with a newly issued token.
+6. Compare auth attestation failures, `verify` failures, token issuance rate, process restarts, and host disk state.
 
 ## Immediate Actions
 
@@ -19,6 +20,7 @@ The auth service is unavailable, cannot issue viewer JWTs, cannot publish JWKS, 
 - If the signing key file disappeared or changed unexpectedly, restore it from the approved backup before restarting.
 - Do not rotate signing keys during an availability outage unless key compromise is suspected.
 - If key compromise is suspected, follow `docs/runbooks/auth-key-rotation.md` and preserve overlap evidence.
+- If challenge or Play Integrity verification fails while auth remains healthy, follow `docs/runbooks/app-attestation.md`; do not disable production attestation.
 
 ## Service Impact
 

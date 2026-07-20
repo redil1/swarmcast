@@ -8,6 +8,12 @@ import { createLocalJWKSet, exportJWK, jwtVerify, SignJWT } from "jose";
 import { createAuthMetrics, formatAuthMetrics } from "./metrics.js";
 import { IpRateLimiter } from "./rateLimit.js";
 import { issueTurnCredentials } from "./turnCredentials.js";
+import {
+  issueAttestationChallenge,
+  requestHashForChallenge,
+  verifyAttestationChallenge
+} from "./attestationChallenge.js";
+import { createGooglePlayIntegrityVerifier } from "./playIntegrity.js";
 
 const DEFAULT_CONFIG = loadAuthConfig();
 
@@ -57,6 +63,24 @@ function verifyTokenFromRequest(req) {
   }
 }
 
+function requestIp(req) {
+  return req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+}
+
+async function readJsonBody(req, maxBytes = 64 * 1024) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) throw new Error("request body too large");
+    chunks.push(chunk);
+  }
+  if (size === 0) return {};
+  const parsed = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("request body must be an object");
+  return parsed;
+}
+
 export async function createAuthServer({
   keyPath = DEFAULT_CONFIG.keyPath,
   keyId = DEFAULT_CONFIG.keyId,
@@ -64,6 +88,11 @@ export async function createAuthServer({
   jwtAudience = DEFAULT_CONFIG.jwtAudience,
   jwtIssuer = DEFAULT_CONFIG.jwtIssuer,
   tokenTtlSeconds = DEFAULT_CONFIG.tokenTtlSeconds,
+  playIntegrityEnabled = DEFAULT_CONFIG.playIntegrityEnabled,
+  attestationChallengeSecret = DEFAULT_CONFIG.attestationChallengeSecret,
+  attestationPreviousChallengeSecret = DEFAULT_CONFIG.attestationPreviousChallengeSecret,
+  attestationChallengeTtlSeconds = DEFAULT_CONFIG.attestationChallengeTtlSeconds,
+  playIntegrityVerifier = null,
   stunUrls = DEFAULT_CONFIG.stunUrls,
   turnEnabled = DEFAULT_CONFIG.turnEnabled,
   turnUrls = DEFAULT_CONFIG.turnUrls,
@@ -71,11 +100,18 @@ export async function createAuthServer({
   turnCredentialTtlSeconds = DEFAULT_CONFIG.turnCredentialTtlSeconds,
   appApiKey = DEFAULT_CONFIG.appApiKey,
   tokenRateLimiter = new IpRateLimiter(),
+  attestationChallengeRateLimiter = new IpRateLimiter(),
   nowSeconds = () => Math.floor(Date.now() / 1000),
   logger = null
 } = {}) {
   if (!appApiKey) throw new Error("APP_API_KEY is required");
   if (turnEnabled && !turnSharedSecret) throw new Error("TURN_SHARED_SECRET is required when TURN is enabled");
+  if (playIntegrityEnabled && !attestationChallengeSecret) {
+    throw new Error("AUTH_ATTESTATION_CHALLENGE_SECRET is required when Play Integrity is enabled");
+  }
+  if (playIntegrityEnabled && !playIntegrityVerifier) {
+    throw new Error("Play Integrity verifier is required when Play Integrity is enabled");
+  }
 
   const privateKey = ensurePrivateKey(keyPath);
   const publicJwk = await exportJWK(privateKey);
@@ -98,15 +134,57 @@ export async function createAuthServer({
     }
     if (url.pathname === "/jwks") return json(res, 200, publicJwks);
 
+    if (url.pathname === "/attestation/challenge" && req.method === "POST" && playIntegrityEnabled) {
+      if (req.headers["x-app-key"] !== appApiKey) {
+        logger?.warn("auth_attestation_challenge_rejected", { error_class: "unauthorized" }, "attestation challenge rejected");
+        return errorJson(res, ERROR_CODES.UNAUTHORIZED, "unauthorized");
+      }
+      const ip = requestIp(req);
+      if (!attestationChallengeRateLimiter.allow(ip)) {
+        logger?.warn("auth_attestation_challenge_rate_limited", { error_class: "rate_limited" }, "attestation challenge rate limited");
+        return errorJson(res, ERROR_CODES.RATE_LIMITED, "rate limited");
+      }
+      const challenge = issueAttestationChallenge({
+        secret: attestationChallengeSecret,
+        ttlSeconds: attestationChallengeTtlSeconds,
+        nowSeconds: nowSeconds()
+      });
+      metrics.attestationChallengesIssued += 1;
+      return json(res, 200, challenge);
+    }
+
     if (url.pathname === "/token" && req.method === "POST") {
       if (req.headers["x-app-key"] !== appApiKey) {
         logger?.warn("auth_token_rejected", { error_class: "unauthorized" }, "token request rejected");
         return errorJson(res, ERROR_CODES.UNAUTHORIZED, "unauthorized");
       }
-      const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+      const ip = requestIp(req);
       if (!tokenRateLimiter.allow(ip)) {
         logger?.warn("auth_token_rate_limited", { error_class: "rate_limited" }, "token request rate limited");
         return errorJson(res, ERROR_CODES.RATE_LIMITED, "rate limited");
+      }
+      if (playIntegrityEnabled) {
+        try {
+          const body = await readJsonBody(req);
+          verifyAttestationChallenge(body.challenge, {
+            secret: attestationChallengeSecret,
+            previousSecret: attestationPreviousChallengeSecret,
+            nowSeconds: nowSeconds()
+          });
+          await playIntegrityVerifier.verify({
+            integrityToken: body.integrityToken,
+            expectedRequestHash: requestHashForChallenge(body.challenge)
+          });
+          metrics.attestationVerifyOk += 1;
+        } catch {
+          metrics.attestationVerifyFail += 1;
+          logger?.warn(
+            "auth_attestation_failed",
+            { error_class: "unauthorized" },
+            "app attestation failed"
+          );
+          return errorJson(res, ERROR_CODES.UNAUTHORIZED, "app attestation failed");
+        }
       }
       const issuedAt = nowSeconds();
       const subject = randomUUID();
@@ -164,6 +242,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     jwtAudience: runtimeConfig.jwtAudience,
     jwtIssuer: runtimeConfig.jwtIssuer,
     tokenTtlSeconds: runtimeConfig.tokenTtlSeconds,
+    playIntegrityEnabled: runtimeConfig.playIntegrityEnabled,
+    attestationChallengeSecret: runtimeConfig.attestationChallengeSecret,
+    attestationPreviousChallengeSecret: runtimeConfig.attestationPreviousChallengeSecret,
+    attestationChallengeTtlSeconds: runtimeConfig.attestationChallengeTtlSeconds,
+    playIntegrityVerifier: runtimeConfig.playIntegrityEnabled
+      ? createGooglePlayIntegrityVerifier({
+        packageName: runtimeConfig.playIntegrityPackageName,
+        certificateDigests: runtimeConfig.playIntegrityCertificateDigests,
+        serviceAccountPath: runtimeConfig.playIntegrityServiceAccountPath,
+        maxTokenAgeSeconds: runtimeConfig.playIntegrityMaxTokenAgeSeconds
+      })
+      : null,
     stunUrls: runtimeConfig.stunUrls,
     turnEnabled: runtimeConfig.turnEnabled,
     turnUrls: runtimeConfig.turnUrls,

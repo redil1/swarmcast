@@ -40,6 +40,18 @@
       "evidence": ["android:release-config:validate synthetic-pass", "smoke:android-release-config-validation synthetic-pass"]
     },
     {
+      "id": "android-app-attestation",
+      "owner": "android-security",
+      "status": "complete",
+      "evidence": [
+        "android:attestation:evidence:validate synthetic-pass",
+        "play-console-linked play-integrity-api-enabled synthetic-pass",
+        "request-hash-match automatic-replay-protection synthetic-pass",
+        "play-recognized licensed meets-device-integrity synthetic-pass",
+        "auth-token-issued no-raw-integrity-token synthetic-pass"
+      ]
+    },
+    {
       "id": "android-ci-build",
       "owner": "android",
       "status": "complete",
@@ -246,7 +258,7 @@
       "evidence": [
         "prometheus:alerts:validate synthetic-pass",
         "SwarmcastLowOffloadRatio SwarmcastPeerHashFailures SwarmcastHighPlaybackStallRate synthetic-pass",
-        "SwarmcastLowEdgeCacheHitRatio SwarmcastIngestDegradedChannels SwarmcastAuthVerifyFailures SwarmcastRetentionJobFailures synthetic-pass",
+        "SwarmcastLowEdgeCacheHitRatio SwarmcastIngestDegradedChannels SwarmcastAuthVerifyFailures SwarmcastAppAttestationFailures SwarmcastRetentionJobFailures synthetic-pass",
         "warning critical runbook-links synthetic-pass"
       ]
     },

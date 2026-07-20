@@ -37,6 +37,8 @@ Production environment files must set persistent mounted SQLite paths for `CATAL
 - retention datastore credentials or `RETENTION_STORE_MODULE` deployment config
 - `RETENTION_STORE_HTTP_TOKEN` when using the built-in HTTP retention store
 - `TURN_SHARED_SECRET` shared by auth and the active relay fleet; optional `TURN_PREVIOUS_SHARED_SECRET` exists only during rotation overlap
+- Play Integrity service-account JSON mounted read-only into auth
+- `AUTH_ATTESTATION_CHALLENGE_SECRET`; optional `AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET` exists only for one challenge-TTL rotation overlap
 - production catalog source credentials if applicable
 
 ## Launch Evidence
@@ -47,6 +49,7 @@ Production environment files must set persistent mounted SQLite paths for `CATAL
 - deployment execution evidence that passes `npm run deployment:evidence:validate -- path/to/deployment-evidence.json`, with service command coverage, digest-pinned pulls, `up --no-build`, service health, post-deploy smokes, rollback readiness, and exact evidence markers
 - production smoke evidence that passes `npm run production:smoke:evidence:validate -- path/to/production-smoke-evidence.json`
 - owned TURN evidence covering short-lived REST credentials, UDP and TLS relay, Prometheus scraping, private-peer denial, real Android relay candidate selection, and reconciled relay egress; local packaging coverage is `npm run smoke:turn`
+- Play Integrity evidence that passes `npm run android:attestation:evidence:validate -- path/to/android-attestation-evidence.json`, including app recognition, license and device verdicts, request-hash/package/signing-certificate binding, replay rejection, token issuance, and no raw integrity-token storage
 - nginx/TLS evidence that passes `npm run nginx:tls:evidence:validate -- path/to/nginx-tls-evidence.json`, including valid certificate, hostname verification, origin auth, authorized segment fetch, edge MISS/HIT, cross-token cache reuse, source URL redaction, cache-key redaction, and no third-party CDN fallback; local guard coverage remains `npm run smoke:nginx-tls-evidence-validation`
 - source allowlist evidence that passes `npm run source:allowlist:evidence:validate -- path/to/source-allowlist-evidence.json`
 - Alertmanager fire-drill screenshot or log

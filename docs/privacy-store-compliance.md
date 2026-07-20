@@ -23,6 +23,8 @@ The client reports aggregate playback and contribution counters:
 
 The client must not report upstream source URLs or viewer content history beyond channel/session operational metrics needed for delivery health.
 
+Production token issuance uses Google Play Integrity. Google Play processes the request hash, app package/version/signing metadata, licensing status, and device-integrity signals. SwarmCast retains only aggregate pass/fail counters and sanitized launch evidence; encrypted integrity tokens, decoded device identifiers, service-account credentials, and challenge secrets must not be logged or retained.
+
 ## Retention
 
 - Canonical retention rules live in `docs/data-retention-policy.md` and `config/data-retention.json`.
@@ -36,6 +38,7 @@ The client must not report upstream source URLs or viewer content history beyond
 - Confirm the P2P toggle is reachable before playback.
 - Confirm disabling P2P immediately closes peer links.
 - Confirm no upload occurs on cellular.
+- Disclose Play Integrity processing in the privacy policy and Play data-safety review.
 
 ## Launch Gate
 

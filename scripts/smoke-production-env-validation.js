@@ -84,6 +84,40 @@ expectFailure(
   /ALERTMANAGER_CONFIG_PATH is required/
 );
 expectFailure(
+  "Play Integrity disabled",
+  writeVariant("play-integrity-disabled", replaceLine("AUTH_PLAY_INTEGRITY_ENABLED", "0")),
+  /AUTH_PLAY_INTEGRITY_ENABLED must be 1/
+);
+expectFailure(
+  "missing Play Integrity service account path",
+  writeVariant("play-integrity-service-account", removeLine("AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH")),
+  /AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH is required/
+);
+expectFailure(
+  "invalid Play Integrity certificate digest",
+  writeVariant(
+    "play-integrity-certificate",
+    replaceLine("AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS", '["invalid"]')
+  ),
+  /base64url SHA-256 digest/
+);
+expectFailure(
+  "weak attestation challenge secret",
+  writeVariant("attestation-challenge-secret", replaceLine("AUTH_ATTESTATION_CHALLENGE_SECRET", "short")),
+  /AUTH_ATTESTATION_CHALLENGE_SECRET/
+);
+expectFailure(
+  "duplicate previous attestation challenge secret",
+  writeVariant(
+    "attestation-previous-challenge-secret",
+    replaceLine(
+      "AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET",
+      "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    )
+  ),
+  /must differ/
+);
+expectFailure(
   "TURN disabled",
   writeVariant("turn-disabled", replaceLine("TURN_ENABLED", "0")),
   /TURN_ENABLED must be 1/
@@ -115,4 +149,4 @@ expectFailure(
   /TURN_TOTAL_QUOTA must not exceed the relay port count/
 );
 
-console.log("production env validation smoke OK: pass=1 failures=12");
+console.log("production env validation smoke OK: pass=1 failures=16");

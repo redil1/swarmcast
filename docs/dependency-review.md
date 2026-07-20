@@ -10,6 +10,7 @@ This review records the production dependency posture for SwarmCast. It does not
 |---|---|---:|---|---|
 | Server | Node.js runtime | Digest-pinned Node 22 builder / distroless runtime | Staging candidate | Complete clean signed image publication and keep Node 22 until `uWebSockets.js` Node 24 support is validated. |
 | Server | `jose` | `^5.9.0`, lockfile `5.10.0` | Staging only | Pin exact version or complete `jose` 6 migration review with auth/token regression tests. |
+| Server | `google-auth-library` | `10.9.0`, exact | Staging candidate | Keep OAuth scope restricted to Play Integrity decode, mount service-account JSON read-only, and prove real decode/replay behavior without logging tokens. |
 | Server | `uWebSockets.js` | `v20.51.0` git tag | Staging only | Validate Node native binary compatibility and tracker WebSocket soak. |
 | Ingest | `ffmpeg` | Alpine 3.23 package in digest-pinned Node 22 image | Staging candidate | Pass clean image scan and production-image packaging/playback smokes. |
 | Edge | `nginx` | `1.29.8-alpine3.23-slim`, digest-pinned and upgraded during build | Staging candidate | Pass clean scans, origin/edge smokes, and real TLS evidence. |
@@ -23,6 +24,7 @@ This review records the production dependency posture for SwarmCast. It does not
 | Android | AndroidX Media3 | `1.6.0` | Blocked | Run playback soak on real devices and evaluate current stable Media3. |
 | Android | OkHttp | `4.12.0` | Blocked | Evaluate OkHttp 5 migration after tracker/auth tests and real-device playback pass. |
 | Android | Stream WebRTC Android | `1.3.8` | Blocked | Upgrade or explicitly waive after multi-device WebRTC/DataChannel transfer and license review. |
+| Android | Play Integrity | `1.6.0` | Staging candidate | Prove Play Console linking, recognized/licensed app, approved signing digest, device integrity, request-hash binding, replay rejection, and quota on Play-installed devices. |
 | Android | Backblaze JavaReedSolomon GF(2^8) | `d3c481dc69471e0c47ff6f67f33d53bde941675e` | Blocked | Pure-Java field arithmetic is integrated; complete MIT license/security approval, fuzzing, device benchmarks, battery measurement, and hash-verified swarm decode before release enablement. |
 
 ## Upstream Check
@@ -38,6 +40,7 @@ This review records the production dependency posture for SwarmCast. It does not
 - AndroidX Media3: Maven listings show stable releases newer than this repo's `1.6.0`.
 - OkHttp: official docs show OkHttp 5.x artifacts available while this repo uses `4.12.0`.
 - Stream WebRTC Android: Maven listings show `1.3.10` newer than this repo's `1.3.8`.
+- Play Integrity: the Android library is pinned to current documented `1.6.0`; the auth backend uses Google's official auth client for server-side token decoding.
 - Backblaze JavaReedSolomon: the selected MIT-licensed pure-Java GF(2^8) implementation is pinned to commit `d3c481dc69471e0c47ff6f67f33d53bde941675e`; the app's RLNC row reduction uses the same `0x11d` field polynomial as the server/headless implementation and avoids a native Android ABI.
 
 ## Required Before Production
@@ -80,5 +83,7 @@ npm run image:scan:bundle:validate -- --allow-synthetic --manifest test-fixtures
 - https://developer.android.com/jetpack/androidx/releases/media3
 - https://square.github.io/okhttp/
 - https://central.sonatype.com/artifact/io.getstream/stream-webrtc-android
+- https://developer.android.com/google/play/integrity/setup
+- https://developer.android.com/google/play/integrity/standard
 - https://github.com/Backblaze/JavaReedSolomon
 - https://github.com/coturn/coturn/releases

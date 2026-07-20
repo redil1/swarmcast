@@ -71,6 +71,10 @@ test("service config loaders preserve current defaults", () => {
   assert.equal(loadAuthConfig().jwtAudience, "swarmcast");
   assert.equal(loadAuthConfig().jwtIssuer, "swarmcast-auth");
   assert.equal(loadAuthConfig().tokenTtlSeconds, 21_600);
+  assert.equal(loadAuthConfig().playIntegrityEnabled, false);
+  assert.equal(loadAuthConfig().playIntegrityPackageName, "tv.swarmcast");
+  assert.deepEqual(loadAuthConfig().playIntegrityCertificateDigests, []);
+  assert.equal(loadAuthConfig().attestationChallengeTtlSeconds, 120);
   assert.deepEqual(loadAuthConfig().stunUrls, [
     "stun:stun.l.google.com:19302",
     "stun:stun.cloudflare.com:3478"
@@ -195,6 +199,38 @@ test("auth key rotation config is validated", () => {
   assert.throws(() => loadAuthConfig({ AUTH_KEY_ID: " bad key " }), /AUTH_KEY_ID/);
   assert.throws(() => loadAuthConfig({ AUTH_JWT_ISSUER: "bad issuer" }), /AUTH_JWT_ISSUER/);
   assert.throws(() => loadAuthConfig({ AUTH_TOKEN_TTL_SECONDS: "60" }), /AUTH_TOKEN_TTL_SECONDS/);
+});
+
+test("Play Integrity config is complete and fail-closed when enabled", () => {
+  const env = {
+    AUTH_PLAY_INTEGRITY_ENABLED: "1",
+    AUTH_PLAY_INTEGRITY_PACKAGE_NAME: "tv.swarmcast",
+    AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH: "/run/secrets/play-integrity.json",
+    AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS: '["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]',
+    AUTH_PLAY_INTEGRITY_MAX_TOKEN_AGE_SECONDS: "120",
+    AUTH_ATTESTATION_CHALLENGE_SECRET: "0123456789abcdef0123456789abcdef",
+    AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET: "abcdef0123456789abcdef0123456789",
+    AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS: "90"
+  };
+  const config = loadAuthConfig(env);
+  assert.equal(config.playIntegrityEnabled, true);
+  assert.equal(config.playIntegrityPackageName, "tv.swarmcast");
+  assert.equal(config.playIntegrityServiceAccountPath, "/run/secrets/play-integrity.json");
+  assert.deepEqual(config.playIntegrityCertificateDigests, ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]);
+  assert.equal(config.playIntegrityMaxTokenAgeSeconds, 120);
+  assert.equal(config.attestationPreviousChallengeSecret, "abcdef0123456789abcdef0123456789");
+  assert.equal(config.attestationChallengeTtlSeconds, 90);
+
+  assert.throws(() => loadAuthConfig({ ...env, AUTH_PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH: "" }), /SERVICE_ACCOUNT_PATH/);
+  assert.throws(() => loadAuthConfig({ ...env, AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS: "[]" }), /must not be empty/);
+  assert.throws(() => loadAuthConfig({ ...env, AUTH_PLAY_INTEGRITY_CERTIFICATE_SHA256_DIGESTS: '["not-a-digest"]' }), /base64url/);
+  assert.throws(() => loadAuthConfig({ ...env, AUTH_ATTESTATION_CHALLENGE_SECRET: "short" }), /CHALLENGE_SECRET/);
+  assert.throws(() => loadAuthConfig({ ...env, AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET: "short" }), /PREVIOUS_CHALLENGE_SECRET/);
+  assert.throws(() => loadAuthConfig({
+    ...env,
+    AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET: env.AUTH_ATTESTATION_CHALLENGE_SECRET
+  }), /must differ/);
+  assert.throws(() => loadAuthConfig({ ...env, AUTH_ATTESTATION_CHALLENGE_TTL_SECONDS: "121" }), /must not exceed/);
 });
 
 test("ICE and TURN config validates owned hosts and short-lived credentials", () => {

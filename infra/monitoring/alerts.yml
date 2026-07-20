@@ -181,6 +181,16 @@ groups:
           description: "Token verification failures may indicate scraping, expired clients, or integration problems."
           runbook_url: "docs/runbooks/auth-verify-failures.md"
 
+      - alert: SwarmcastAppAttestationFailures
+        expr: rate(swarmcast_auth_attestation_verify_fail_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "App attestation failures are elevated"
+          description: "Play Integrity verdict failures may indicate modified, unlicensed, replayed, stale, or incorrectly signed Android clients."
+          runbook_url: "docs/runbooks/app-attestation.md"
+
       - alert: SwarmcastTurnTargetDown
         expr: up{job="swarmcast-turn"} == 0
         for: 2m

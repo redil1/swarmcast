@@ -27,6 +27,7 @@ import tv.swarmcast.data.CatalogDiskCache
 import tv.swarmcast.data.Channel
 import tv.swarmcast.data.ChannelRepository
 import tv.swarmcast.data.NetworkPolicy
+import tv.swarmcast.data.PlayIntegrityAttestor
 import tv.swarmcast.p2p.SegmentScheduler
 import tv.swarmcast.p2p.SegmentStore
 import tv.swarmcast.p2p.RlncCodec
@@ -49,6 +50,11 @@ class MainActivity : ComponentActivity() {
             fallbackErrorMessage = getString(R.string.catalog_request_failed)
         )
     }
+    private val appAttestor by lazy {
+        appConfig.playIntegrity.takeIf { it.enabled }?.let {
+            PlayIntegrityAttestor(this, it.cloudProjectNumber)
+        }
+    }
     private var playbackSession: PlaybackSessionCoordinator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +64,9 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         )
         catalogViewModel.refresh()
+        appAttestor?.let { attestor ->
+            lifecycleScope.launch { runCatching { attestor.warmUp() } }
+        }
         setContent {
             var query by rememberSaveable { mutableStateOf("") }
             var p2pEnabled by rememberSaveable { mutableStateOf(appConfig.featureFlags.initialP2pEnabled) }
@@ -127,6 +136,7 @@ class MainActivity : ComponentActivity() {
         val authRepository = AuthRepository(
             apiBase = appConfig.apiBase,
             appApiKey = appConfig.appApiKey,
+            appAttestor = appAttestor,
             http = httpClient
         )
         val tracker = TrackerClient(

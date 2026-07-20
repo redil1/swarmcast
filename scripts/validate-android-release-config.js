@@ -8,7 +8,9 @@ const requiredKeys = [
   "SWARMCAST_APP_API_KEY",
   "SWARMCAST_P2P_ENABLED",
   "SWARMCAST_EDGE_ONLY_MODE",
-  "SWARMCAST_RLNC_ENABLED"
+  "SWARMCAST_RLNC_ENABLED",
+  "SWARMCAST_PLAY_INTEGRITY_ENABLED",
+  "SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER"
 ];
 
 const placeholderPattern = /replace-with|change-?me|example\.|localhost|127\.0\.0\.1|0\.0\.0\.0|swarmcast\.local|dev-app-key|todo|tbd|placeholder/i;
@@ -90,7 +92,14 @@ function validateAndroidReleaseConfig(env, file) {
   boolEnv(env, "SWARMCAST_EDGE_ONLY_MODE", false);
   const rlncEnabled = boolEnv(env, "SWARMCAST_RLNC_ENABLED", false);
   if (rlncEnabled) validateRlncDecision();
-  return `${file}: Android release config OK: ${requiredKeys.length} required keys, rlnc=${rlncEnabled ? "approved" : "disabled"}`;
+  if (!boolEnv(env, "SWARMCAST_PLAY_INTEGRITY_ENABLED", false)) {
+    fail("SWARMCAST_PLAY_INTEGRITY_ENABLED must be true for release builds");
+  }
+  const cloudProjectNumber = requirePresent(env, "SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER");
+  if (!/^[1-9]\d{5,19}$/.test(cloudProjectNumber)) {
+    fail("SWARMCAST_PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER must be a 6-20 digit positive project number");
+  }
+  return `${file}: Android release config OK: ${requiredKeys.length} required keys, rlnc=${rlncEnabled ? "approved" : "disabled"}, play-integrity=required`;
 }
 
 if (files.length === 0) {

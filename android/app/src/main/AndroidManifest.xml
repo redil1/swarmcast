@@ -25,6 +25,12 @@
         <meta-data
             android:name="tv.swarmcast.RLNC_ENABLED"
             android:value="${swarmcastRlncEnabled}" />
+        <meta-data
+            android:name="tv.swarmcast.PLAY_INTEGRITY_ENABLED"
+            android:value="${swarmcastPlayIntegrityEnabled}" />
+        <meta-data
+            android:name="tv.swarmcast.PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER"
+            android:value="project-${swarmcastPlayIntegrityCloudProjectNumber}" />
         <activity
             android:name=".ui.MainActivity"
             android:exported="true">

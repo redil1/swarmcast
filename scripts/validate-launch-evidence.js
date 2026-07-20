@@ -25,6 +25,21 @@ const requiredGates = [
   { id: "privacy-store-compliance", requiredEvidence: ["privacy:store:validate", "docs/privacy-store-compliance.md", "support-faq-reviewed", "app-store-notes-reviewed"] },
   { id: "release-artifacts", requiredEvidence: ["swarmcast-release-manifest", "swarmcast-sbom", "smoke:release-manifest-production"] },
   { id: "android-release-config", requiredEvidence: ["android:release-config:validate", "smoke:android-release-config-validation"] },
+  {
+    id: "android-app-attestation",
+    requiredEvidence: [
+      "android:attestation:evidence:validate",
+      "play-console-linked",
+      "play-integrity-api-enabled",
+      "request-hash-match",
+      "automatic-replay-protection",
+      "play-recognized",
+      "licensed",
+      "meets-device-integrity",
+      "auth-token-issued",
+      "no-raw-integrity-token"
+    ]
+  },
   { id: "android-ci-build", requiredEvidence: ["android:ci:evidence:validate", "swarmcast-android-debug-apk", "swarmcast-android-release-unsigned-apk"] },
   { id: "android-device-playback", requiredEvidence: ["android:playback:evidence:validate", "delivery-fleet-only", "30m-soak", "wifi", "cellular"] },
   {
@@ -139,6 +154,7 @@ const requiredGates = [
       "SwarmcastLowEdgeCacheHitRatio",
       "SwarmcastIngestDegradedChannels",
       "SwarmcastAuthVerifyFailures",
+      "SwarmcastAppAttestationFailures",
       "SwarmcastRetentionJobFailures",
       "warning",
       "critical",

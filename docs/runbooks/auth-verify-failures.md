@@ -24,5 +24,5 @@ If `/health`, `/jwks`, `/token`, or `/verify` are unavailable instead of merely 
 
 ## Follow-Up
 
-- Add Play Integrity or equivalent attestation before public scale.
+- Route Play Integrity verdict failures through `docs/runbooks/app-attestation.md`.
 - Attach `/jwks` and `/verify` evidence from the key rotation runbook after planned rotations.

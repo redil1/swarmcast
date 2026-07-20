@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@swarmcast/config": "0.1.0",
+    "google-auth-library": "10.9.0",
     "jose": "^5.9.0"
   }
 }
