@@ -2953,11 +2953,12 @@ Results:
 - Corrected active launch/dependency references from 12 to the current 13-image release inventory. `npm run verify` passes 179 tests.
 - Commit `37c568a` passed both protected CI runs `29786280382` and `29786297835` across Node, Android, and deployment-shape jobs. Production readiness remains 92% because this slice strengthens evidence integrity without replacing any external launch gate.
 
-## Build Slice 311 In Progress
+## Build Slice 311 Complete
 
 - Re-audited the 1M-viewer critique against the current tracker, Android, TURN, topology, and capacity paths. Tracker cells, owned TURN, and client-driven topology repair supersede three historical structural findings; measured direct-P2P offload, real devices, and the 1K/10K/100K cell ladder remain unproved.
 - Found a runtime accounting defect: successful peer payloads always incremented `downloadedFromPeersCounter`, even when the selected ICE candidate pair used TURN, while `downloadedFromRelayCounter` was never incremented.
 - Android now classifies the selected ICE path before exposing a DataChannel to the scheduler. Only host, server-reflexive, and peer-reflexive paths count as direct P2P; relay and unknown paths fail closed into owned relay delivery.
 - Whole-segment transfer is attributed by link path. Mixed RLNC reconstruction is split proportionally by accepted direct and relay packet weight while preserving total delivered bytes.
 - Android P2P evidence now replaces ambiguous `peerBytes` with direct-P2P, edge, bootstrap-origin, and relay categories, recomputes `rho`, reconciles relay access egress within the declared tolerance, and requires attribution markers. The final Android and TURN launch gates require relay selection, payload attribution, and reconciliation evidence.
-- `npm run verify` passes 179 tests; Android P2P and final launch evidence smokes pass 30 and 44 negative cases; Android unit, debug, and release builds pass. Protected remote CI remains open.
+- `npm run verify` passes 179 tests; Android P2P and final launch evidence smokes pass 30 and 44 negative cases; Android unit, debug, and release builds pass.
+- Commit `00d1090` passed protected CI runs `29787187017` and `29787200348` across Node, Android, and deployment-shape jobs. Production readiness remains 92% because physical-device relay selection, measured offload, reconciled TURN egress, and the scale ladder remain external launch gates.
