@@ -2914,3 +2914,12 @@ Results:
 - Commit `e2bfb23` passed remote CI run `29778720168` across Node, deployment-shape, and Android jobs.
 - Staging release `v0.1.0-rc5` run `29778917995` passed all jobs. Independently downloaded evidence confirms 13 immutable digest bindings, 13 matching non-empty Cosign verification records, 13 CycloneDX image SBOMs, 13 Trivy reports with zero HIGH/CRITICAL findings, an 84-component source SBOM, and a release manifest bound to `e2bfb23157f0ba46c33d2f2f76ac6387710a16fa`.
 - Real Play Console linkage, Play-installed physical-device verdicts, request binding, and replay rejection remain external launch gates.
+
+## Build Slice 307 In Progress
+
+- Added default and security-sensitive CODEOWNERS assignments to `@redil1`.
+- Added weekly Dependabot version-update coverage for npm, Android Gradle, GitHub Actions, and eight Docker build directories.
+- Added `repository:governance:evidence:validate` with exact required CI contexts, protected-branch invariants, security-feature requirements, evidence redaction, and synthetic opt-in enforcement.
+- Added 11 governance failure cases to the default check and expanded final launch evidence to 33 gates with repository governance as a non-optional release control.
+- Focused governance validation, Dependabot YAML parsing, the 41-case launch smoke, and configuration validation pass locally.
+- Live GitHub branch protection, secret scanning, push protection, protected PR merge evidence, full verification, and remote CI remain open.

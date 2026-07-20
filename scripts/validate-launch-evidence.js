@@ -63,6 +63,23 @@ const requiredGates = [
       "waiver-expiry"
     ]
   },
+  {
+    id: "repository-governance",
+    requiredEvidence: [
+      "repository:governance:evidence:validate",
+      "branch-protection-enabled",
+      "strict-required-checks",
+      "pull-request-required",
+      "admin-enforcement",
+      "force-push-disabled",
+      "deletion-disabled",
+      "codeowners",
+      "dependabot-version-updates",
+      "dependabot-security-updates",
+      "secret-scanning",
+      "push-protection"
+    ]
+  },
   { id: "image-scan-reports", requiredEvidence: [...expectedImageScanEvidence, "image:scan:bundle:validate"] },
   { id: "data-retention-approval", requiredEvidence: ["retention:approval:validate", "retention:execution:evidence:validate"] },
   { id: "accessibility-ux-baseline", requiredEvidence: ["android:accessibility:validate", "talkback-focus-order", "large-font-200", "small-screen-layout", "touch-targets"] },

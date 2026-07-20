@@ -1,0 +1,38 @@
+{
+  "evidenceId": "repository-governance-synthetic",
+  "repository": "redil1/swarmcast",
+  "branch": "main",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "checkedAt": "2026-07-20T00:00:00.000Z",
+  "synthetic": true,
+  "branchProtection": {
+    "enabled": true,
+    "enforceAdmins": true,
+    "strictRequiredChecks": true,
+    "requiredChecks": ["android", "deployment-shape", "node"],
+    "pullRequestRequired": true,
+    "requiredApprovingReviewCount": 0,
+    "dismissStaleReviews": true,
+    "conversationResolution": true,
+    "linearHistory": true,
+    "forcePushesAllowed": false,
+    "deletionsAllowed": false
+  },
+  "security": {
+    "dependabotSecurityUpdates": true,
+    "secretScanning": true,
+    "pushProtection": true
+  },
+  "repositoryFiles": {
+    "codeowners": true,
+    "dependabotConfig": true
+  },
+  "evidence": [
+    "branch-protection-enabled strict-required-checks synthetic-pass",
+    "pull-request-required admin-enforcement synthetic-pass",
+    "force-push-disabled deletion-disabled synthetic-pass",
+    "codeowners dependabot-version-updates synthetic-pass",
+    "dependabot-security-updates synthetic-pass",
+    "secret-scanning push-protection synthetic-pass"
+  ]
+}

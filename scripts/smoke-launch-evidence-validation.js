@@ -185,6 +185,15 @@ expectFailure(
   /dependency-review evidence must mention sbom/
 );
 expectFailure(
+  "missing repository governance push protection evidence",
+  writeVariant("missing-repository-governance-push-protection", (record) => {
+    const governance = gate(record, "repository-governance");
+    governance.evidence = governance.evidence.map((evidence) => evidence.replaceAll("push-protection", "push-policy-missing"));
+    return record;
+  }),
+  /repository-governance evidence must mention push-protection/
+);
+expectFailure(
   "missing accessibility touch target launch evidence",
   writeVariant("missing-accessibility-touch-target-evidence", (record) => {
     const accessibility = gate(record, "accessibility-ux-baseline");
@@ -410,4 +419,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=40");
+console.log("launch evidence validation smoke OK: pass=1 failures=41");

@@ -275,6 +275,23 @@ const checks = [
     forbidden: []
   },
   {
+    file: ".github/CODEOWNERS",
+    required: ["* @redil1", "/.github/ @redil1", "/infra/ @redil1", "/services/auth/ @redil1"],
+    forbidden: []
+  },
+  {
+    file: ".github/dependabot.yml",
+    required: [
+      "package-ecosystem: npm",
+      "package-ecosystem: gradle",
+      "package-ecosystem: github-actions",
+      "package-ecosystem: docker",
+      "directory: /android",
+      "interval: weekly"
+    ],
+    forbidden: []
+  },
+  {
     file: "scripts/validate-android-attestation-evidence.js",
     required: [
       "packageName",
@@ -363,7 +380,7 @@ for (const file of jsonFiles) {
 if (failed) process.exit(1);
 const packageText = readFileSync("package.json", "utf8");
 for (const required of [
-  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && node scripts/validate-configs.js\"",
+  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && node scripts/validate-configs.js\"",
   "\"smoke:compose-production-env\": \"node scripts/smoke-compose-production-env.js\"",
   "\"smoke:production-env-validation\": \"node scripts/smoke-production-env-validation.js\"",
   "\"smoke:release-images-validation\": \"node scripts/smoke-release-images-validation.js\"",
@@ -373,6 +390,7 @@ for (const required of [
   "\"smoke:deployment-evidence-validation\": \"node scripts/smoke-deployment-evidence-validation.js\"",
   "\"smoke:rollback-evidence-validation\": \"node scripts/smoke-rollback-evidence-validation.js\"",
   "\"smoke:secrets-evidence-validation\": \"node scripts/smoke-secrets-evidence-validation.js\"",
+  "\"smoke:repository-governance-evidence-validation\": \"node scripts/smoke-repository-governance-evidence-validation.js\"",
   "\"smoke:host-provisioning-evidence-validation\": \"node scripts/smoke-host-provisioning-evidence-validation.js\"",
   "\"smoke:source-allowlist-evidence-validation\": \"node scripts/smoke-source-allowlist-evidence-validation.js\"",
   "\"smoke:production-smoke-evidence-validation\": \"node scripts/smoke-production-smoke-evidence-validation.js\"",
@@ -420,6 +438,7 @@ for (const required of [
   "\"catalog:import:validate\": \"node scripts/validate-catalog-import.js\"",
   "\"host:provisioning:evidence:validate\": \"node scripts/validate-host-provisioning-evidence.js\"",
   "\"secrets:evidence:validate\": \"node scripts/validate-secrets-evidence.js\"",
+  "\"repository:governance:evidence:validate\": \"node scripts/validate-repository-governance-evidence.js\"",
   "\"deployment:evidence:validate\": \"node scripts/validate-deployment-evidence.js\"",
   "\"smoke:alertmanager-routing\": \"node scripts/smoke-alertmanager-routing.js\"",
   "\"canary:metrics:validate\": \"node scripts/validate-canary-metrics.js\"",
