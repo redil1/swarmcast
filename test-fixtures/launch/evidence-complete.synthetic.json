@@ -201,6 +201,7 @@
       "status": "complete",
       "evidence": [
         "smoke:turn synthetic-pass",
+        "turn:capacity:evidence:validate synthetic-pass",
         "turn-rest-credentials synthetic-pass",
         "turn-udp-relay synthetic-pass",
         "turn-tls-relay synthetic-pass",
@@ -209,7 +210,11 @@
         "android-relay-candidate-selected synthetic-pass",
         "direct-relay-payload-attribution synthetic-pass",
         "relay-egress-reconciled synthetic-pass",
-        "relay-egress-included synthetic-pass"
+        "relay-egress-included synthetic-pass",
+        "turn-capacity-sustained synthetic-pass",
+        "independent-load-generators synthetic-pass",
+        "udp-tls-capacity synthetic-pass",
+        "provider-egress-reconciled synthetic-pass"
       ]
     },
     {

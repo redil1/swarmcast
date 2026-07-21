@@ -17,8 +17,9 @@ npm run env:production:validate -- /etc/swarmcast/production.env
 docker compose --env-file /etc/swarmcast/production.env -f infra/turn/docker-compose.yml config
 ```
 
-6. Start the relay with the digest-pinned `SWARMCAST_TURN_IMAGE`, then run `npm run smoke:turn` and a real external `turnutils_uclient` probe through UDP and TLS.
+6. Start the relay with the digest-pinned `SWARMCAST_TURN_IMAGE`, then run `npm run smoke:turn` and the synchronized external capacity procedure in `docs/load-testing.md#turn-capacity-ladder` through UDP and TLS.
 7. Add every relay metric endpoint to `TURN_TARGETS_DIR` using Prometheus file discovery.
+8. Validate the combined non-synthetic record with `npm run turn:capacity:evidence:validate -- path/to/turn-capacity-evidence.json`. Do not approve a host from a single load generator, a single transport, a short burst, or unreconciled coturn-only counters.
 
 ## Monitoring
 
@@ -27,6 +28,7 @@ docker compose --env-file /etc/swarmcast/production.env -f infra/turn/docker-com
 - `turn_total_traffic_sentb` and `turn_total_traffic_rcvb` are used for relay throughput and egress reconciliation.
 - `swarmcast_auth_turn_credentials_issued_total` confirms credential issuance.
 - Android `relay` selected-candidate telemetry must reconcile with tracker relay bytes and coturn traffic within the launch evidence tolerance.
+- Capacity profiles require at least 60 seconds of warm-up, 300 seconds of sustained traffic, UDP and TLS coverage on two relay failure domains, two synchronized independent load generators, exact allocation drain, no restart/OOM/quota rejection, no more than 1% loss, CPU p95 at or below 70%, memory p95 at or below 80%, and at least 30% approved headroom.
 
 `SwarmcastTurnTargetDown`, `SwarmcastTurnAllocationPressure`, and `SwarmcastTurnBandwidthPressure` route operators to this runbook. Capacity alerts assume the committed default quotas; adjust alert thresholds together with reviewed production quota changes.
 

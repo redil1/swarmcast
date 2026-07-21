@@ -384,6 +384,24 @@ expectFailure(
   /turn-relay evidence must mention turn-tls-relay/
 );
 expectFailure(
+  "missing TURN sustained capacity launch evidence",
+  writeVariant("missing-turn-capacity", (record) => {
+    const turnRelay = gate(record, "turn-relay");
+    turnRelay.evidence = turnRelay.evidence.filter((evidence) => !evidence.includes("turn-capacity-sustained"));
+    return record;
+  }),
+  /turn-relay evidence must mention turn-capacity-sustained/
+);
+expectFailure(
+  "missing TURN provider reconciliation launch evidence",
+  writeVariant("missing-turn-provider-reconciliation", (record) => {
+    const turnRelay = gate(record, "turn-relay");
+    turnRelay.evidence = turnRelay.evidence.filter((evidence) => !evidence.includes("provider-egress-reconciled"));
+    return record;
+  }),
+  /turn-relay evidence must mention provider-egress-reconciled/
+);
+expectFailure(
   "missing Android relay candidate launch evidence",
   writeVariant("missing-android-relay-candidate", (record) => {
     const turnRelay = gate(record, "turn-relay");

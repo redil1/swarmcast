@@ -107,6 +107,7 @@ const requiredGates = [
     id: "turn-relay",
     requiredEvidence: [
       "smoke:turn",
+      "turn:capacity:evidence:validate",
       "turn-rest-credentials",
       "turn-udp-relay",
       "turn-tls-relay",
@@ -115,7 +116,11 @@ const requiredGates = [
       "android-relay-candidate-selected",
       "direct-relay-payload-attribution",
       "relay-egress-reconciled",
-      "relay-egress-included"
+      "relay-egress-included",
+      "turn-capacity-sustained",
+      "independent-load-generators",
+      "udp-tls-capacity",
+      "provider-egress-reconciled"
     ]
   },
   {

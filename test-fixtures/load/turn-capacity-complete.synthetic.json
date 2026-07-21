@@ -1,0 +1,313 @@
+{
+  "schemaVersion": 1,
+  "runId": "turn-capacity-staging-20260721",
+  "environment": "staging",
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "releaseVersion": "v0.1.0-rc6",
+  "synthetic": true,
+  "headroomRatio": 0.3,
+  "reconciliationTolerance": 0.05,
+  "turnFleet": {
+    "provider": "owned-staging-provider",
+    "imageDigest": "ghcr.io/redil1/swarmcast/turn@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "providerTrafficTermsApproved": true,
+    "providerTrafficTermsEvidence": [
+      "reviews/provider-traffic-terms-approved.synthetic.md"
+    ],
+    "privatePeerDenied": true,
+    "prometheusScraped": true,
+    "serverHosts": [
+      {
+        "hostId": "turn-a",
+        "failureDomain": "eu-1a",
+        "region": "eu-1",
+        "instanceType": "turn-staging-1g",
+        "linkCapacityMbps": 1000
+      },
+      {
+        "hostId": "turn-b",
+        "failureDomain": "eu-1b",
+        "region": "eu-1",
+        "instanceType": "turn-staging-1g",
+        "linkCapacityMbps": 1000
+      }
+    ]
+  },
+  "loadGenerators": [
+    {
+      "hostId": "load-a",
+      "failureDomain": "provider-a-eu",
+      "provider": "load-provider-a",
+      "region": "eu-west",
+      "independentNetworkPath": true
+    },
+    {
+      "hostId": "load-b",
+      "failureDomain": "provider-b-eu",
+      "provider": "load-provider-b",
+      "region": "eu-central",
+      "independentNetworkPath": true
+    }
+  ],
+  "profiles": [
+    {
+      "id": "turn-a-udp",
+      "transport": "udp",
+      "serverHostId": "turn-a",
+      "status": "pass",
+      "loadGeneratorHostIds": ["load-a", "load-b"],
+      "startedAt": "2026-07-21T00:00:00Z",
+      "completedAt": "2026-07-21T00:06:02Z",
+      "warmupSeconds": 60,
+      "sustainedSeconds": 300,
+      "rawProbes": [
+        {
+          "loadGeneratorHostId": "load-a",
+          "runId": "turn-a-udp-load-a",
+          "startedAt": "2026-07-21T00:00:00Z",
+          "completedAt": "2026-07-21T00:06:00Z",
+          "result": "pass",
+          "evidence": ["runs/turn-a-udp-load-a-turn-capacity-raw-probe.synthetic.json"]
+        },
+        {
+          "loadGeneratorHostId": "load-b",
+          "runId": "turn-a-udp-load-b",
+          "startedAt": "2026-07-21T00:00:02Z",
+          "completedAt": "2026-07-21T00:06:02Z",
+          "result": "pass",
+          "evidence": ["runs/turn-a-udp-load-b-turn-capacity-raw-probe.synthetic.json"]
+        }
+      ],
+      "concurrentAllocations": 1300,
+      "peakAllocations": 1300,
+      "successfulAllocations": 1300,
+      "allocationFailures": 0,
+      "approvedConcurrentAllocations": 1000,
+      "applicationPayloadBytes": 14000000000,
+      "coturnIngressBytes": 30100000000,
+      "coturnEgressBytes": 30000000000,
+      "hostNicIngressBytes": 30000000000,
+      "hostNicEgressBytes": 29900000000,
+      "providerIngressBytes": 30050000000,
+      "providerEgressBytes": 30000000000,
+      "measuredSustainedEgressMbps": 800,
+      "approvedSustainedEgressMbps": 600,
+      "packetLossRatio": 0.001,
+      "p95RttMs": 45,
+      "cpuP95Ratio": 0.62,
+      "memoryP95Ratio": 0.55,
+      "restarts": 0,
+      "oomKills": 0,
+      "quotaRejections": 0,
+      "bandwidthRejections": 0,
+      "allocationsReturnedToZero": true,
+      "evidence": [
+        "runs/turn-a-udp-turnutils-uclient.synthetic.json",
+        "runs/turn-a-udp-coturn-prometheus.synthetic.txt",
+        "runs/turn-a-udp-host-nic-counters.synthetic.json",
+        "runs/turn-a-udp-provider-egress-export.synthetic.csv",
+        "runs/turn-a-udp-cpu-memory.synthetic.json"
+      ]
+    },
+    {
+      "id": "turn-a-tls",
+      "transport": "tls",
+      "serverHostId": "turn-a",
+      "status": "pass",
+      "loadGeneratorHostIds": ["load-a", "load-b"],
+      "startedAt": "2026-07-21T01:00:00Z",
+      "completedAt": "2026-07-21T01:06:02Z",
+      "warmupSeconds": 60,
+      "sustainedSeconds": 300,
+      "rawProbes": [
+        {
+          "loadGeneratorHostId": "load-a",
+          "runId": "turn-a-tls-load-a",
+          "startedAt": "2026-07-21T01:00:00Z",
+          "completedAt": "2026-07-21T01:06:00Z",
+          "result": "pass",
+          "evidence": ["runs/turn-a-tls-load-a-turn-capacity-raw-probe.synthetic.json"]
+        },
+        {
+          "loadGeneratorHostId": "load-b",
+          "runId": "turn-a-tls-load-b",
+          "startedAt": "2026-07-21T01:00:02Z",
+          "completedAt": "2026-07-21T01:06:02Z",
+          "result": "pass",
+          "evidence": ["runs/turn-a-tls-load-b-turn-capacity-raw-probe.synthetic.json"]
+        }
+      ],
+      "concurrentAllocations": 1300,
+      "peakAllocations": 1300,
+      "successfulAllocations": 1300,
+      "allocationFailures": 0,
+      "approvedConcurrentAllocations": 1000,
+      "applicationPayloadBytes": 14000000000,
+      "coturnIngressBytes": 30100000000,
+      "coturnEgressBytes": 30000000000,
+      "hostNicIngressBytes": 30000000000,
+      "hostNicEgressBytes": 29900000000,
+      "providerIngressBytes": 30050000000,
+      "providerEgressBytes": 30000000000,
+      "measuredSustainedEgressMbps": 800,
+      "approvedSustainedEgressMbps": 600,
+      "packetLossRatio": 0.001,
+      "p95RttMs": 55,
+      "cpuP95Ratio": 0.64,
+      "memoryP95Ratio": 0.57,
+      "restarts": 0,
+      "oomKills": 0,
+      "quotaRejections": 0,
+      "bandwidthRejections": 0,
+      "allocationsReturnedToZero": true,
+      "evidence": [
+        "runs/turn-a-tls-turnutils-uclient.synthetic.json",
+        "runs/turn-a-tls-coturn-prometheus.synthetic.txt",
+        "runs/turn-a-tls-host-nic-counters.synthetic.json",
+        "runs/turn-a-tls-provider-egress-export.synthetic.csv",
+        "runs/turn-a-tls-cpu-memory.synthetic.json"
+      ]
+    },
+    {
+      "id": "turn-b-udp",
+      "transport": "udp",
+      "serverHostId": "turn-b",
+      "status": "pass",
+      "loadGeneratorHostIds": ["load-a", "load-b"],
+      "startedAt": "2026-07-21T02:00:00Z",
+      "completedAt": "2026-07-21T02:06:02Z",
+      "warmupSeconds": 60,
+      "sustainedSeconds": 300,
+      "rawProbes": [
+        {
+          "loadGeneratorHostId": "load-a",
+          "runId": "turn-b-udp-load-a",
+          "startedAt": "2026-07-21T02:00:00Z",
+          "completedAt": "2026-07-21T02:06:00Z",
+          "result": "pass",
+          "evidence": ["runs/turn-b-udp-load-a-turn-capacity-raw-probe.synthetic.json"]
+        },
+        {
+          "loadGeneratorHostId": "load-b",
+          "runId": "turn-b-udp-load-b",
+          "startedAt": "2026-07-21T02:00:02Z",
+          "completedAt": "2026-07-21T02:06:02Z",
+          "result": "pass",
+          "evidence": ["runs/turn-b-udp-load-b-turn-capacity-raw-probe.synthetic.json"]
+        }
+      ],
+      "concurrentAllocations": 1300,
+      "peakAllocations": 1300,
+      "successfulAllocations": 1300,
+      "allocationFailures": 0,
+      "approvedConcurrentAllocations": 1000,
+      "applicationPayloadBytes": 14000000000,
+      "coturnIngressBytes": 30100000000,
+      "coturnEgressBytes": 30000000000,
+      "hostNicIngressBytes": 30000000000,
+      "hostNicEgressBytes": 29900000000,
+      "providerIngressBytes": 30050000000,
+      "providerEgressBytes": 30000000000,
+      "measuredSustainedEgressMbps": 800,
+      "approvedSustainedEgressMbps": 600,
+      "packetLossRatio": 0.001,
+      "p95RttMs": 50,
+      "cpuP95Ratio": 0.61,
+      "memoryP95Ratio": 0.56,
+      "restarts": 0,
+      "oomKills": 0,
+      "quotaRejections": 0,
+      "bandwidthRejections": 0,
+      "allocationsReturnedToZero": true,
+      "evidence": [
+        "runs/turn-b-udp-turnutils-uclient.synthetic.json",
+        "runs/turn-b-udp-coturn-prometheus.synthetic.txt",
+        "runs/turn-b-udp-host-nic-counters.synthetic.json",
+        "runs/turn-b-udp-provider-egress-export.synthetic.csv",
+        "runs/turn-b-udp-cpu-memory.synthetic.json"
+      ]
+    },
+    {
+      "id": "turn-b-tls",
+      "transport": "tls",
+      "serverHostId": "turn-b",
+      "status": "pass",
+      "loadGeneratorHostIds": ["load-a", "load-b"],
+      "startedAt": "2026-07-21T03:00:00Z",
+      "completedAt": "2026-07-21T03:06:02Z",
+      "warmupSeconds": 60,
+      "sustainedSeconds": 300,
+      "rawProbes": [
+        {
+          "loadGeneratorHostId": "load-a",
+          "runId": "turn-b-tls-load-a",
+          "startedAt": "2026-07-21T03:00:00Z",
+          "completedAt": "2026-07-21T03:06:00Z",
+          "result": "pass",
+          "evidence": ["runs/turn-b-tls-load-a-turn-capacity-raw-probe.synthetic.json"]
+        },
+        {
+          "loadGeneratorHostId": "load-b",
+          "runId": "turn-b-tls-load-b",
+          "startedAt": "2026-07-21T03:00:02Z",
+          "completedAt": "2026-07-21T03:06:02Z",
+          "result": "pass",
+          "evidence": ["runs/turn-b-tls-load-b-turn-capacity-raw-probe.synthetic.json"]
+        }
+      ],
+      "concurrentAllocations": 1300,
+      "peakAllocations": 1300,
+      "successfulAllocations": 1300,
+      "allocationFailures": 0,
+      "approvedConcurrentAllocations": 1000,
+      "applicationPayloadBytes": 14000000000,
+      "coturnIngressBytes": 30100000000,
+      "coturnEgressBytes": 30000000000,
+      "hostNicIngressBytes": 30000000000,
+      "hostNicEgressBytes": 29900000000,
+      "providerIngressBytes": 30050000000,
+      "providerEgressBytes": 30000000000,
+      "measuredSustainedEgressMbps": 800,
+      "approvedSustainedEgressMbps": 600,
+      "packetLossRatio": 0.001,
+      "p95RttMs": 60,
+      "cpuP95Ratio": 0.65,
+      "memoryP95Ratio": 0.58,
+      "restarts": 0,
+      "oomKills": 0,
+      "quotaRejections": 0,
+      "bandwidthRejections": 0,
+      "allocationsReturnedToZero": true,
+      "evidence": [
+        "runs/turn-b-tls-turnutils-uclient.synthetic.json",
+        "runs/turn-b-tls-coturn-prometheus.synthetic.txt",
+        "runs/turn-b-tls-host-nic-counters.synthetic.json",
+        "runs/turn-b-tls-provider-egress-export.synthetic.csv",
+        "runs/turn-b-tls-cpu-memory.synthetic.json"
+      ]
+    }
+  ],
+  "approvals": [
+    {
+      "role": "operations",
+      "reviewer": "synthetic-operations-reviewer",
+      "approvedAt": "2026-07-21T04:00:00Z",
+      "status": "approved",
+      "evidence": ["reviews/turn-capacity-operations.synthetic.md"]
+    },
+    {
+      "role": "performance",
+      "reviewer": "synthetic-performance-reviewer",
+      "approvedAt": "2026-07-21T04:01:00Z",
+      "status": "approved",
+      "evidence": ["reviews/turn-capacity-performance.synthetic.md"]
+    },
+    {
+      "role": "security",
+      "reviewer": "synthetic-security-reviewer",
+      "approvedAt": "2026-07-21T04:02:00Z",
+      "status": "approved",
+      "evidence": ["reviews/turn-capacity-security.synthetic.md"]
+    }
+  ]
+}
