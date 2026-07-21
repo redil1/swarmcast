@@ -16,7 +16,7 @@ const PEER_COUNT = 1000;
 const CELL_COUNT = 4;
 const PEERS_PER_CELL = PEER_COUNT / CELL_COUNT;
 const CELL_MAX_PEERS = 300;
-const JOIN_BATCH_SIZE = 50;
+const JOIN_BATCH_SIZE = 25;
 const RECOVERY_P95_BUDGET_MS = 30_000;
 const dockerImage = process.env.TRACKER_CELL_LOAD_DOCKER_IMAGE || "";
 const runId = `${process.pid}-${Date.now()}`;
@@ -40,11 +40,22 @@ function closeServer(server) {
   return new Promise((resolve) => server.close(resolve));
 }
 
-async function freePort() {
-  const server = net.createServer();
-  const port = await listen(server);
-  await closeServer(server);
-  return port;
+async function reservePorts(count) {
+  const reservations = [];
+  for (let index = 0; index < count; index += 1) {
+    const server = net.createServer();
+    reservations.push({ port: await listen(server), server });
+  }
+  return {
+    ports: reservations.map(({ port }) => port),
+    async release(port) {
+      const reservation = reservations.find((entry) => entry.port === port);
+      if (reservation?.server.listening) await closeServer(reservation.server);
+    },
+    async close() {
+      await Promise.all(reservations.map(({ server }) => server.listening ? closeServer(server) : null));
+    }
+  };
 }
 
 async function waitFor(fn, { timeoutMs = 30_000, intervalMs = 25 } = {}) {
@@ -336,11 +347,13 @@ async function proveSignalingIsolation(clientsByShard, shards) {
 const tempDir = mkdtempSync(join(tmpdir(), "swarmcast-tracker-cells-1k-"));
 let authServer;
 let ingestServer;
+let portReservations;
 const running = new Map();
 const allClients = [];
 
 try {
-  const ports = await Promise.all(Array.from({ length: CELL_COUNT * 2 }, () => freePort()));
+  portReservations = await reservePorts(CELL_COUNT * 2);
+  const { ports } = portReservations;
   const shards = Array.from({ length: CELL_COUNT }, (_, index) => ({
     id: `cell-${String.fromCharCode(97 + index)}`,
     port: ports[index * 2],
@@ -369,6 +382,8 @@ try {
   const token = await tokenFromAuth(`http://127.0.0.1:${authPort}`);
 
   for (const shard of shards) {
+    await portReservations.release(shard.port);
+    await portReservations.release(shard.internalPort);
     const tracker = spawnTracker({ shard, shards, authPort, ingestPort });
     running.set(shard.id, tracker);
     await waitTracker(shard, tracker);
@@ -471,6 +486,7 @@ try {
     }
   }
   for (const tracker of running.values()) forceRemoveTracker(tracker);
+  if (portReservations) await portReservations.close();
   if (authServer) await closeServer(authServer);
   if (ingestServer) await closeServer(ingestServer);
   rmSync(tempDir, { recursive: true, force: true });
