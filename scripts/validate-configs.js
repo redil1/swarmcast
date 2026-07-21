@@ -1951,10 +1951,37 @@ for (const required of [
   "Self-sustaining super-peer threshold",
   "current deterministic sweep flattens at 15%",
   "corrected deterministic model currently reports 0.85",
-  "800 Mbps sustained on a 1 Gbps link"
+  "800 Mbps sustained on a 1 Gbps link",
+  "min(80% of reported uplink, 1.5 MB/s)",
+  "unknown uplink and disallowed policy produce zero upload"
 ]) {
   if (!assumptionsText.includes(required)) {
     console.error(`docs/assumptions.md: missing capacity plan assumption text: ${required}`);
+    failed = true;
+  }
+}
+
+const architectureRemediationText = readFileSync("docs/architecture-remediation-plan.md", "utf8");
+for (const required of [
+  "one shared monotonic token bucket across all peer links",
+  "capped at 80% of the current reported uplink and 1.5 MB/s of payload",
+  "WiFi-to-cellular transition fails closed",
+  "concurrent reservations"
+]) {
+  if (!architectureRemediationText.includes(required)) {
+    console.error(`docs/architecture-remediation-plan.md: missing upload budget text: ${required}`);
+    failed = true;
+  }
+}
+
+const lowSuperPeerRunbookText = readFileSync("docs/runbooks/low-super-peer-fraction.md", "utf8");
+for (const required of [
+  "at most 80% of reported uplink",
+  "does not include WebRTC/IP transport overhead",
+  "Do not raise the client payload cap"
+]) {
+  if (!lowSuperPeerRunbookText.includes(required)) {
+    console.error(`docs/runbooks/low-super-peer-fraction.md: missing upload budget guidance: ${required}`);
     failed = true;
   }
 }
@@ -5000,9 +5027,12 @@ const androidTextChecks = [
       "scheduler.configure",
       "tracker.reportStats",
       "val networkSnapshot = networkPolicy.snapshot()",
-      "val permissions = p2pPermissions(enabled, snapshot)",
+      "applyNetworkPolicy(networkSnapshot)",
+      "uploadAllowed = ::refreshUploadPolicy",
+      "val snapshot = networkPolicy.snapshot()",
+      "val allowed = p2pPermissions(p2pEnabled, snapshot).uploadAllowed",
+      "uploadBudget.configureForUplink",
       "p2pDownloadAllowed = permissions.downloadAllowed",
-      "uploadAllowed = permissions.uploadAllowed",
       "if (!p2pDownloadAllowed)",
       "if (p2pDownloadAllowed && swarmMode != \"edge-only\")",
       "TrackerEvent.SwarmMode",
@@ -5226,6 +5256,9 @@ const androidTextChecks = [
       "Wire.CODED_REQUEST",
       "codedPacketProvider",
       "serveCoded",
+      "if (!uploadAllowed()) break",
+      "if (!uploadAllowed()) break@upload",
+      "sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_POLICY))",
       "runCatching { channel.unregisterObserver() }",
       "runCatching { channel.dispose() }",
       "while (isOpen() && channel.bufferedAmount() > MAX_BUFFERED_BYTES)"
@@ -5279,7 +5312,25 @@ const androidTextChecks = [
     required: [
       "class UploadBudget",
       "fun tryReserve",
-      "maxBytesPerSecond"
+      "System::nanoTime",
+      "configureForUplink",
+      "payloadRateForUplinkKbps",
+      "UPLINK_UTILIZATION_PERCENT = 80L",
+      "availableScaled",
+      "elapsedNanos * rateBytesPerSecond",
+      "upload budget capacity is too large"
+    ]
+  },
+  {
+    file: "android/app/src/test/java/tv/swarmcast/p2p/UploadBudgetTest.kt",
+    required: [
+      "enforcesBurstCapacityAndSustainedRefillRate",
+      "preservesFractionalRefillCreditAcrossReservations",
+      "ignoresClockRegressionWithoutMintingTokens",
+      "reconfigurationClampsCapacityAndDoesNotMintASecondBurst",
+      "derivesConservativePayloadRateFromReportedUplink",
+      "rejectsInvalidOrOverflowingConfigurationAndRequests",
+      "serializesConcurrentReservationsAgainstOneSharedCapacity"
     ]
   },
   {

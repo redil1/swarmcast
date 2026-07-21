@@ -85,7 +85,7 @@ class PeerLink(
         sendFrame(Wire.RANK, seq, Wire.rankPayload(seq, rank))
     }
 
-    fun sendCoded(seq: Int, coeffs: ByteArray, data: ByteArray) {
+    private fun sendCoded(seq: Int, coeffs: ByteArray, data: ByteArray) {
         if (uploadAllowed() && sendFrame(Wire.CODED, seq, Wire.codedPayload(coeffs, data))) {
             onUploaded(peerId, (coeffs.size + data.size).toLong())
         }
@@ -179,8 +179,12 @@ class PeerLink(
             else -> scope.launch(Dispatchers.IO) {
                 var offset = 0
                 var uploaded = 0L
-                while (offset < entry.bytes.size && isOpen()) {
-                    while (isOpen() && channel.bufferedAmount() > MAX_BUFFERED_BYTES) delay(5)
+                upload@ while (offset < entry.bytes.size && isOpen()) {
+                    if (!uploadAllowed()) break
+                    while (isOpen() && channel.bufferedAmount() > MAX_BUFFERED_BYTES) {
+                        delay(5)
+                        if (!uploadAllowed()) break@upload
+                    }
                     if (!isOpen()) break
                     val len = minOf(Wire.CHUNK, entry.bytes.size - offset)
                     if (!sendFrame(Wire.DATA, seq, entry.bytes.copyOfRange(offset, offset + len))) break
@@ -194,9 +198,12 @@ class PeerLink(
     }
 
     private fun serveCoded(seq: Int) {
+        if (!uploadAllowed()) {
+            sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_POLICY))
+            return
+        }
         val packet = codedPacketProvider(seq)
         when {
-            !uploadAllowed() -> sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_POLICY))
             packet == null -> sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_MISSING))
             !uploadBudget.tryReserve((packet.coeffs.size + packet.data.size).toLong()) ->
                 sendFrame(Wire.REJECT, seq, byteArrayOf(REJECT_QUOTA))

@@ -12,6 +12,7 @@ The structured capacity plan lives in `config/capacity-plan.json`. Its current m
 | WiFi share | Must be majority WiFi for high offload | Client network stats |
 | P2P offload target | Direct-P2P rho >= 0.90 before launch; corrected deterministic model currently reports 0.85 | Physical Android devices plus VM/WebRTC load ladder, reconciled with owned edge/origin/relay egress |
 | Self-sustaining super-peer threshold | Edge fallback should flatten by 25% super-peers; current deterministic sweep flattens at 15% | `smoke:headless-super-peer-sweep` and VM/WebRTC ladder |
+| Android peer-upload payload budget | `min(80% of reported uplink, 1.5 MB/s)` with a three-second token-bucket burst; unknown uplink and disallowed policy produce zero upload | Physical-device useful-upload, battery, transport-transition, and link-egress measurement |
 | Popular channel latency | 30-60 s buffer accepted | Product review and beta feedback |
 | Tail policy | Edge-only or downscaled below threshold | Measure startup and cost impact |
 | Ingest cap per node | 140 active channels | Host-level saturation test |

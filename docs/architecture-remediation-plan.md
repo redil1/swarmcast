@@ -30,6 +30,8 @@ Acceptance evidence:
 Deliverables:
 
 - Separate `downloadAllowed` from `uploadAllowed`; cellular and other receive-only clients may download from direct peers without uploading.
+- Enforce one shared monotonic token bucket across all peer links, capped at 80% of the current reported uplink and 1.5 MB/s of payload, with at most three seconds of burst capacity.
+- Re-evaluate network, metering, battery, and uplink policy before and during each upload so a WiFi-to-cellular transition fails closed.
 - Track desired/minimum/maximum peer degree independently of upload policy.
 - Add `need_peers` with bounded request rate, exclusion IDs, and server-side same-swarm validation.
 - Push swarm-mode changes when a channel crosses the P2P threshold.
@@ -38,7 +40,7 @@ Deliverables:
 
 Acceptance evidence:
 
-- Tracker and Android unit tests for receive-only mode, replacement peers, mode transition, reconnect, rate limits, and same-swarm signaling.
+- Tracker and Android unit tests for receive-only mode, monotonic upload rate and burst boundaries, concurrent reservations, policy reconfiguration, replacement peers, mode transition, reconnect, rate limits, and same-swarm signaling.
 - Real WebSocket churn smoke proving peer degree recovers after at least 30% link loss.
 - Physical-device evidence proving cellular no-upload with direct peer download where ICE succeeds.
 
