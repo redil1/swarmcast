@@ -57,12 +57,16 @@ expectFailure(
     record.devices = record.devices.slice(0, 1);
     return record;
   }),
-  /devices must include at least two devices/
+  /devices must include at least four physical devices/
 );
 expectFailure(
   "missing cellular device",
   writeVariant("missing-cellular-device", (record) => {
-    record.devices = record.devices.map((device) => ({ ...device, network: "wifi" }));
+    record.devices = record.devices.map((device, index) => {
+      const updated = { ...device, network: "wifi", wifiNetworkId: `wifi-${index}`, measuredUploadBytes: Math.max(1, device.measuredUploadBytes) };
+      delete updated.carrierId;
+      return updated;
+    });
     return record;
   }),
   /devices must include cellular Android P2P evidence/
@@ -162,7 +166,7 @@ expectFailure(
     record.transfer.verifiedSegments = 0;
     return record;
   }),
-  /transfer\.verifiedSegments must be between 1 and Infinity/
+  /transfer\.verifiedSegments must be between 100 and Infinity/
 );
 expectFailure(
   "hash failure observed",
@@ -183,10 +187,10 @@ expectFailure(
 expectFailure(
   "offload ratio too low",
   writeVariant("low-offload", (record) => {
-    record.transfer.offloadRatio = 0;
+    record.transfer.offloadRatio = 0.89;
     return record;
   }),
-  /transfer\.offloadRatio must be between 0.01 and 1/
+  /transfer\.offloadRatio must be between 0.9 and 1/
 );
 expectFailure(
   "missing direct P2P bytes",
@@ -199,7 +203,7 @@ expectFailure(
 expectFailure(
   "offload ratio inconsistent with delivery categories",
   writeVariant("offload-category-mismatch", (record) => {
-    record.transfer.offloadRatio = 0.9;
+    record.transfer.offloadRatio = 0.91;
     return record;
   }),
   /transfer\.offloadRatio does not match direct P2P over all delivery bytes/
@@ -207,8 +211,7 @@ expectFailure(
 expectFailure(
   "relay egress does not reconcile",
   writeVariant("relay-egress-mismatch", (record) => {
-    record.transfer.relayBytes = 1048576;
-    record.transfer.offloadRatio = 0.75;
+    record.transfer.relayAccessEgressBytes = 100000;
     return record;
   }),
   /transfer relay egress is not reconciled within tolerance/
@@ -256,26 +259,26 @@ expectFailure(
 expectFailure(
   "missing cellular ICE outcomes",
   writeVariant("missing-cellular-ice", (record) => {
-    record.connectivity.networks = record.connectivity.networks.filter((row) => row.network !== "cellular");
+    record.connectivity.devices = record.connectivity.devices.filter((row) => row.deviceId !== "pixel-8-b");
     return record;
   }),
-  /connectivity must include cellular ICE outcomes/
+  /connectivity must include device pixel-8-b/
 );
 expectFailure(
   "ICE outcomes exceed attempts",
   writeVariant("ice-outcomes-over-attempts", (record) => {
-    record.connectivity.networks[0].failures = 3;
+    record.connectivity.devices[0].failures = 2;
     return record;
   }),
-  /connectivity\.wifi outcomes exceed attempts/
+  /connectivity\.pixel-8-a outcomes must equal attempts/
 );
 expectFailure(
   "selected ICE candidates do not reconcile",
   writeVariant("ice-candidate-mismatch", (record) => {
-    record.connectivity.networks[1].selectedCandidates.srflx = 9;
+    record.connectivity.devices[1].selectedCandidates.srflx = 2;
     return record;
   }),
-  /connectivity\.cellular selected candidates must sum to successes/
+  /connectivity\.pixel-8-b selected candidates must sum to successes/
 );
 expectFailure(
   "missing selected candidate evidence",
@@ -286,4 +289,169 @@ expectFailure(
   /connectivity\.evidence must mention ice-selected-candidate-type/
 );
 
-console.log("Android P2P evidence validation smoke OK: pass=1 failures=30");
+expectFailure(
+  "emulator marked as physical evidence",
+  writeVariant("non-physical-device", (record) => {
+    record.devices[0].physical = false;
+    return record;
+  }),
+  /pixel-8-a\.physical must be true/
+);
+expectFailure(
+  "duplicate physical device fingerprint",
+  writeVariant("duplicate-device-fingerprint", (record) => {
+    record.devices[1].deviceFingerprintSha256 = record.devices[0].deviceFingerprintSha256;
+    return record;
+  }),
+  /duplicate physical device fingerprint for pixel-8-b/
+);
+expectFailure(
+  "single WiFi failure domain",
+  writeVariant("single-wifi-domain", (record) => {
+    record.devices.find((device) => device.id === "pixel-8-c").wifiNetworkId = "wifi-lab-a";
+    return record;
+  }),
+  /at least two WiFi network failure domains/
+);
+expectFailure(
+  "single cellular carrier domain",
+  writeVariant("single-carrier-domain", (record) => {
+    record.devices.find((device) => device.id === "pixel-8-d").carrierId = "carrier-lab-a";
+    return record;
+  }),
+  /at least two cellular carrier failure domains/
+);
+expectFailure(
+  "non-Play installation",
+  writeVariant("non-play-install", (record) => {
+    record.devices[0].installationSource = "sideload";
+    return record;
+  }),
+  /pixel-8-a\.installationSource has invalid format/
+);
+expectFailure(
+  "device APK does not match release",
+  writeVariant("apk-mismatch", (record) => {
+    record.devices[0].apkSha256 = "b".repeat(64);
+    return record;
+  }),
+  /pixel-8-a\.apkSha256 must match releaseApkSha256/
+);
+expectFailure(
+  "second WiFi device has no useful upload",
+  writeVariant("wifi-device-no-upload", (record) => {
+    record.devices.find((device) => device.id === "pixel-8-c").measuredUploadBytes = 0;
+    return record;
+  }),
+  /pixel-8-c\.measuredUploadBytes must prove useful WiFi upload/
+);
+expectFailure(
+  "second carrier device uploaded payload",
+  writeVariant("second-cellular-device-upload", (record) => {
+    record.devices.find((device) => device.id === "pixel-8-d").measuredUploadBytes = 1;
+    return record;
+  }),
+  /pixel-8-d\.measuredUploadBytes must be zero on cellular/
+);
+expectFailure(
+  "physical transfer soak too short",
+  writeVariant("short-transfer-soak", (record) => {
+    record.transfer.durationSeconds = 1799;
+    return record;
+  }),
+  /transfer\.durationSeconds must be between 1800 and Infinity/
+);
+expectFailure(
+  "insufficient device samples",
+  writeVariant("insufficient-samples", (record) => {
+    record.transfer.sampleCount = 59;
+    return record;
+  }),
+  /transfer\.sampleCount must be between 60 and Infinity/
+);
+expectFailure(
+  "source upload does not cover peer delivery",
+  writeVariant("source-upload-too-low", (record) => {
+    record.transfer.sourceUploadBytes = 8000000;
+    record.transfer.trackerUploadBytes = 8000000;
+    record.devices.find((device) => device.id === "pixel-8-a").measuredUploadBytes = 4000000;
+    record.devices.find((device) => device.id === "pixel-8-c").measuredUploadBytes = 4000000;
+    return record;
+  }),
+  /sourceUploadBytes must cover direct and relayed peer payload/
+);
+expectFailure(
+  "cellular sink uploaded payload",
+  writeVariant("cellular-upload-observed", (record) => {
+    record.transfer.sinkUploadBytes = 1;
+    return record;
+  }),
+  /transfer\.sinkUploadBytes must be between 0 and 0/
+);
+expectFailure(
+  "edge egress does not reconcile",
+  writeVariant("edge-egress-mismatch", (record) => {
+    record.transfer.edgeAccessEgressBytes = 100000;
+    return record;
+  }),
+  /transfer edge egress is not reconciled within tolerance/
+);
+expectFailure(
+  "origin bootstrap does not reconcile",
+  writeVariant("origin-bootstrap-mismatch", (record) => {
+    record.transfer.originAccessBootstrapBytes = 100000;
+    return record;
+  }),
+  /transfer origin bootstrap is not reconciled within tolerance/
+);
+expectFailure(
+  "tracker direct P2P does not reconcile",
+  writeVariant("tracker-p2p-mismatch", (record) => {
+    record.transfer.trackerP2pDownloadBytes = 8000000;
+    return record;
+  }),
+  /transfer tracker direct P2P is not reconciled within tolerance/
+);
+expectFailure(
+  "battery drain above P2P budget",
+  writeVariant("p2p-battery-high", (record) => {
+    record.transfer.batteryDrainPctPerHour = 9;
+    return record;
+  }),
+  /transfer\.batteryDrainPctPerHour must be between 0 and 8/
+);
+expectFailure(
+  "unknown selected ICE candidate",
+  writeVariant("unknown-ice-candidate", (record) => {
+    record.connectivity.devices[1].selectedCandidates.srflx -= 1;
+    record.connectivity.devices[1].selectedCandidates.unknown = 1;
+    return record;
+  }),
+  /connectivity\.pixel-8-b selected candidates must not be unknown/
+);
+expectFailure(
+  "cellular check misses second carrier",
+  writeVariant("cellular-check-carrier-missing", (record) => {
+    check(record, "cellular-receive-only").deviceIds = ["pixel-8-a", "pixel-8-b"];
+    return record;
+  }),
+  /cellular-receive-only check must cover every cellular carrier device/
+);
+expectFailure(
+  "P2P disable leaves active links",
+  writeVariant("p2p-disable-active-links", (record) => {
+    record.transfer.p2pDisabledActiveLinks = 1;
+    return record;
+  }),
+  /transfer\.p2pDisabledActiveLinks must be between 0 and 0/
+);
+expectFailure(
+  "P2P disable does not prove edge fallback bytes",
+  writeVariant("p2p-disable-no-edge", (record) => {
+    record.transfer.p2pDisabledEdgeBytes = 0;
+    return record;
+  }),
+  /transfer\.p2pDisabledEdgeBytes must be between 1 and Infinity/
+);
+
+console.log("Android P2P evidence validation smoke OK: pass=1 failures=50");

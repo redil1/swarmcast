@@ -43,15 +43,18 @@ internal fun isDirectP2pCandidateType(candidateType: String): Boolean =
 
 class IceConnectivityTelemetry {
     private var current = IceConnectivityDelta()
+    private var cumulative = IceConnectivityDelta()
 
     @Synchronized
     fun recordAttempt() {
         current = current.copy(attempts = current.attempts + 1)
+        cumulative = cumulative.copy(attempts = cumulative.attempts + 1)
     }
 
     @Synchronized
     fun recordFailure() {
         current = current.copy(failures = current.failures + 1)
+        cumulative = cumulative.copy(failures = cumulative.failures + 1)
     }
 
     @Synchronized
@@ -63,8 +66,18 @@ class IceConnectivityTelemetry {
             "relay" -> current.copy(successes = current.successes + 1, relaySuccesses = current.relaySuccesses + 1)
             else -> current.copy(successes = current.successes + 1, unknownSuccesses = current.unknownSuccesses + 1)
         }
+        cumulative = when (candidateType) {
+            "host" -> cumulative.copy(successes = cumulative.successes + 1, hostSuccesses = cumulative.hostSuccesses + 1)
+            "srflx" -> cumulative.copy(successes = cumulative.successes + 1, srflxSuccesses = cumulative.srflxSuccesses + 1)
+            "prflx" -> cumulative.copy(successes = cumulative.successes + 1, prflxSuccesses = cumulative.prflxSuccesses + 1)
+            "relay" -> cumulative.copy(successes = cumulative.successes + 1, relaySuccesses = cumulative.relaySuccesses + 1)
+            else -> cumulative.copy(successes = cumulative.successes + 1, unknownSuccesses = cumulative.unknownSuccesses + 1)
+        }
     }
 
     @Synchronized
     fun drain(): IceConnectivityDelta = current.also { current = IceConnectivityDelta() }
+
+    @Synchronized
+    fun snapshot(): IceConnectivityDelta = cumulative
 }

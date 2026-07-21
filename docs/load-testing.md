@@ -96,7 +96,7 @@ npm run turn:capacity:evidence:validate -- --allow-synthetic test-fixtures/load/
 
 ## Required Staging Ladder
 
-1. 1 channel / 3 Android devices on WiFi.
+1. 1 channel / at least 4 Play-installed physical Android devices across 2 WiFi failure domains and 2 cellular carriers, collected through `docs/android-device-lab.md`.
 2. 1 channel / 200 mixed headless peers through real tracker WebSockets and WebRTC DataChannels.
 3. 50 channels / 2000 peers across multiple VMs with WebRTC DataChannel transfer.
 4. 1 channel / 1000 peers partitioned across at least 2 tracker cells.
@@ -114,7 +114,7 @@ Each staging run must record:
 - rolling `rho` computed as direct P2P bytes divided by direct P2P, edge, origin-bootstrap, and relay bytes; stall rate, startup latency, buffer health, tracker p95 message cost, and memory per peer
 - separate client P2P/edge/origin-bootstrap/relay byte counters reconciled within 5% of edge, origin, and relay access-log egress; cache hit ratio and alert state
 - for each single-channel cell stage: tracker process/cell counts, configured cell ceiling, exact per-cell peer counts, all-cell segment fanout, segment count and coding rank, exactly one origin-bootstrap cell, origin assignments no greater than `segmentAnnouncements * max(2, ceil(k/12))`, edge-bootstrap coverage and bounded assignments for every secondary cell, zero backpressure drops, zero capacity rejections, zero cross-cell signaling, owned-edge fallback during one cell failure, stable cell rejoin, and p95 recovery within 30 seconds
-- for physical-device stages: ICE attempts, successes, failures, and selected `host`/`srflx`/`prflx`/`relay`/unknown candidate counts split by WiFi, cellular, and Ethernet where present; selected-candidate counts must reconcile to successes
+- for physical-device stages: opaque device fingerprints and installed base-APK hashes; at least two WiFi failure domains and two cellular carriers; measured useful WiFi upload and exact cellular zero upload; ICE attempts, successes, failures, and selected `host`/`srflx`/`prflx`/`relay`/unknown candidate counts per device; attempts must reconcile to outcomes, selected candidates must reconcile to successes, and unknown candidates must be zero
 - self-sustaining sweep command, tested super-peer fractions, flatten fraction, helper upload budget, every preloaded helper charged as bootstrap packets, and packet-derived model `rho` per fraction
 
 Validate the final ladder evidence before launch:

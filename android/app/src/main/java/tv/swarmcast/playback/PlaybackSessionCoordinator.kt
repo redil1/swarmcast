@@ -11,6 +11,8 @@ import tv.swarmcast.data.AuthRepository
 import tv.swarmcast.data.NetworkPolicy
 import tv.swarmcast.data.NetworkPolicySnapshot
 import tv.swarmcast.data.p2pPermissions
+import tv.swarmcast.diagnostics.DeviceLabDiagnostics
+import tv.swarmcast.diagnostics.DeviceLabSnapshot
 import tv.swarmcast.p2p.PeerConnectionManager
 import tv.swarmcast.p2p.IceServerConfig
 import tv.swarmcast.p2p.PeerInfo
@@ -72,6 +74,14 @@ class PlaybackSessionCoordinator(
     private var lastStalls = 0
     private var playbackStartMs = 0L
     private var startupLatencyReported = false
+
+    init {
+        DeviceLabDiagnostics.register(
+            owner = this,
+            snapshot = ::deviceLabSnapshot,
+            setP2pEnabled = ::setP2pEnabled
+        )
+    }
 
     suspend fun start() {
         stop()
@@ -146,8 +156,28 @@ class PlaybackSessionCoordinator(
     }
 
     fun release() {
+        DeviceLabDiagnostics.unregister(this)
         stop()
         playerHolder.release()
+    }
+
+    private fun deviceLabSnapshot(): DeviceLabSnapshot {
+        val current = scheduler.stats()
+        return DeviceLabSnapshot(
+            capturedAtElapsedRealtimeMs = SystemClock.elapsedRealtime(),
+            channelId = channelId,
+            p2pEnabled = p2pEnabled,
+            p2pDownloadAllowed = p2pDownloadAllowed,
+            uploadAllowed = uploadAllowed,
+            swarmMode = swarmMode,
+            network = networkPolicy.snapshot(),
+            activePeerLinks = current.activePeerLinks,
+            playbackStarted = playerHolder.hasStartedPlayback(),
+            rebufferCount = playerHolder.rebufferCount(),
+            bufferMs = playerHolder.bufferedDurationMs(),
+            scheduler = current,
+            ice = peerManager.iceTelemetrySnapshot()
+        )
     }
 
     private fun handleTrackerEvent(event: TrackerEvent) {

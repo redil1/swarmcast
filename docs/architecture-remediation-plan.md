@@ -102,7 +102,7 @@ Deliverables:
 
 Required ladder:
 
-1. Three physical Android devices on WiFi.
+1. At least four Play-installed physical Android devices across two WiFi failure domains and two cellular carriers, using `docs/android-device-lab.md`.
 2. Physical devices across at least two WiFi networks and two cellular carriers.
 3. One channel with 200 real WebRTC peers.
 4. Fifty channels with 2,000 peers across multiple VMs.
