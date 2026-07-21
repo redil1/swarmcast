@@ -1,4 +1,19 @@
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
+import path from "node:path";
+import {
+  GATE_ARTIFACT_REQUIREMENTS,
+  sha256LaunchArtifact,
+  validateLaunchArtifactBundle
+} from "./launch-evidence-artifact-contract.js";
+
+const RECORD_KEYS = new Set([
+  "schemaVersion", "releaseVersion", "commit", "environment", "reviewedAt", "synthetic", "artifactBundle",
+  "reviewers", "gates"
+]);
+const GATE_KEYS = new Set(["id", "owner", "status", "evidence"]);
+const WAIVED_GATE_KEYS = new Set([...GATE_KEYS, "waiver"]);
+const ARTIFACT_BUNDLE_KEYS = new Set(["path", "sha256"]);
+const REVIEWER_KEYS = new Set(["role", "reviewerId", "status", "reviewedAt"]);
 
 const expectedImageScanEvidence = [
   "var/scans/segment-bus.trivy.json",
@@ -289,6 +304,89 @@ function cleanString(name, value, pattern) {
   return value.trim();
 }
 
+function exactObject(name, value, keys) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) fail(`${name} must be an object`);
+  const actual = Object.keys(value);
+  if (actual.length !== keys.size || actual.some((key) => !keys.has(key))) {
+    fail(`${name} has unsupported or missing fields`);
+  }
+  return value;
+}
+
+function loadArtifactBundle(record) {
+  exactObject("artifactBundle", record.artifactBundle, ARTIFACT_BUNDLE_KEYS);
+  const relativePath = cleanString("artifactBundle.path", record.artifactBundle.path, /^[A-Za-z0-9._/-]+\.json$/);
+  if (path.isAbsolute(relativePath) || relativePath.split("/").includes("..")) {
+    fail("artifactBundle.path must be repository-root relative without traversal");
+  }
+  if (!record.synthetic && relativePath.startsWith("test-fixtures/")) {
+    fail("non-synthetic launch evidence cannot use a test fixture artifact bundle");
+  }
+  const expectedHash = cleanString("artifactBundle.sha256", record.artifactBundle.sha256, /^[a-f0-9]{64}$/);
+  const root = realpathSync(path.resolve(process.cwd()));
+  const resolvedPath = path.resolve(root, relativePath);
+  if (resolvedPath !== root && !resolvedPath.startsWith(`${root}${path.sep}`)) fail("artifactBundle.path escapes the repository root");
+  let stat;
+  try {
+    stat = lstatSync(resolvedPath);
+  } catch (error) {
+    fail(`artifact bundle is unavailable: ${error.message}`);
+  }
+  if (!stat.isFile() || stat.isSymbolicLink()) fail("artifact bundle must be a regular non-symlink file");
+  if (stat.size <= 0 || stat.size > 4 * 1024 * 1024) fail("artifact bundle has invalid size");
+  const realRoot = root;
+  const realBundlePath = realpathSync(resolvedPath);
+  if (realBundlePath !== resolvedPath || (realBundlePath !== realRoot && !realBundlePath.startsWith(`${realRoot}${path.sep}`))) {
+    fail("artifactBundle.path must not traverse symlinks or escape the repository root");
+  }
+  if (!record.synthetic && (stat.mode & 0o777) !== 0o600) fail("non-synthetic artifact bundle must use mode 0600");
+  if (sha256LaunchArtifact(resolvedPath) !== expectedHash) fail("artifact bundle SHA-256 mismatch");
+  let bundle;
+  try {
+    bundle = JSON.parse(readFileSync(resolvedPath, "utf8"));
+  } catch (error) {
+    fail(`artifact bundle is invalid JSON: ${error.message}`);
+  }
+  try {
+    const result = validateLaunchArtifactBundle(bundle, record, {
+      allowSynthetic,
+      rootDirectory: root,
+      executeValidators: true
+    });
+    if (sha256LaunchArtifact(resolvedPath) !== expectedHash) fail("artifact bundle changed during validation");
+    return result;
+  } catch (error) {
+    fail(`artifact bundle validation failed: ${error.message}`);
+  }
+}
+
+function validateReviewers(record, bundleResult) {
+  if (!Array.isArray(record.reviewers) || record.reviewers.length !== 3) {
+    fail("reviewers must contain release, operations, and security approvals");
+  }
+  const roles = new Set();
+  const identities = new Set();
+  const bundleGeneratedAt = Date.parse(bundleResult.generatedAt);
+  const launchReviewedAt = Date.parse(record.reviewedAt);
+  for (const [index, reviewer] of record.reviewers.entries()) {
+    const name = `reviewers[${index}]`;
+    exactObject(name, reviewer, REVIEWER_KEYS);
+    const role = cleanString(`${name}.role`, reviewer.role, /^(release|operations|security)$/);
+    const reviewerId = cleanString(`${name}.reviewerId`, reviewer.reviewerId, /^[a-z0-9][a-z0-9._-]*$/);
+    cleanString(`${name}.status`, reviewer.status, /^approved$/);
+    const reviewedAt = Date.parse(cleanString(`${name}.reviewedAt`, reviewer.reviewedAt));
+    if (!Number.isFinite(reviewedAt) || reviewedAt < bundleGeneratedAt || reviewedAt > launchReviewedAt) {
+      fail(`${name}.reviewedAt must be between artifact generation and final launch review`);
+    }
+    if (roles.has(role) || identities.has(reviewerId)) fail("reviewer roles and identities must be distinct");
+    roles.add(role);
+    identities.add(reviewerId);
+  }
+  if (!["release", "operations", "security"].every((role) => roles.has(role))) {
+    fail("reviewers must include release, operations, and security");
+  }
+}
+
 function validateWaiver(gate, required) {
   if (required.waivable === false) fail(`${gate.id} cannot be waived`);
   if (!gate.waiver || typeof gate.waiver !== "object") fail(`${gate.id} waiver details are required`);
@@ -319,6 +417,9 @@ function validateEvidence(gate, required) {
 }
 
 function validateRecord(record, file) {
+  exactObject("launch evidence", record, RECORD_KEYS);
+  if (record.schemaVersion !== 2) fail("schemaVersion must equal 2");
+  if (typeof record.synthetic !== "boolean") fail("synthetic must be a boolean");
   cleanString("releaseVersion", record.releaseVersion, /^v?[0-9A-Za-z][0-9A-Za-z._-]*$/);
   cleanString("commit", record.commit, /^[a-fA-F0-9]{7,40}$/);
   cleanString("environment", record.environment, /^(staging|production)$/);
@@ -334,13 +435,17 @@ function validateRecord(record, file) {
   if (!Array.isArray(record.gates)) fail("gates must be an array");
 
   const byId = new Map();
-  for (const gate of record.gates) {
+  for (const [index, gate] of record.gates.entries()) {
+    if (!gate || typeof gate !== "object" || Array.isArray(gate)) fail(`gates[${index}] must be an object`);
     const id = cleanString("gate.id", gate.id, /^[a-z0-9-]+$/);
+    if (!GATE_ARTIFACT_REQUIREMENTS.has(id)) fail(`unexpected gate ${id}`);
     if (byId.has(id)) fail(`duplicate gate ${id}`);
-    byId.set(id, gate);
+    exactObject(id, gate, gate.status === "waived" ? WAIVED_GATE_KEYS : GATE_KEYS);
     cleanString(`${id}.owner`, gate.owner);
     if (!validStatuses.has(gate.status)) fail(`${id}.status must be complete, blocked, partial, or waived`);
+    byId.set(id, gate);
   }
+  if (byId.size !== requiredGates.length) fail(`gates must contain exactly ${requiredGates.length} launch gates`);
 
   const incomplete = [];
   for (const required of requiredGates) {
@@ -359,8 +464,10 @@ function validateRecord(record, file) {
     }
   }
 
+  const bundleResult = loadArtifactBundle(record);
+  validateReviewers(record, bundleResult);
   const mode = incomplete.length === 0 ? (record.synthetic ? "synthetic-shape-ready" : "launch-ready") : `shape-only incomplete=${incomplete.length}`;
-  return `${file}: Launch evidence OK: ${requiredGates.length} gates, status=${mode}`;
+  return `${file}: Launch evidence OK: ${requiredGates.length} gates, artifacts=${bundleResult.artifactCount}, validators=${bundleResult.validatorCount}, status=${mode}`;
 }
 
 if (files.length === 0) {

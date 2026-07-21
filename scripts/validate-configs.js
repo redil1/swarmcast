@@ -436,11 +436,12 @@ for (const file of jsonFiles) {
 if (failed) process.exit(1);
 const packageText = readFileSync("package.json", "utf8");
 for (const required of [
-  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-device-lab.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-segment-bus-capacity-probe.js && node scripts/smoke-segment-bus-capacity-evidence-validation.js && node scripts/smoke-load-ladder-probe.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
+  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-device-lab.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-segment-bus-capacity-probe.js && node scripts/smoke-segment-bus-capacity-evidence-validation.js && node scripts/smoke-load-ladder-probe.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-artifact-bundle-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
   "\"smoke:compose-production-env\": \"node scripts/smoke-compose-production-env.js\"",
   "\"smoke:production-env-validation\": \"node scripts/smoke-production-env-validation.js\"",
   "\"smoke:release-images-validation\": \"node scripts/smoke-release-images-validation.js\"",
   "\"smoke:launch-evidence-validation\": \"node scripts/smoke-launch-evidence-validation.js\"",
+  "\"smoke:launch-artifact-bundle-validation\": \"node scripts/smoke-launch-artifact-bundle-validation.js\"",
   "\"smoke:image-scan-bundle-validation\": \"node scripts/smoke-image-scan-bundle-validation.js\"",
   "\"smoke:image-scan-report-validation\": \"node scripts/smoke-image-scan-report-validation.js\"",
   "\"smoke:deployment-evidence-validation\": \"node scripts/smoke-deployment-evidence-validation.js\"",
@@ -486,6 +487,7 @@ for (const required of [
   "\"grafana:dashboard:validate\": \"node scripts/validate-grafana-dashboard.js\"",
   "\"sbom:generate\": \"node scripts/generate-sbom.js\"",
   "\"launch:evidence:validate\": \"node scripts/validate-launch-evidence.js\"",
+  "\"launch:artifacts:generate\": \"node scripts/generate-launch-artifact-bundle.js\"",
   "\"legal:approval:validate\": \"node scripts/validate-legal-approval.js\"",
   "\"privacy:store:validate\": \"node scripts/validate-privacy-store-compliance.js\"",
   "\"production:smoke:evidence:validate\": \"node scripts/validate-production-smoke-evidence.js\"",
@@ -1215,7 +1217,7 @@ for (const check of [
   },
   {
     file: "package.json",
-    required: ["alertmanager:fire-drill:validate", "alertmanager:receivers:validate", "android:accessibility:validate", "android:attestation:evidence:validate", "android:ci:evidence:validate", "android:p2p:evidence:validate", "android:playback:evidence:validate", "android:rlnc:decision:validate", "canary:metrics:validate", "canary:rollout:evidence:validate", "capacity:plan:validate", "catalog:import:validate", "chaos:staging:validate", "dependency:review:validate", "deployment:evidence:validate", "edge:metrics", "env:production:validate", "evidence:committed:validate", "grafana:dashboard:validate", "host:provisioning:evidence:validate", "image:scan:bundle:validate", "launch:evidence:validate", "legal:approval:validate", "load:ladder:validate", "nginx:tls:evidence:validate", "privacy:store:validate", "production:smoke:evidence:validate", "prometheus:alerts:validate", "restore:evidence:validate", "rollback:evidence:validate", "retention:approval:validate", "retention:execution:evidence:validate", "secrets:evidence:validate", "security:review:validate", "smoke:alertmanager-fire-drill-validation", "smoke:alertmanager-receivers-validation", "smoke:alertmanager-routing", "smoke:android-accessibility-evidence-validation", "smoke:android-attestation-evidence-validation", "smoke:android-ci-evidence-validation", "smoke:android-p2p-evidence-validation", "smoke:android-playback-evidence-validation", "smoke:android-rlnc-decision-validation", "smoke:canary-metrics-validation", "smoke:canary-rollout-evidence-validation", "smoke:capacity-plan-validation", "smoke:catalog-import-validation", "smoke:catalog-source-preflight", "smoke:catalog-sqlite", "smoke:catalog-sqlite-20k", "smoke:compose-production-env", "smoke:control-plane-placement-restart", "smoke:control-plane-placement-sqlite", "smoke:dependency-review-validation", "smoke:deployment-evidence-validation", "smoke:edge-cache-metrics", "smoke:edge-cache-metrics-server", "smoke:headless-super-peer-sweep", "smoke:host-provisioning-evidence-validation", "smoke:image-scan-bundle-validation", "smoke:image-scan-report-validation", "smoke:ingest-demand-playlist", "smoke:ingest-ffmpeg-chaos", "smoke:ingest-tail-admission", "smoke:ingest-tail-downscale", "smoke:launch-evidence-validation", "smoke:legal-approval-validation", "smoke:load-ladder-evidence-validation", "smoke:multi-ingest-routing", "smoke:nginx-edge-cache", "smoke:nginx-origin-playback", "smoke:nginx-tls-evidence-validation", "smoke:placement-movement", "smoke:privacy-store-compliance-validation", "smoke:production-env-validation", "smoke:production-smoke-evidence-validation", "smoke:prometheus-alerts-validation", "smoke:grafana-dashboard-validation", "smoke:release-images-validation", "smoke:release-manifest-production", "smoke:restore-evidence-validation", "smoke:retention-approval-validation", "smoke:retention-execute", "smoke:retention-execution-evidence-validation", "smoke:retention-http-store", "smoke:retention-redaction", "smoke:rollback-evidence-validation", "smoke:secrets-evidence-validation", "smoke:security-review-validation", "smoke:service-lifecycle-containers", "smoke:source-allowlist-evidence-validation", "smoke:source-policy", "smoke:sqlite-backup-restore", "smoke:staging-chaos-evidence-validation", "smoke:threat-model-review-validation", "smoke:tracker-load", "smoke:tracker-sharding", "smoke:tracker-ws", "smoke:tracker-ws-cells-1k", "smoke:tracker-ws-load", "smoke:tracker-ws-multichannel", "smoke:tracker-ws-restart", "source:allowlist:evidence:validate", "source:preflight", "threat:model:validate"]
+    required: ["alertmanager:fire-drill:validate", "alertmanager:receivers:validate", "android:accessibility:validate", "android:attestation:evidence:validate", "android:ci:evidence:validate", "android:p2p:evidence:validate", "android:playback:evidence:validate", "android:rlnc:decision:validate", "canary:metrics:validate", "canary:rollout:evidence:validate", "capacity:plan:validate", "catalog:import:validate", "chaos:staging:validate", "dependency:review:validate", "deployment:evidence:validate", "edge:metrics", "env:production:validate", "evidence:committed:validate", "grafana:dashboard:validate", "host:provisioning:evidence:validate", "image:scan:bundle:validate", "launch:artifacts:generate", "launch:evidence:validate", "legal:approval:validate", "load:ladder:validate", "nginx:tls:evidence:validate", "privacy:store:validate", "production:smoke:evidence:validate", "prometheus:alerts:validate", "restore:evidence:validate", "rollback:evidence:validate", "retention:approval:validate", "retention:execution:evidence:validate", "secrets:evidence:validate", "security:review:validate", "smoke:alertmanager-fire-drill-validation", "smoke:alertmanager-receivers-validation", "smoke:alertmanager-routing", "smoke:android-accessibility-evidence-validation", "smoke:android-attestation-evidence-validation", "smoke:android-ci-evidence-validation", "smoke:android-p2p-evidence-validation", "smoke:android-playback-evidence-validation", "smoke:android-rlnc-decision-validation", "smoke:canary-metrics-validation", "smoke:canary-rollout-evidence-validation", "smoke:capacity-plan-validation", "smoke:catalog-import-validation", "smoke:catalog-source-preflight", "smoke:catalog-sqlite", "smoke:catalog-sqlite-20k", "smoke:compose-production-env", "smoke:control-plane-placement-restart", "smoke:control-plane-placement-sqlite", "smoke:dependency-review-validation", "smoke:deployment-evidence-validation", "smoke:edge-cache-metrics", "smoke:edge-cache-metrics-server", "smoke:headless-super-peer-sweep", "smoke:host-provisioning-evidence-validation", "smoke:image-scan-bundle-validation", "smoke:image-scan-report-validation", "smoke:ingest-demand-playlist", "smoke:ingest-ffmpeg-chaos", "smoke:ingest-tail-admission", "smoke:ingest-tail-downscale", "smoke:launch-artifact-bundle-validation", "smoke:launch-evidence-validation", "smoke:legal-approval-validation", "smoke:load-ladder-evidence-validation", "smoke:multi-ingest-routing", "smoke:nginx-edge-cache", "smoke:nginx-origin-playback", "smoke:nginx-tls-evidence-validation", "smoke:placement-movement", "smoke:privacy-store-compliance-validation", "smoke:production-env-validation", "smoke:production-smoke-evidence-validation", "smoke:prometheus-alerts-validation", "smoke:grafana-dashboard-validation", "smoke:release-images-validation", "smoke:release-manifest-production", "smoke:restore-evidence-validation", "smoke:retention-approval-validation", "smoke:retention-execute", "smoke:retention-execution-evidence-validation", "smoke:retention-http-store", "smoke:retention-redaction", "smoke:rollback-evidence-validation", "smoke:secrets-evidence-validation", "smoke:security-review-validation", "smoke:service-lifecycle-containers", "smoke:source-allowlist-evidence-validation", "smoke:source-policy", "smoke:sqlite-backup-restore", "smoke:staging-chaos-evidence-validation", "smoke:threat-model-review-validation", "smoke:tracker-load", "smoke:tracker-sharding", "smoke:tracker-ws", "smoke:tracker-ws-cells-1k", "smoke:tracker-ws-load", "smoke:tracker-ws-multichannel", "smoke:tracker-ws-restart", "source:allowlist:evidence:validate", "source:preflight", "threat:model:validate"]
   },
   {
     file: "package.json",
@@ -1928,6 +1930,9 @@ for (const required of [
   "Chaos drills",
   "Go/No-Go Record",
   "Machine-Readable Launch Evidence",
+  "docs/launch-artifact-bundle.md",
+  "exact 52-artifact inventory",
+  "distinct release, operations, and security approvals",
   "npm run launch:evidence:validate -- path/to/launch-evidence.json",
   "The validator requires every hard blocker to be present, owned, complete, and backed by evidence. It fails by default when any gate is `blocked`, `partial`, or `waived`; use `--allow-incomplete` only for rehearsal or shape checks before the final go/no-go review",
   "`release-artifacts`",
@@ -1952,6 +1957,25 @@ for (const required of [
 ]) {
   if (!readinessText.includes(required)) {
     console.error(`docs/launch-readiness.md: missing launch readiness gate: ${required}`);
+    failed = true;
+  }
+}
+
+if (failed) process.exit(1);
+const launchArtifactBundleDocText = readFileSync("docs/launch-artifact-bundle.md", "utf8");
+for (const required of [
+  "all 34 launch gates with exactly 52 artifacts",
+  "38 fixed validation groups",
+  "one unique repository-relative path per artifact ID",
+  "no `test-fixtures/` paths in a production bundle",
+  "npm run launch:artifacts:generate",
+  "mode `0600` and exclusive-create semantics",
+  "Three distinct people must approve",
+  "npm run launch:evidence:validate",
+  "prohibited for production approval"
+]) {
+  if (!launchArtifactBundleDocText.includes(required)) {
+    console.error(`docs/launch-artifact-bundle.md: missing launch artifact bundle text: ${required}`);
     failed = true;
   }
 }
@@ -2646,6 +2670,13 @@ for (const required of [
   "--allow-incomplete",
   "--allow-synthetic",
   "sensitiveEvidencePatterns",
+  "schemaVersion must equal 2",
+  "synthetic must be a boolean",
+  "artifact bundle SHA-256 mismatch",
+  "non-synthetic artifact bundle must use mode 0600",
+  "validateLaunchArtifactBundle",
+  "reviewers must include release, operations, and security",
+  "reviewer roles and identities must be distinct",
   "Launch evidence OK"
 ]) {
   if (!launchEvidenceScriptText.includes(required)) {
@@ -2654,10 +2685,75 @@ for (const required of [
   }
 }
 
+const launchArtifactContractText = readFileSync("scripts/launch-evidence-artifact-contract.js", "utf8");
+for (const required of [
+  "GATE_ARTIFACT_REQUIREMENTS",
+  "artifact bundle synthetic must be a boolean",
+  "VALIDATIONS",
+  "fixedEnvironment",
+  "regular non-symlink file",
+  "assigned to more than one artifact",
+  "artifact SHA-256 mismatch",
+  "artifact changed during validation",
+  "must not traverse symlinks or escape the repository root",
+  "cannot come from test-fixtures",
+  "fixed validator inventory",
+  "spawnSync(process.execPath",
+  "HOME\", \"PATH\", \"TMPDIR",
+  "executeValidators"
+]) {
+  if (!launchArtifactContractText.includes(required)) {
+    console.error(`scripts/launch-evidence-artifact-contract.js: missing launch artifact contract text: ${required}`);
+    failed = true;
+  }
+}
+
+const launchArtifactGeneratorText = readFileSync("scripts/generate-launch-artifact-bundle.js", "utf8");
+for (const required of [
+  "--inventory",
+  "inventory synthetic must be a boolean",
+  "--output",
+  "exact ${expectedArtifactIds.size}-artifact set",
+  "validateLaunchArtifactBundle",
+  "flag: \"wx\"",
+  "mode: 0o600"
+]) {
+  if (!launchArtifactGeneratorText.includes(required)) {
+    console.error(`scripts/generate-launch-artifact-bundle.js: missing launch artifact generator text: ${required}`);
+    failed = true;
+  }
+}
+
+const launchArtifactSmokeText = readFileSync("scripts/smoke-launch-artifact-bundle-validation.js", "utf8");
+for (const required of [
+  "artifact hash mismatch",
+  "artifact path traversal",
+  "artifact command injection",
+  "non-boolean bundle synthetic mode",
+  "aliased artifact path",
+  "symlink artifact",
+  "symlinked artifact parent",
+  "--definitely-invalid-node-option",
+  "bundle generator must not overwrite",
+  "bundle generator must reject a symlinked output parent",
+  "launch artifact bundle validation smoke OK"
+]) {
+  if (!launchArtifactSmokeText.includes(required)) {
+    console.error(`scripts/smoke-launch-artifact-bundle-validation.js: missing launch artifact smoke text: ${required}`);
+    failed = true;
+  }
+}
+
 const launchEvidenceFixtureText = readFileSync("test-fixtures/launch/evidence-complete.synthetic.json", "utf8");
 for (const required of [
+  "\"schemaVersion\": 2",
   "\"synthetic\": true",
   "\"environment\": \"staging\"",
+  "\"artifactBundle\"",
+  "evidence-artifacts.complete.synthetic.json",
+  "\"role\": \"release\"",
+  "\"role\": \"operations\"",
+  "\"role\": \"security\"",
   "\"legal-approval\"",
   "legal:approval:validate",
   "redistribution-rights",
@@ -3849,6 +3945,8 @@ for (const required of [
   "T-004",
   "T-010",
   "T-015",
+  "T-018",
+  "Launch evidence to approval board",
   "P2P toggle is switched off mid-session",
   "npm run threat:model:validate -- path/to/threat-model-review.json",
   "npm run smoke:threat-model-review-validation",
@@ -3866,6 +3964,7 @@ const threatModelReviewScriptText = readFileSync("scripts/validate-threat-model-
 for (const required of [
   "requiredAreas",
   "requiredThreats",
+  "T-018",
   "requiredOpenGates",
   "requiredSignoffRoles",
   "missing required threat",
@@ -3884,6 +3983,7 @@ for (const required of [
   "\"modelRevision\": \"docs/threat-model.md#review-date-2026-07-05\"",
   "\"id\": \"T-001\"",
   "\"id\": \"T-015\"",
+  "\"id\": \"T-018\"",
   "\"id\": \"android-rlnc-library\"",
   "\"role\": \"security\"",
   "\"role\": \"operations\"",

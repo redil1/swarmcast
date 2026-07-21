@@ -1,9 +1,34 @@
 {
+  "schemaVersion": 2,
   "releaseVersion": "v0.1.0-rc1",
   "commit": "0123456789abcdef0123456789abcdef01234567",
   "environment": "staging",
   "reviewedAt": "2026-07-05T00:00:00.000Z",
   "synthetic": true,
+  "artifactBundle": {
+    "path": "test-fixtures/launch/evidence-artifacts.complete.synthetic.json",
+    "sha256": "5e555797e8612db2c85394635b3a290217eedfc28446effede4cd4a3ece633b8"
+  },
+  "reviewers": [
+    {
+      "role": "release",
+      "reviewerId": "synthetic-release-reviewer",
+      "status": "approved",
+      "reviewedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "operations",
+      "reviewerId": "synthetic-operations-reviewer",
+      "status": "approved",
+      "reviewedAt": "2026-07-05T00:00:00.000Z"
+    },
+    {
+      "role": "security",
+      "reviewerId": "synthetic-security-reviewer",
+      "status": "approved",
+      "reviewedAt": "2026-07-05T00:00:00.000Z"
+    }
+  ],
   "gates": [
     {
       "id": "legal-approval",
