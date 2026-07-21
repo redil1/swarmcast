@@ -481,6 +481,7 @@ test("stats accumulates peer counters", async () => {
       peer_timeouts: 2,
       hash_failures: 1,
       peer_disconnects: 1,
+      tracker_join_timeouts: 2,
       ice_attempts: 4,
       ice_successes: 3,
       ice_failures: 1,
@@ -500,6 +501,7 @@ test("stats accumulates peer counters", async () => {
   assert.equal(peer.peerTimeouts, 2);
   assert.equal(peer.peerHashFailures, 1);
   assert.equal(peer.peerDisconnects, 1);
+  assert.equal(peer.trackerJoinTimeouts, 2);
   assert.equal(peer.startupLatencyMsTotal, 1350);
   assert.equal(peer.startupLatencySamples, 1);
   assert.equal(peer.bufferMsLast, 31000);

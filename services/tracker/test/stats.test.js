@@ -26,6 +26,7 @@ test("aggregatePeerStats computes offload and peer fractions", () => {
       peerTimeouts: 2,
       peerHashFailures: 1,
       peerDisconnects: 1,
+      trackerJoinTimeouts: 2,
       startupLatencyMsTotal: 1200,
       startupLatencySamples: 1,
       bufferMsLast: 32000
@@ -42,6 +43,7 @@ test("aggregatePeerStats computes offload and peer fractions", () => {
       peerTimeouts: 3,
       peerHashFailures: 0,
       peerDisconnects: 0,
+      trackerJoinTimeouts: 1,
       startupLatencyMsTotal: 800,
       startupLatencySamples: 1,
       bufferMsLast: 12000
@@ -58,6 +60,7 @@ test("aggregatePeerStats computes offload and peer fractions", () => {
   assert.equal(stats.peerTimeouts, 5);
   assert.equal(stats.peerHashFailures, 1);
   assert.equal(stats.peerDisconnects, 1);
+  assert.equal(stats.trackerJoinTimeouts, 3);
   assert.equal(stats.stallRate, 0.5);
   assert.equal(stats.offloadRatio, 100 / 220);
   assert.equal(stats.wifiFraction, 0.5);
@@ -80,11 +83,12 @@ test("recordPeerStats keeps cumulative counters, playback quality, and rolling w
     stalls: 0,
     peerTimeouts: 0,
     peerHashFailures: 0,
-    peerDisconnects: 0
+    peerDisconnects: 0,
+    trackerJoinTimeouts: 0
   };
 
-  recordPeerStats(peer, { dl_p2p: 100, dl_edge: 0, dl_bootstrap_origin: 20, dl_relay: 0, ul: 25, stalls: 0, peer_timeouts: 2, hash_failures: 1, peer_disconnects: 0, startup_ms: 1200, buffer_ms: 45000 }, 0, 5000);
-  recordPeerStats(peer, { dl_p2p: 0, dl_edge: 100, dl_bootstrap_origin: 0, dl_relay: 10, ul: 10, stalls: 1, peer_timeouts: 1, hash_failures: 0, peer_disconnects: 1, startup_ms: 800, buffer_ms: 20000 }, 6000, 5000);
+  recordPeerStats(peer, { dl_p2p: 100, dl_edge: 0, dl_bootstrap_origin: 20, dl_relay: 0, ul: 25, stalls: 0, peer_timeouts: 2, hash_failures: 1, peer_disconnects: 0, tracker_join_timeouts: 2, startup_ms: 1200, buffer_ms: 45000 }, 0, 5000);
+  recordPeerStats(peer, { dl_p2p: 0, dl_edge: 100, dl_bootstrap_origin: 0, dl_relay: 10, ul: 10, stalls: 1, peer_timeouts: 1, hash_failures: 0, peer_disconnects: 1, tracker_join_timeouts: 1, startup_ms: 800, buffer_ms: 20000 }, 6000, 5000);
 
   assert.equal(peer.bytesDownP2p, 100);
   assert.equal(peer.bytesDownEdge, 100);
@@ -95,6 +99,7 @@ test("recordPeerStats keeps cumulative counters, playback quality, and rolling w
   assert.equal(peer.peerTimeouts, 3);
   assert.equal(peer.peerHashFailures, 1);
   assert.equal(peer.peerDisconnects, 1);
+  assert.equal(peer.trackerJoinTimeouts, 3);
   assert.equal(peer.startupLatencyMsTotal, 2000);
   assert.equal(peer.startupLatencySamples, 2);
   assert.equal(peer.startupLatencyMsLast, 800);
@@ -109,6 +114,7 @@ test("recordPeerStats keeps cumulative counters, playback quality, and rolling w
   assert.equal(rolling.peerTimeouts, 1);
   assert.equal(rolling.peerHashFailures, 0);
   assert.equal(rolling.peerDisconnects, 1);
+  assert.equal(rolling.trackerJoinTimeouts, 1);
   assert.equal(rolling.stallRate, 1);
   assert.equal(rolling.offloadRatio, 0);
   assert.equal(rolling.startupLatencyMsAvg, 800);
@@ -134,6 +140,7 @@ test("incremental tracker stats preserve counters after disconnect without scann
     peerTimeouts: 1,
     peerHashFailures: 0,
     peerDisconnects: 0,
+    trackerJoinTimeouts: 1,
     startupLatencyMs: 1000,
     bufferMs: 30000
   }, 0);
@@ -148,6 +155,7 @@ test("incremental tracker stats preserve counters after disconnect without scann
     peerTimeouts: 0,
     peerHashFailures: 1,
     peerDisconnects: 1,
+    trackerJoinTimeouts: 2,
     iceAttempts: 3,
     iceSuccesses: 2,
     iceFailures: 1,
@@ -168,9 +176,11 @@ test("incremental tracker stats preserve counters after disconnect without scann
   assert.equal(cumulative.iceAttempts, 3);
   assert.equal(cumulative.iceSuccesses, 2);
   assert.equal(cumulative.iceFailures, 1);
+  assert.equal(cumulative.trackerJoinTimeouts, 3);
   assert.equal(cumulative.iceByNetwork.cellular.iceCandidateSrflx, 2);
   assert.equal(rolling.dlP2p, 100);
   assert.equal(rolling.dlEdge, 900);
   assert.equal(rolling.dlRelay, 100);
+  assert.equal(rolling.trackerJoinTimeouts, 2);
   assert.equal(rolling.bufferMsMin, 10000);
 });

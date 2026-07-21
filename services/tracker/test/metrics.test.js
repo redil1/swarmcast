@@ -15,6 +15,7 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     peerTimeouts: 2,
     peerHashFailures: 1,
     peerDisconnects: 1,
+    trackerJoinTimeouts: 2,
     offloadRatio: 2 / 3,
     startupLatencyMsAvg: 1250,
     startupLatencySamples: 2,
@@ -29,6 +30,7 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     rollingPeerTimeouts: 1,
     rollingPeerHashFailures: 1,
     rollingPeerDisconnects: 1,
+    rollingTrackerJoinTimeouts: 1,
     rollingStartupLatencyMsAvg: 900,
     rollingBufferMsAvg: 28000,
     rollingBufferMsMin: 15000,
@@ -65,6 +67,8 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
   assert.match(text, /swarmcast_tracker_peer_timeouts_total 2/);
   assert.match(text, /swarmcast_tracker_peer_hash_failures_total 1/);
   assert.match(text, /swarmcast_tracker_peer_disconnects_5m 1/);
+  assert.match(text, /swarmcast_tracker_join_timeouts_total 2/);
+  assert.match(text, /swarmcast_tracker_join_timeouts_5m 1/);
   assert.match(text, /swarmcast_tracker_stall_rate_5m 0\.01/);
   assert.match(text, /swarmcast_tracker_startup_latency_ms_avg 1250/);
   assert.match(text, /swarmcast_tracker_startup_latency_ms_avg_5m 900/);

@@ -898,7 +898,7 @@ for (const check of [
   },
   {
     file: "services/tracker/src/metrics.js",
-    required: ["swarmcast_tracker_stall_rate_5m", "swarmcast_tracker_startup_latency_ms_avg_5m", "swarmcast_tracker_buffer_ms_min_5m", "swarmcast_tracker_playback_stalls_total", "swarmcast_tracker_peer_timeouts_total", "swarmcast_tracker_peer_hash_failures_total", "swarmcast_tracker_peer_disconnects_total"]
+    required: ["swarmcast_tracker_stall_rate_5m", "swarmcast_tracker_startup_latency_ms_avg_5m", "swarmcast_tracker_buffer_ms_min_5m", "swarmcast_tracker_playback_stalls_total", "swarmcast_tracker_peer_timeouts_total", "swarmcast_tracker_peer_hash_failures_total", "swarmcast_tracker_peer_disconnects_total", "swarmcast_tracker_join_timeouts_total", "swarmcast_tracker_join_timeouts_5m"]
   },
   {
     file: "services/tracker/src/segments.js",
@@ -1206,6 +1206,7 @@ for (const alertName of [
   "SwarmcastPeerHashFailures",
   "SwarmcastPeerDisconnectSpike",
   "SwarmcastPeerTimeoutSpike",
+  "SwarmcastTrackerJoinTimeoutSpike",
   "SwarmcastHighPlaybackStallRate",
   "SwarmcastHighStartupLatency",
   "SwarmcastLowPlaybackBuffer",
@@ -1242,6 +1243,7 @@ for (const required of [
   "increase(swarmcast_tracker_peer_hash_failures_total[5m]) > 0",
   "increase(swarmcast_tracker_peer_disconnects_total[10m]) > 5",
   "increase(swarmcast_tracker_peer_timeouts_total[5m]) > 50",
+  "increase(swarmcast_tracker_join_timeouts_total[5m]) / clamp_min(swarmcast_tracker_peers, 1) > 0.01",
   "swarmcast_ingest_segment_age_seconds > 30",
   "rate(swarmcast_edge_egress_bytes_total[5m]) > 200000000",
   "rate(swarmcast_edge_origin_fill_bytes_total[5m]) > 50000000",
@@ -1423,6 +1425,7 @@ for (const metric of [
   "swarmcast_tracker_peer_timeouts_5m",
   "swarmcast_tracker_peer_hash_failures_5m",
   "swarmcast_tracker_peer_disconnects_5m",
+  "swarmcast_tracker_join_timeouts_5m",
   "swarmcast_ingest_segment_age_seconds",
   "swarmcast_edge_cache_hit_ratio",
   "swarmcast_edge_egress_bytes_total",
@@ -4243,6 +4246,7 @@ for (const required of [
   "test-fixtures/android/playback-delivery-fleet-complete.synthetic.json",
   "Android P2P transfer evidence must include WebRTC DataChannel, tracker-signaling relay, verified segment hashes, edge fallback, P2P-disable closure, cellular receive-only/no-upload proof, and reconciled ICE attempts/outcomes/selected candidate types for WiFi and cellular",
   "Tracker joins have a 10-second acknowledgement watchdog",
+  "Tracker byte, playback, peer-health, and ICE deltas are retained",
   "npm run android:p2p:evidence:validate -- path/to/android-p2p-evidence.json",
   "npm run smoke:android-p2p-evidence-validation",
   "test-fixtures/android/p2p-transfer-complete.synthetic.json"
@@ -5006,11 +5010,6 @@ const androidTextChecks = [
       "TrackerEvent.Joined",
       "TrackerEvent.Segment",
       "fun reportStats",
-      "startup_ms",
-      "buffer_ms",
-      "peer_timeouts",
-      "hash_failures",
-      "peer_disconnects",
       "TrackerEvent.Redirect",
       "assignmentKey",
       "cellId",
@@ -5019,11 +5018,27 @@ const androidTextChecks = [
       "DEFAULT_JOIN_ACK_TIMEOUT_MS",
       "armJoinAckWatchdog",
       "cancelJoinAckWatchdog",
+      "TrackerStatsBuffer",
+      "flushPendingStatsLocked",
       "scheduleReconnect()",
       "openWebSocket(targetWsUrl",
       "fun requestPeers",
       "fun signal",
       "ErrorCodes.CONFIG_INVALID"
+    ]
+  },
+  {
+    file: "android/app/src/main/java/tv/swarmcast/p2p/TrackerStatsBuffer.kt",
+    required: [
+      "saturatedAdd",
+      "incrementJoinTimeout",
+      "startup_ms",
+      "buffer_ms",
+      "peer_timeouts",
+      "hash_failures",
+      "peer_disconnects",
+      "tracker_join_timeouts",
+      "ice_attempts"
     ]
   },
   {
