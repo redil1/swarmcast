@@ -24,6 +24,9 @@ The plan converts measured launch inputs into owned infrastructure counts:
 - `helperUploadPacketsPerSegment` records the helper upload budget used for that sweep.
 - `superPeerSweepEvidence` points to the sanitized load-ladder evidence for the sweep.
 - `edgeCacheHitRatio` estimates origin fill from edge misses.
+- `segmentDurationSeconds` converts peak active channels into projected segment publications per second.
+- `segmentBusTargetMessagesPerSecond` must cover `ceil(activeChannelsPeak / segmentDurationSeconds)` plus `headroomRatio`; the current target is 325 messages per second.
+- `segmentBusCapacityMeasurementStatus` and `segmentBusCapacityEvidence` remain pending until the three-failure-domain procedure in `docs/segment-bus-capacity.md` produces approved, hash-bound non-synthetic evidence.
 - `edgeNodeLinkCapacityMbps * edgeNodeSustainedUtilizationRatio` caps the capacity that may be credited to one host.
 - `edgeNodeCapacityMeasurementStatus` and `edgeNodeCapacityEvidence` require a sustained TLS egress test before launch.
 - `providerTrafficTermsApproved` and `providerTrafficTermsEvidence` prevent an unreviewed traffic allowance or billing assumption from closing launch readiness.
@@ -36,4 +39,4 @@ The draft uses the corrected model `rho=0.85`, a conservative 800 Mbps allowance
 
 The required one-million-viewer sensitivity table makes the economics explicit. At 5 Mbps, 800 Mbps per edge node, and 30% headroom, it computes 82 nodes at `rho=0.99`, 813 at `rho=0.90`, 2,438 at `rho=0.70`, and 4,063 at `rho=0.50`. This table is a capacity sensitivity calculation, not proof that any `rho` is achievable.
 
-Launch remains blocked until `offloadMeasurementStatus=measured`, `directP2pOffloadRatio >= 0.90`, `edgeNodeCapacityMeasurementStatus=measured`, provider traffic terms are approved, all referenced evidence is non-synthetic, `selfSustainingSuperPeerFraction <= 0.25`, and `edgeCacheHitRatio >= 0.80`.
+Launch remains blocked until `offloadMeasurementStatus=measured`, `directP2pOffloadRatio >= 0.90`, `segmentBusCapacityMeasurementStatus=measured`, `edgeNodeCapacityMeasurementStatus=measured`, provider traffic terms are approved, all referenced evidence is non-synthetic, `selfSustainingSuperPeerFraction <= 0.25`, and `edgeCacheHitRatio >= 0.80`.

@@ -77,6 +77,10 @@ function validateCapacityPlan(file) {
   const superPeerSweepEvidence = stringField(plan, "superPeerSweepEvidence", /^[A-Za-z0-9._/-]+$/);
   const edgeCacheHitRatio = numberField(plan, "edgeCacheHitRatio", { min: 0, max: 1 });
   const activeChannelsPeak = integerField(plan, "activeChannelsPeak", { min: 1 });
+  const segmentDurationSeconds = integerField(plan, "segmentDurationSeconds", { min: 1, max: 30 });
+  const segmentBusCapacityMeasurementStatus = stringField(plan, "segmentBusCapacityMeasurementStatus", /^(pending|measured)$/);
+  const segmentBusTargetMessagesPerSecond = integerField(plan, "segmentBusTargetMessagesPerSecond", { min: 1 });
+  const segmentBusCapacityEvidence = stringField(plan, "segmentBusCapacityEvidence", /^[A-Za-z0-9._/-]+$/);
   const edgeNodeCapacityMeasurementStatus = stringField(plan, "edgeNodeCapacityMeasurementStatus", /^(conservative-assumption|measured)$/);
   const edgeNodeLinkCapacityMbps = numberField(plan, "edgeNodeLinkCapacityMbps", { min: 1 });
   const edgeNodeSustainedUtilizationRatio = numberField(plan, "edgeNodeSustainedUtilizationRatio", { min: 0.1, max: 0.9 });
@@ -87,6 +91,8 @@ function validateCapacityPlan(file) {
   const headroomRatio = numberField(plan, "headroomRatio", { min: 0.3, max: 2 });
   const plannedEdgeNodes = integerField(plan, "plannedEdgeNodes", { min: 1 });
   const plannedOriginNodes = integerField(plan, "plannedOriginNodes", { min: 1 });
+  const segmentBusProjectedMessagesPerSecond = Math.ceil(activeChannelsPeak / segmentDurationSeconds);
+  const requiredSegmentBusMessagesPerSecond = Math.ceil(segmentBusProjectedMessagesPerSecond * (1 + headroomRatio));
 
   if (plan.relayEgressIncluded !== true) fail("relayEgressIncluded must be true");
   if (edgeNodeCapacityMbps > edgeNodeLinkCapacityMbps * edgeNodeSustainedUtilizationRatio) {
@@ -96,6 +102,9 @@ function validateCapacityPlan(file) {
     fail("selfSustainingSuperPeerFraction must be at or below 0.25 before launch");
   }
   if (edgeCacheHitRatio < 0.8) fail("edgeCacheHitRatio must be at least 0.80 before launch");
+  if (segmentBusTargetMessagesPerSecond < requiredSegmentBusMessagesPerSecond) {
+    fail(`segmentBusTargetMessagesPerSecond ${segmentBusTargetMessagesPerSecond} is below required ${requiredSegmentBusMessagesPerSecond}`);
+  }
 
   if (!allowDraft) {
     if (offloadMeasurementStatus !== "measured") fail("offloadMeasurementStatus must be measured before launch");
@@ -106,6 +115,10 @@ function validateCapacityPlan(file) {
       fail("edgeNodeCapacityMeasurementStatus must be measured before launch");
     }
     requireProductionEvidence("edgeNodeCapacityEvidence", edgeNodeCapacityEvidence);
+    if (segmentBusCapacityMeasurementStatus !== "measured") {
+      fail("segmentBusCapacityMeasurementStatus must be measured before launch");
+    }
+    requireProductionEvidence("segmentBusCapacityEvidence", segmentBusCapacityEvidence);
     if (plan.providerTrafficTermsApproved !== true) fail("providerTrafficTermsApproved must be true before launch");
     requireProductionEvidence("providerTrafficTermsEvidence", providerTrafficTermsEvidence);
   } else if (typeof plan.providerTrafficTermsApproved !== "boolean") {
@@ -127,7 +140,7 @@ function validateCapacityPlan(file) {
 
   const sensitivity = validateSensitivity(plan, averageBitrateMbps, edgeNodeCapacityMbps, headroomRatio);
   const mode = allowDraft ? "draft" : "launch";
-  return `${file}: Capacity plan OK (${mode}): ownedDelivery=${ownedDeliveryMbps.toFixed(1)}Mbps originFill=${originFillMbps.toFixed(1)}Mbps superPeerFlatten=${(selfSustainingSuperPeerFraction * 100).toFixed(1)}% edgeNodes=${plannedEdgeNodes}/${requiredEdgeNodes} originNodes=${plannedOriginNodes}/${requiredOriginNodes} oneMillionNodes99=${sensitivity.get("0.99")} oneMillionNodes90=${sensitivity.get("0.90")} oneMillionNodes70=${sensitivity.get("0.70")} oneMillionNodes50=${sensitivity.get("0.50")}`;
+  return `${file}: Capacity plan OK (${mode}): ownedDelivery=${ownedDeliveryMbps.toFixed(1)}Mbps originFill=${originFillMbps.toFixed(1)}Mbps segmentBus=${segmentBusTargetMessagesPerSecond}/${requiredSegmentBusMessagesPerSecond}msgps superPeerFlatten=${(selfSustainingSuperPeerFraction * 100).toFixed(1)}% edgeNodes=${plannedEdgeNodes}/${requiredEdgeNodes} originNodes=${plannedOriginNodes}/${requiredOriginNodes} oneMillionNodes99=${sensitivity.get("0.99")} oneMillionNodes90=${sensitivity.get("0.90")} oneMillionNodes70=${sensitivity.get("0.70")} oneMillionNodes50=${sensitivity.get("0.50")}`;
 }
 
 if (files.length === 0) {

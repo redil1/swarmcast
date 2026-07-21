@@ -204,6 +204,26 @@ const requiredGates = [
     ]
   },
   {
+    id: "segment-metadata-bus",
+    waivable: false,
+    requiredEvidence: [
+      "segment-bus:capacity:evidence:validate",
+      "three-failure-domain-cluster",
+      "projected-peak-sustained",
+      "publish-delivery-reconciled",
+      "leader-loss-quorum",
+      "persistent-latest-replay",
+      "credential-rotation",
+      "subject-permission-denial",
+      "hostname-verified-tls",
+      "mutual-route-tls",
+      "storage-recovery",
+      "monitoring-reconciled",
+      "raw-probe-artifact-sha256",
+      "independent-reviewers"
+    ]
+  },
+  {
     id: "capacity-load-ladder",
     requiredEvidence: [
       "capacity:plan:validate",

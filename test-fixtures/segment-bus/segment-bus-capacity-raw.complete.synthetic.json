@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "evidenceId": "segment-bus-capacity-synthetic-20260721",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-synthetic",
+  "clusterId": "segment-bus-staging-a",
+  "driverSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "driverImageDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "startedAt": "2026-07-21T00:00:00.000Z",
+  "completedAt": "2026-07-21T00:00:10.000Z",
+  "durationSeconds": 10,
+  "capacityProfile": {
+    "activeChannelsPeak": 500,
+    "segmentDurationSeconds": 2,
+    "projectedMessagesPerSecond": 250,
+    "headroomRatio": 0.3,
+    "targetMessagesPerSecond": 325
+  },
+  "topology": [
+    {
+      "nodeId": "segment-bus-1",
+      "provider": "provider-a",
+      "region": "eu-west-1",
+      "failureDomain": "provider-a-eu-west-1a",
+      "serverName": "segment-bus-1",
+      "endpointHost": "bus-1.staging.swarmcast.test",
+      "serverVersion": "2.12.1",
+      "serverImageDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "certificateSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "storageVolumeFingerprintSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "monitoringFingerprintSha256": "7777777777777777777777777777777777777777777777777777777777777777"
+    },
+    {
+      "nodeId": "segment-bus-2",
+      "provider": "provider-b",
+      "region": "eu-central-1",
+      "failureDomain": "provider-b-eu-central-1a",
+      "serverName": "segment-bus-2",
+      "endpointHost": "bus-2.staging.swarmcast.test",
+      "serverVersion": "2.12.1",
+      "serverImageDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "certificateSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "storageVolumeFingerprintSha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "monitoringFingerprintSha256": "8888888888888888888888888888888888888888888888888888888888888888"
+    },
+    {
+      "nodeId": "segment-bus-3",
+      "provider": "provider-a",
+      "region": "eu-west-2",
+      "failureDomain": "provider-a-eu-west-2a",
+      "serverName": "segment-bus-3",
+      "endpointHost": "bus-3.staging.swarmcast.test",
+      "serverVersion": "2.12.1",
+      "serverImageDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "certificateSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "storageVolumeFingerprintSha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "monitoringFingerprintSha256": "9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  ],
+  "transport": {
+    "clientTlsHostnameVerified": true,
+    "routeMutualTlsVerified": true,
+    "plaintextListenersDisabled": true
+  },
+  "stream": {
+    "name": "SWARMCAST_SEGMENTS",
+    "replicas": 3,
+    "storage": "file",
+    "subjects": ["swarmcast.segment.>"],
+    "maxMessageBytes": 4096,
+    "runtimeManageStream": false,
+    "currentReplicasBefore": 3,
+    "currentReplicasAfter": 3
+  },
+  "load": {
+    "subscriberCount": 2,
+    "attemptedMessages": 3250,
+    "acknowledgedMessages": 3250,
+    "failedPublishes": 0,
+    "duplicateAcks": 0,
+    "expectedDeliveries": 6500,
+    "receivedDeliveries": 6500,
+    "missingDeliveries": 0,
+    "invalidDeliveries": 0,
+    "outOfOrderDeliveries": 0,
+    "publishBytes": 650000,
+    "deliveredBytes": 1300000,
+    "achievedMessagesPerSecond": 325,
+    "publishAckLatencyMs": { "p50": 12, "p95": 35, "p99": 60, "max": 80 },
+    "endToEndDeliveryLatencyMs": { "p50": 25, "p95": 80, "p99": 140, "max": 190 },
+    "nodeMetrics": [
+      {
+        "nodeId": "segment-bus-1",
+        "cpuPctP95": 42,
+        "memoryPctP95": 48,
+        "diskWriteMsP95": 8,
+        "storageUsedPctMax": 31,
+        "storageBytesBefore": 1000000,
+        "storageBytesAfter": 1001000,
+        "apiErrorsDelta": 0,
+        "slowConsumersMax": 0,
+        "restarts": 0,
+        "oomKills": 0,
+        "filesystemErrors": 0
+      },
+      {
+        "nodeId": "segment-bus-2",
+        "cpuPctP95": 45,
+        "memoryPctP95": 51,
+        "diskWriteMsP95": 9,
+        "storageUsedPctMax": 32,
+        "storageBytesBefore": 2000000,
+        "storageBytesAfter": 2001000,
+        "apiErrorsDelta": 0,
+        "slowConsumersMax": 0,
+        "restarts": 0,
+        "oomKills": 0,
+        "filesystemErrors": 0
+      },
+      {
+        "nodeId": "segment-bus-3",
+        "cpuPctP95": 40,
+        "memoryPctP95": 46,
+        "diskWriteMsP95": 7,
+        "storageUsedPctMax": 30,
+        "storageBytesBefore": 3000000,
+        "storageBytesAfter": 3001000,
+        "apiErrorsDelta": 0,
+        "slowConsumersMax": 0,
+        "restarts": 0,
+        "oomKills": 0,
+        "filesystemErrors": 0
+      }
+    ]
+  },
+  "failover": {
+    "failedNodeId": "segment-bus-1",
+    "failedNodeWasLeader": true,
+    "nodeStoppedAt": "2026-07-21T00:00:02.000Z",
+    "newLeaderElectedAt": "2026-07-21T00:00:03.000Z",
+    "publishRecoveredAt": "2026-07-21T00:00:03.500Z",
+    "nodeRejoinedAt": "2026-07-21T00:00:07.000Z",
+    "leaderElectionMs": 1000,
+    "publishRecoveryMs": 1500,
+    "replicasDuringFailure": 2,
+    "replicasAfterRecovery": 3,
+    "acknowledgedDuringFailure": 650,
+    "deliveriesDuringFailure": 1300,
+    "failedPublishesDuringFailure": 0,
+    "lostMessages": 0
+  },
+  "recovery": {
+    "fullClusterRestarted": true,
+    "restartAt": "2026-07-21T00:00:08.000Z",
+    "replayedAt": "2026-07-21T00:00:09.000Z",
+    "recoveryMs": 1000,
+    "latestSequenceBeforeRestart": 3250,
+    "latestSequenceAfterReplay": 3250,
+    "latestHashBeforeRestart": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "latestHashAfterReplay": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "storageRecovered": true
+  },
+  "permissions": {
+    "ingestStreamManagementDenied": true,
+    "trackerPublishDenied": true,
+    "adminOnlyProvisioning": true
+  },
+  "credentialRotation": {
+    "ingestRotated": true,
+    "trackerRotated": true,
+    "oldIngestRejected": true,
+    "oldTrackerRejected": true,
+    "quorumMaintained": true,
+    "plaintextPasswordWarnings": 0
+  },
+  "monitoring": {
+    "allNodesScraped": true,
+    "samplesPerNode": 1,
+    "exporterTargetUpMin": 1,
+    "clusterApiErrorsDelta": 0,
+    "storageGrowthBytes": 3000
+  },
+  "evidenceMarkers": [
+    "three-failure-domain-cluster",
+    "projected-peak-sustained",
+    "publish-delivery-reconciled",
+    "leader-loss-quorum",
+    "persistent-latest-replay",
+    "credential-rotation",
+    "subject-permission-denial",
+    "hostname-verified-tls",
+    "mutual-route-tls",
+    "storage-recovery",
+    "monitoring-reconciled"
+  ]
+}

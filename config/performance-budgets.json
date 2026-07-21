@@ -7,5 +7,13 @@
   "androidStartupLatencyMsP95": 5000,
   "androidStallRateMax": 0.01,
   "androidBufferMsMin": 10000,
-  "edgeCacheHitRatioMin": 0.8
+  "edgeCacheHitRatioMin": 0.8,
+  "segmentBusPublishAckMsP99": 100,
+  "segmentBusDeliveryMsP99": 250,
+  "segmentBusLeaderElectionMsMax": 10000,
+  "segmentBusPublishRecoveryMsMax": 15000,
+  "segmentBusDiskWriteMsP95": 20,
+  "segmentBusCpuPctP95Max": 70,
+  "segmentBusMemoryPctP95Max": 80,
+  "segmentBusStoragePctMax": 70
 }

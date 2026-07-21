@@ -436,7 +436,7 @@ for (const file of jsonFiles) {
 if (failed) process.exit(1);
 const packageText = readFileSync("package.json", "utf8");
 for (const required of [
-  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-device-lab.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-probe.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
+  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-device-lab.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-segment-bus-capacity-probe.js && node scripts/smoke-segment-bus-capacity-evidence-validation.js && node scripts/smoke-load-ladder-probe.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
   "\"smoke:compose-production-env\": \"node scripts/smoke-compose-production-env.js\"",
   "\"smoke:production-env-validation\": \"node scripts/smoke-production-env-validation.js\"",
   "\"smoke:release-images-validation\": \"node scripts/smoke-release-images-validation.js\"",
@@ -469,6 +469,8 @@ for (const required of [
   "\"smoke:canary-metrics-validation\": \"node scripts/smoke-canary-metrics-validation.js\"",
   "\"smoke:canary-rollout-evidence-validation\": \"node scripts/smoke-canary-rollout-evidence-validation.js\"",
   "\"smoke:capacity-plan-validation\": \"node scripts/smoke-capacity-plan-validation.js\"",
+  "\"smoke:segment-bus-capacity-probe\": \"node scripts/smoke-segment-bus-capacity-probe.js\"",
+  "\"smoke:segment-bus-capacity-evidence-validation\": \"node scripts/smoke-segment-bus-capacity-evidence-validation.js\"",
   "\"smoke:load-ladder-probe\": \"node scripts/smoke-load-ladder-probe.js\"",
   "\"smoke:load-ladder-evidence-validation\": \"node scripts/smoke-load-ladder-evidence-validation.js\"",
   "\"smoke:turn-capacity-evidence-validation\": \"node scripts/smoke-turn-capacity-evidence-validation.js\"",
@@ -505,6 +507,8 @@ for (const required of [
   "\"canary:metrics:validate\": \"node scripts/validate-canary-metrics.js\"",
   "\"canary:rollout:evidence:validate\": \"node scripts/validate-canary-rollout-evidence.js\"",
   "\"capacity:plan:validate\": \"node scripts/validate-capacity-plan.js\"",
+  "\"segment-bus:capacity:probe\": \"node scripts/run-segment-bus-capacity-probe.js\"",
+  "\"segment-bus:capacity:evidence:validate\": \"node scripts/validate-segment-bus-capacity-evidence.js\"",
   "\"android:release-config:validate\": \"node scripts/validate-android-release-config.js\"",
   "\"android:attestation:evidence:validate\": \"node scripts/validate-android-attestation-evidence.js\"",
   "\"android:ci:evidence:validate\": \"node scripts/validate-android-ci-evidence.js\"",
@@ -565,6 +569,15 @@ for (const required of [
   "Android stall rate maximum",
   "Android buffer minimum",
   "Edge cache hit ratio minimum",
+  "Segment bus publish acknowledgement p99",
+  "Segment bus end-to-end delivery p99",
+  "Segment bus leader election maximum",
+  "Segment bus publish recovery maximum",
+  "Segment bus disk write p95",
+  "Segment bus CPU p95 maximum",
+  "Segment bus memory p95 maximum",
+  "Segment bus storage maximum",
+  "docs/segment-bus-capacity.md",
   "npm run canary:metrics:validate -- path/to/canary-metrics.json",
   "npm run smoke:canary-metrics-validation"
 ]) {
@@ -642,6 +655,13 @@ for (const required of [
   "--expected-host-allocations 1300",
   "npm run turn:capacity:evidence:validate -- path/to/turn-capacity-evidence.json",
   "test-fixtures/load/turn-capacity-complete.synthetic.json",
+  "## Segment Metadata Bus Capacity",
+  "docs/segment-bus-capacity.md",
+  "npm run segment-bus:capacity:probe",
+  "--acknowledge-staging-disruption",
+  "npm run segment-bus:capacity:evidence:validate -- path/to/segment-bus-capacity-evidence.json",
+  "npm run smoke:segment-bus-capacity-probe",
+  "npm run smoke:segment-bus-capacity-evidence-validation",
   "npm run load:ladder:validate -- path/to/load-ladder-evidence.json",
   "Distributed VM stages are collected through `docs/distributed-load-ladder.md` and `npm run load:ladder:probe`",
   "hash-bound raw probe bundles from independent providers/failure domains",
@@ -1219,7 +1239,27 @@ for (const check of [
   },
   {
     file: "package.json",
+    required: ["segment-bus:capacity:probe", "segment-bus:capacity:evidence:validate", "smoke:segment-bus-capacity-probe", "smoke:segment-bus-capacity-evidence-validation"]
+  },
+  {
+    file: "package.json",
     required: ["load:ladder:probe", "load:ladder:validate", "smoke:load-ladder-probe", "smoke:load-ladder-evidence-validation"]
+  },
+  {
+    file: "scripts/segment-bus-capacity-probe-runner.js",
+    required: ["startAt must be between 15 seconds and 30 minutes", "must resolve only to public addresses", "SWARMCAST_SEGMENT_BUS_DRIVER_", "exceeded", "driver output contains a configured secret"]
+  },
+  {
+    file: "scripts/validate-segment-bus-capacity-evidence.js",
+    required: ["regular non-symlink file", "mode 0600", "SHA-256 mismatch", "segmentBusCapacityMeasurementStatus", "independent-reviewers"]
+  },
+  {
+    file: "scripts/smoke-segment-bus-capacity-probe.js",
+    required: ["failures=", "missing disruption acknowledgement", "secret output", "replay corruption"]
+  },
+  {
+    file: "scripts/smoke-segment-bus-capacity-evidence-validation.js",
+    required: ["failures=", "raw symlink", "provider collapse", "unmeasured capacity plan"]
   }
 ]) {
   const text = readFileSync(check.file, "utf8");
@@ -1852,6 +1892,8 @@ for (const required of [
   "Capacity/load ladder evidence follows `docs/distributed-load-ladder.md`, uses `npm run load:ladder:probe` on independent generator hosts",
   "It requires hash-bound mode-`0600` raw probes, exact peer-range coverage, synchronized cross-provider starts",
   "local guard coverage remains `npm run smoke:capacity-plan-validation`, `npm run smoke:load-ladder-probe`, and `npm run smoke:load-ladder-evidence-validation`",
+  "Segment metadata bus evidence follows `docs/segment-bus-capacity.md` and passes `npm run segment-bus:capacity:evidence:validate -- path/to/segment-bus-capacity-evidence.json`",
+  "Local guard coverage remains `npm run smoke:segment-bus-capacity-probe`, `npm run smoke:segment-bus-capacity-evidence-validation`, and `npm run smoke:segment-bus-cluster`",
   "Owned TURN packaging passes `npm run smoke:turn`; production evidence must additionally pass `npm run turn:capacity:evidence:validate -- path/to/turn-capacity-evidence.json`",
   "Data retention approval evidence passes `npm run retention:approval:validate -- path/to/retention-approval.json`, retention execution evidence passes `npm run retention:execution:evidence:validate -- path/to/retention-execution-evidence.json`, and local guard coverage remains `npm run smoke:retention-approval-validation` plus `npm run smoke:retention-execution-evidence-validation`",
   "Accessibility and UX evidence passes `npm run android:accessibility:validate -- path/to/android-accessibility-evidence.json` for TalkBack, 200% fonts, small screens, player controls, P2P/privacy controls, touch targets, error states, and localization readiness; local guard coverage remains `npm run smoke:android-accessibility-evidence-validation`",
@@ -1901,6 +1943,7 @@ for (const required of [
   "`nginx-tls-smoke` with `nginx:tls:evidence:validate`, `smoke:nginx-origin-playback`, `smoke:nginx-edge-cache`, `valid-certificate`, `hostname-verified`, `origin-auth-401`, `origin-segment-200`, `edge-cache-miss`, `edge-cache-hit`, `cross-token-hit`, `no-third-party-cdn`, `source-url-redaction`, and `cache-key-redaction`",
   "`canary-rollout` with `canary:rollout:evidence:validate`, `canary:metrics:validate`, `peerTimeouts5m`, `peerHashFailures5m=0`, and `peerDisconnects5m=0`",
   "`capacity-load-ladder` with `capacity:plan:validate`, `load:ladder:validate`, `direct-p2p-offload-measured`, `edge-tls-throughput-measured`, `provider-traffic-terms-approved`, `relay-egress-included`, `selfSustainingSweep`, `webrtc-datachannel`, `tracker-signaling-relay`, `raw-probe-artifacts-sha256`, `independent-generator-providers`, `exact-peer-range-coverage`, `cross-generator-webrtc`, and the `single-channel-cell-ladder-1k`, `single-channel-cell-ladder-10k`, and `single-channel-cell-ladder-100k` markers",
+  "`segment-metadata-bus` with `segment-bus:capacity:evidence:validate`, `three-failure-domain-cluster`, `projected-peak-sustained`, `publish-delivery-reconciled`, `leader-loss-quorum`, `persistent-latest-replay`, `credential-rotation`, `subject-permission-denial`, `hostname-verified-tls`, `mutual-route-tls`, `storage-recovery`, `monitoring-reconciled`, `raw-probe-artifact-sha256`, and `independent-reviewers`",
   "`turn-relay` with `smoke:turn`, `turn:capacity:evidence:validate`, `turn-rest-credentials`, `turn-udp-relay`, `turn-tls-relay`, `turn-prometheus`, `turn-private-peer-deny`, `android-relay-candidate-selected`, `direct-relay-payload-attribution`, `relay-egress-reconciled`, `relay-egress-included`, `turn-capacity-sustained`, `independent-load-generators`, `udp-tls-capacity`, and `provider-egress-reconciled`",
   "`staging-chaos-drills` with `chaos:staging:validate`, `android-playback-continuity`, `owned-edge-failover`, `placement-failover`, `durable-placement-restore`, `peer-health-incident`, `SwarmcastPeerHashFailures`, and `docs/runbooks/peer-health.md`",
   "`production-smokes` with `production:smoke:evidence:validate`, `source-preflight`, `catalog-search-pagination`, `ingest-demand-segments`, `edge-cache-miss-hit`, `tracker-join-peer-list-signal-stats-metrics`, `retention-health-metrics`, and `offload-dashboard-alert-query`",
@@ -2010,6 +2053,9 @@ const capacityPlanScriptText = readFileSync("scripts/validate-capacity-plan.js",
 for (const required of [
   "offloadMeasurementStatus must be measured before launch",
   "directP2pOffloadRatio must be at least 0.90 before launch",
+  "segmentBusCapacityMeasurementStatus must be measured before launch",
+  "segmentBusTargetMessagesPerSecond",
+  "requiredSegmentBusMessagesPerSecond",
   "edgeNodeCapacityMeasurementStatus must be measured before launch",
   "providerTrafficTermsApproved must be true before launch",
   "relayEgressIncluded must be true",
@@ -2041,6 +2087,11 @@ for (const required of [
   "`helperUploadPacketsPerSegment`",
   "`superPeerSweepEvidence`",
   "`edgeCacheHitRatio`",
+  "`segmentDurationSeconds`",
+  "`segmentBusTargetMessagesPerSecond`",
+  "`segmentBusCapacityMeasurementStatus`",
+  "`segmentBusCapacityEvidence`",
+  "docs/segment-bus-capacity.md",
   "`plannedEdgeNodes`",
   "`plannedOriginNodes`",
   "directP2pOffloadRatio >= 0.90",
@@ -2073,7 +2124,7 @@ for (const required of [
   "edgeCacheHitRatio = 0.79",
   "plannedEdgeNodes = 24",
   "plannedOriginNodes = 4",
-  "capacity plan validation smoke OK: pass=2 failures=15"
+  "capacity plan validation smoke OK: pass=2 failures=18"
 ]) {
   if (!capacityPlanSmokeText.includes(required)) {
     console.error(`scripts/smoke-capacity-plan-validation.js: missing capacity plan smoke text: ${required}`);
@@ -2089,6 +2140,10 @@ for (const required of [
   "\"helperUploadPacketsPerSegment\": 150",
   "\"superPeerSweepEvidence\": \"load-ladder/headless-super-peer-sweep.synthetic.json\"",
   "\"edgeCacheHitRatio\": 0.85",
+  "\"segmentDurationSeconds\": 2",
+  "\"segmentBusCapacityMeasurementStatus\": \"pending\"",
+  "\"segmentBusTargetMessagesPerSecond\": 325",
+  "\"segmentBusCapacityEvidence\": \"capacity/segment-bus-capacity.pending.json\"",
   "\"edgeNodeCapacityMeasurementStatus\": \"conservative-assumption\"",
   "\"edgeNodeCapacityMbps\": 800",
   "\"providerTrafficTermsApproved\": false",
@@ -2127,10 +2182,31 @@ for (const required of [
   "one shared monotonic token bucket across all peer links",
   "capped at 80% of the current reported uplink and 1.5 MB/s of payload",
   "WiFi-to-cellular transition fails closed",
-  "concurrent reservations"
+  "concurrent reservations",
+  "docs/segment-bus-capacity.md",
+  "projected active-channel publication rate plus 30% headroom",
+  "Segment metadata bus projected-peak soak across three real failure domains"
 ]) {
   if (!architectureRemediationText.includes(required)) {
     console.error(`docs/architecture-remediation-plan.md: missing upload budget text: ${required}`);
+    failed = true;
+  }
+}
+
+const segmentBusCapacityText = readFileSync("docs/segment-bus-capacity.md", "utf8");
+for (const required of [
+  "Exactly three NATS JetStream brokers in three failure domains and at least two infrastructure providers",
+  "325 acknowledged publications per second",
+  "--acknowledge-staging-disruption",
+  "mode `0600`",
+  "Stop the current stream leader",
+  "Restart the full cluster",
+  "distinct `platform`, `performance`, and `security` reviewers",
+  "npm run segment-bus:capacity:evidence:validate -- path/to/segment-bus-capacity-evidence.json",
+  "cannot satisfy the launch gate"
+]) {
+  if (!segmentBusCapacityText.includes(required)) {
+    console.error(`docs/segment-bus-capacity.md: missing capacity proof text: ${required}`);
     failed = true;
   }
 }
@@ -2515,6 +2591,21 @@ for (const required of [
   "oncall-default",
   "oncall-critical",
   "acknowledged",
+  "segment-metadata-bus",
+  "segment-bus:capacity:evidence:validate",
+  "three-failure-domain-cluster",
+  "projected-peak-sustained",
+  "publish-delivery-reconciled",
+  "leader-loss-quorum",
+  "persistent-latest-replay",
+  "credential-rotation",
+  "subject-permission-denial",
+  "hostname-verified-tls",
+  "mutual-route-tls",
+  "storage-recovery",
+  "monitoring-reconciled",
+  "raw-probe-artifact-sha256",
+  "independent-reviewers",
   "capacity-load-ladder",
   "capacity:plan:validate",
   "load:ladder:validate",
@@ -3201,6 +3292,8 @@ for (const required of [
   "npm run host:provisioning:evidence:validate -- path/to/host-provisioning-evidence.json",
   "npm run secrets:evidence:validate -- path/to/secrets-evidence.json",
   "npm run deployment:evidence:validate -- path/to/deployment-evidence.json",
+  "docs/segment-bus-capacity.md",
+  "npm run segment-bus:capacity:evidence:validate -- path/to/segment-bus-capacity-evidence.json",
   "npm run nginx:tls:evidence:validate -- path/to/nginx-tls-evidence.json",
   "npm run smoke:nginx-tls-evidence-validation",
   "npm run source:allowlist:evidence:validate -- path/to/source-allowlist-evidence.json",

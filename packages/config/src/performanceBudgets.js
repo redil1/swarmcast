@@ -7,7 +7,15 @@ export const REQUIRED_PERFORMANCE_BUDGETS = Object.freeze([
   "androidStartupLatencyMsP95",
   "androidStallRateMax",
   "androidBufferMsMin",
-  "edgeCacheHitRatioMin"
+  "edgeCacheHitRatioMin",
+  "segmentBusPublishAckMsP99",
+  "segmentBusDeliveryMsP99",
+  "segmentBusLeaderElectionMsMax",
+  "segmentBusPublishRecoveryMsMax",
+  "segmentBusDiskWriteMsP95",
+  "segmentBusCpuPctP95Max",
+  "segmentBusMemoryPctP95Max",
+  "segmentBusStoragePctMax"
 ]);
 
 export function validatePerformanceBudgets(budgets) {
@@ -27,6 +35,9 @@ export function validatePerformanceBudgets(budgets) {
   }
   if (budgets.androidStallRateMax > 1) {
     throw new Error("androidStallRateMax must be between 0 and 1");
+  }
+  for (const key of ["segmentBusCpuPctP95Max", "segmentBusMemoryPctP95Max", "segmentBusStoragePctMax"]) {
+    if (budgets[key] > 100) throw new Error(`${key} must be between 0 and 100`);
   }
 
   return budgets;
