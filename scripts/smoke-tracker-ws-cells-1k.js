@@ -17,6 +17,9 @@ const CELL_COUNT = 4;
 const PEERS_PER_CELL = PEER_COUNT / CELL_COUNT;
 const CELL_MAX_PEERS = 300;
 const JOIN_BATCH_SIZE = 25;
+const JOIN_ACK_TIMEOUT_MS = 1000;
+const MAX_JOIN_ATTEMPTS = 3;
+const MAX_TOTAL_JOIN_RETRIES = 10;
 const RECOVERY_P95_BUDGET_MS = 30_000;
 const dockerImage = process.env.TRACKER_CELL_LOAD_DOCKER_IMAGE || "";
 const runId = `${process.pid}-${Date.now()}`;
@@ -216,13 +219,29 @@ async function connectClient({ shard, assignmentKey, token, recoveryStartedAt = 
     if (message.t === "segment") segmentTimes.set(message.seq, performance.now());
   });
   await waitForOpen(ws, shard.id);
-  ws.send(JSON.stringify({
+  const joinPayload = JSON.stringify({
     t: "join",
     channelId: CHANNEL_ID,
     assignmentKey,
     caps: { transport: "wifi", upload: true, uplinkKbps: 20_000 }
-  }));
-  const joined = await waitFor(() => messages.find((message) => message.t === "joined"));
+  });
+  let joined;
+  let joinAttempts = 0;
+  while (!joined && joinAttempts < MAX_JOIN_ATTEMPTS) {
+    joinAttempts += 1;
+    ws.send(joinPayload);
+    try {
+      joined = await waitFor(() => messages.find((message) => message.t === "joined"), {
+        timeoutMs: JOIN_ACK_TIMEOUT_MS,
+        intervalMs: 10
+      });
+    } catch {
+      if (ws.readyState !== WebSocket.OPEN) {
+        throw new Error(`WebSocket closed before join acknowledgement for ${shard.id}`);
+      }
+    }
+  }
+  if (!joined) throw new Error(`join acknowledgement failed after ${MAX_JOIN_ATTEMPTS} attempts for ${shard.id}`);
   if (joined.cellId !== shard.id) throw new Error(`expected ${shard.id}, got ${joined.cellId}`);
   if (!joined.edgeUrlTemplate.startsWith("https://edge.example.tv/")) {
     throw new Error(`${shard.id} did not return an owned edge fallback template`);
@@ -235,6 +254,7 @@ async function connectClient({ shard, assignmentKey, token, recoveryStartedAt = 
     segmentTimes,
     shardId: shard.id,
     ws,
+    joinRetries: joinAttempts - 1,
     joinLatencyMs: joinedAt - openedAt,
     recoveryLatencyMs: recoveryStartedAt === null ? null : joinedAt - recoveryStartedAt
   };
@@ -455,6 +475,10 @@ try {
     seq: 2,
     sha256: "b".repeat(64)
   });
+  const totalJoinRetries = allClients.reduce((total, client) => total + client.joinRetries, 0);
+  if (totalJoinRetries > MAX_TOTAL_JOIN_RETRIES) {
+    throw new Error(`join retries ${totalJoinRetries} exceed the run ceiling ${MAX_TOTAL_JOIN_RETRIES}`);
+  }
   const finalCounts = await assertCellMetrics({
     shards,
     expectedPeerCounts,
@@ -467,7 +491,7 @@ try {
     `cellMaxPeers=${CELL_MAX_PEERS} initialCellPeerCounts=${initialCounts.join(",")} finalCellPeerCounts=${finalCounts.join(",")} ` +
     `joinP95Ms=${joinP95.toFixed(1)} fanout1P95Ms=${firstFanout.p95.toFixed(1)} fanout1MaxMs=${firstFanout.max.toFixed(1)} ` +
     `fanout2P95Ms=${secondFanout.p95.toFixed(1)} fanout2MaxMs=${secondFanout.max.toFixed(1)} ` +
-    `sameCellSignal=relayed crossCellSignal=blocked backpressureDrops=0 capacityRejections=0 ` +
+    `joinRetries=${totalJoinRetries} sameCellSignal=relayed crossCellSignal=blocked backpressureDrops=0 capacityRejections=0 ` +
     `cellFailure=edge-fallback closeCode=1012 recoveryP95Ms=${recoveryP95.toFixed(1)} rejoin=pass`
   );
 } catch (error) {
