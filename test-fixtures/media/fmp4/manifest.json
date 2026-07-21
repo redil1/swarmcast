@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "containsCustomerData": false,
+  "generator": {
+    "tool": "ffmpeg",
+    "version": "8.1",
+    "command": [
+      "ffmpeg",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-f",
+      "lavfi",
+      "-i",
+      "testsrc2=size=160x90:rate=25",
+      "-f",
+      "lavfi",
+      "-i",
+      "sine=frequency=1000:sample_rate=48000",
+      "-t",
+      "4",
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-g",
+      "50",
+      "-keyint_min",
+      "50",
+      "-sc_threshold",
+      "0",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "64k",
+      "-ac",
+      "1",
+      "-ar",
+      "48000",
+      "-f",
+      "hls",
+      "-hls_time",
+      "2",
+      "-hls_segment_type",
+      "fmp4",
+      "-hls_list_size",
+      "0",
+      "-hls_fmp4_init_filename",
+      "init.mp4",
+      "-hls_segment_filename",
+      "test-fixtures/media/fmp4/seg_%08d.m4s",
+      "test-fixtures/media/fmp4/playlist.m3u8"
+    ]
+  },
+  "files": [
+    {
+      "id": "init",
+      "path": "test-fixtures/media/fmp4/init.mp4",
+      "size": 1352,
+      "sha256": "e3626cb1c0b2a2da5ad91006938be2d16046dcebcc3caa7a1a26f068e76b97b9"
+    },
+    {
+      "id": "playlist",
+      "path": "test-fixtures/media/fmp4/playlist.m3u8",
+      "size": 184,
+      "sha256": "ac6c6510c84ad09a50a23598da0fe51ad4ef2d12473025e0b7f801a6c16c7ab0"
+    },
+    {
+      "id": "segment-0",
+      "path": "test-fixtures/media/fmp4/seg_00000000.m4s",
+      "size": 46009,
+      "sha256": "5c8b4a6f7447016d2010c500519ae847dc478c2372fbcfb3605429c8a0278f6b"
+    },
+    {
+      "id": "segment-1",
+      "path": "test-fixtures/media/fmp4/seg_00000001.m4s",
+      "size": 52356,
+      "sha256": "3341f6f908550121457a0da6c9c20747adc121293303cef269a20797c40571a0"
+    }
+  ]
+}

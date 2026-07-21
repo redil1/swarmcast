@@ -3,6 +3,7 @@ import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { createLogger } from "@swarmcast/config/logging";
+import { inspectFmp4MediaSegment } from "./isoBmff.js";
 
 export function segmentSeqFromFilename(filename) {
   const match = filename.match(/seg_(\d+)\.m4s$/);
@@ -17,6 +18,7 @@ export async function describeSegment({ fullPath, relativePath, rlncK }) {
   if (!channelId || channelId === relativePath) return null;
 
   const [buf, st] = await Promise.all([readFile(fullPath), stat(fullPath)]);
+  inspectFmp4MediaSegment(buf);
   return {
     channelId,
     seq,
