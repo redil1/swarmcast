@@ -257,6 +257,15 @@ expectFailure(
   /capacity-load-ladder evidence must mention webrtc-datachannel/
 );
 expectFailure(
+  "missing hash-bound distributed probe launch evidence",
+  writeVariant("missing-load-probe-artifact-binding", (record) => {
+    const capacityLoadLadder = gate(record, "capacity-load-ladder");
+    capacityLoadLadder.evidence = capacityLoadLadder.evidence.filter((evidence) => !evidence.includes("raw-probe-artifacts-sha256"));
+    return record;
+  }),
+  /capacity-load-ladder evidence must mention raw-probe-artifacts-sha256/
+);
+expectFailure(
   "missing measured edge throughput launch evidence",
   writeVariant("missing-measured-edge-throughput", (record) => {
     const capacityLoadLadder = gate(record, "capacity-load-ladder");
@@ -464,4 +473,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=44");
+console.log("launch evidence validation smoke OK: pass=1 failures=45");

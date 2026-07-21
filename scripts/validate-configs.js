@@ -436,7 +436,7 @@ for (const file of jsonFiles) {
 if (failed) process.exit(1);
 const packageText = readFileSync("package.json", "utf8");
 for (const required of [
-  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-device-lab.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
+  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-device-lab.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-probe.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
   "\"smoke:compose-production-env\": \"node scripts/smoke-compose-production-env.js\"",
   "\"smoke:production-env-validation\": \"node scripts/smoke-production-env-validation.js\"",
   "\"smoke:release-images-validation\": \"node scripts/smoke-release-images-validation.js\"",
@@ -469,6 +469,7 @@ for (const required of [
   "\"smoke:canary-metrics-validation\": \"node scripts/smoke-canary-metrics-validation.js\"",
   "\"smoke:canary-rollout-evidence-validation\": \"node scripts/smoke-canary-rollout-evidence-validation.js\"",
   "\"smoke:capacity-plan-validation\": \"node scripts/smoke-capacity-plan-validation.js\"",
+  "\"smoke:load-ladder-probe\": \"node scripts/smoke-load-ladder-probe.js\"",
   "\"smoke:load-ladder-evidence-validation\": \"node scripts/smoke-load-ladder-evidence-validation.js\"",
   "\"smoke:turn-capacity-evidence-validation\": \"node scripts/smoke-turn-capacity-evidence-validation.js\"",
   "\"smoke:turn-capacity-probe\": \"node scripts/smoke-turn-capacity-probe.js\"",
@@ -513,6 +514,7 @@ for (const required of [
   "\"android:device-lab\": \"node scripts/run-android-device-lab.js\"",
   "\"android:rlnc:decision:validate\": \"node scripts/validate-android-rlnc-decision.js\"",
   "\"load:ladder:validate\": \"node scripts/validate-load-ladder-evidence.js\"",
+  "\"load:ladder:probe\": \"node scripts/run-load-ladder-probe.js\"",
   "\"turn:capacity:probe\": \"node scripts/run-turn-capacity-probe.js\"",
   "\"turn:capacity:evidence:validate\": \"node scripts/validate-turn-capacity-evidence.js\"",
   "\"chaos:staging:validate\": \"node scripts/validate-staging-chaos-evidence.js\"",
@@ -633,6 +635,7 @@ for (const required of [
   "config/performance-budgets.json",
   "100 ms budget",
   "`npm run smoke:load-ladder-evidence-validation`",
+  "`npm run smoke:load-ladder-probe`",
   "`npm run smoke:turn-capacity-probe`",
   "`npm run smoke:turn-capacity-evidence-validation`",
   "## TURN Capacity Ladder",
@@ -640,6 +643,9 @@ for (const required of [
   "npm run turn:capacity:evidence:validate -- path/to/turn-capacity-evidence.json",
   "test-fixtures/load/turn-capacity-complete.synthetic.json",
   "npm run load:ladder:validate -- path/to/load-ladder-evidence.json",
+  "Distributed VM stages are collected through `docs/distributed-load-ladder.md` and `npm run load:ladder:probe`",
+  "hash-bound raw probe bundles from independent providers/failure domains",
+  "at least 10% cross-generator endpoints",
   "test-fixtures/load/load-ladder-complete.synthetic.json",
   "1 channel / 200 mixed headless peers through real tracker WebSockets and WebRTC DataChannels",
   "50 channels / 2000 peers",
@@ -656,6 +662,31 @@ for (const required of [
   }
 }
 
+const distributedLoadLadderText = readFileSync("docs/distributed-load-ladder.md", "utf8");
+for (const required of [
+  "# Distributed WebRTC Load Ladder",
+  "exact-hash WebRTC driver",
+  "mode `0600` raw probe bundle",
+  "at least five generators",
+  "At least 10% of stage endpoints",
+  "starts differ by no more than five seconds",
+  "the 100K stage runs for at least 900 seconds",
+  "SWARMCAST_LOAD_DRIVER_",
+  "per simulated viewer",
+  "--acknowledge-staging-load",
+  "npm run load:ladder:probe",
+  "probeArtifacts",
+  "generatorProbeIds",
+  "npm run load:ladder:validate",
+  "npm run smoke:load-ladder-probe",
+  "without `--allow-synthetic`"
+]) {
+  if (!distributedLoadLadderText.includes(required)) {
+    console.error(`docs/distributed-load-ladder.md: missing distributed load ladder text: ${required}`);
+    failed = true;
+  }
+}
+
 const loadLadderScriptText = readFileSync("scripts/validate-load-ladder-evidence.js", "utf8");
 for (const required of [
   "stageExpectations",
@@ -666,13 +697,6 @@ for (const required of [
   "edgeAccessEgressBytes",
   "assertReconciled",
   "smoke:headless-super-peer-sweep",
-  "1-channel-3-devices",
-  "1-channel-200-peers",
-  "50-channels-2000-peers",
-  "zipf-catalog",
-  "1-channel-1000-cell-peers",
-  "1-channel-10000-cell-peers",
-  "1-channel-100000-cell-peers",
   "configuredCellMaxPeers",
   "cellPeerCounts",
   "segmentFanoutCells",
@@ -688,6 +712,15 @@ for (const required of [
   "webrtc-datachannel",
   "tracker-signaling-relay",
   "dataChannelTransfer",
+  "probeArtifacts",
+  "validateLoadProbeBundle",
+  "generatorProbeIds",
+  "distinct network egress fingerprints",
+  "generator starts differ by more than five seconds",
+  "generator peer ranges have a gap or overlap",
+  "cross-generator endpoints must be at least",
+  "raw generator probe total",
+  "raw probes observed",
   "budgetArgIndex !== -1",
   "synthetic load ladder evidence requires --allow-synthetic",
   "Load ladder evidence OK"
@@ -729,12 +762,36 @@ for (const required of [
   "\"transport\": \"webrtc-datachannel\"",
   "\"signalingPath\": \"tracker-signaling-relay\"",
   "\"dataChannelTransfer\": true",
+  "\"probeArtifacts\"",
+  "\"generatorProbeIds\"",
+  "\"clientUploadBytes\"",
   "\"offloadRatio\": 0.9",
   "\"alertState\": \"clear\"",
   "\"synthetic\": true"
 ]) {
   if (!loadLadderFixtureText.includes(required)) {
     console.error(`test-fixtures/load/load-ladder-complete.synthetic.json: missing load ladder fixture text: ${required}`);
+    failed = true;
+  }
+}
+
+const rawLoadProbeFixtureText = readFileSync("test-fixtures/load/load-ladder-raw-probes.complete.synthetic.json", "utf8");
+for (const required of [
+  "\"probeId\":\"p200-a\"",
+  "\"probeId\":\"p2k-a\"",
+  "\"probeId\":\"pzipf-a\"",
+  "\"probeId\":\"p1k-a\"",
+  "\"probeId\":\"p10k-a\"",
+  "\"probeId\":\"p100k-e\"",
+  "\"authMode\":\"per-viewer-short-lived\"",
+  "\"crossGeneratorEndpoints\"",
+  "\"networkEgressFingerprintSha256\"",
+  "\"candidateSelections\"",
+  "\"unknown\":0",
+  "\"synthetic\": true"
+]) {
+  if (!rawLoadProbeFixtureText.includes(required)) {
+    console.error(`test-fixtures/load/load-ladder-raw-probes.complete.synthetic.json: missing raw probe fixture text: ${required}`);
     failed = true;
   }
 }
@@ -764,7 +821,21 @@ for (const required of [
   "dataChannelTransfer = false",
   "alertState = \"firing\"",
   "token=synthetic-secret",
-  "load ladder evidence validation smoke OK: pass=1 failures=22"
+  "missing raw probe artifacts",
+  "raw probe artifact hash mismatch",
+  "raw probe artifact has an unsupported field",
+  "generator peer range overlap",
+  "generator providers are not independent",
+  "generator starts are not synchronized",
+  "probe totals do not reconcile to stage bytes",
+  "raw probes miss a tracker cell",
+  "unknown selected ICE candidate in raw probe",
+  "selected ICE object has an unsupported field",
+  "cross-generator transfer graph is disconnected",
+  "stage stall rate is not derived from raw probes",
+  "stage startup p95 is not the conservative raw maximum",
+  "stage buffer minimum is not derived from raw probes",
+  "load ladder evidence validation smoke OK: pass=1 failures=43"
 ]) {
   if (!loadLadderSmokeText.includes(required)) {
     console.error(`scripts/smoke-load-ladder-evidence-validation.js: missing load ladder smoke text: ${required}`);
@@ -986,6 +1057,68 @@ for (const check of [
     required: ["PEERS = 500", "SUPER_PEER_FRACTIONS", "UPLOAD_PACKETS_PER_SUPER_PEER", "edgeFallbackPackets", "flatten"]
   },
   {
+    file: "scripts/load-ladder-contract.js",
+    required: [
+      "LOAD_STAGE_EXPECTATIONS",
+      "1-channel-3-devices",
+      "1-channel-200-peers",
+      "50-channels-2000-peers",
+      "zipf-catalog",
+      "1-channel-1000-cell-peers",
+      "1-channel-10000-cell-peers",
+      "1-channel-100000-cell-peers",
+      "minDurationSeconds: 900",
+      "validateLoadProbe",
+      "validateLoadProbeBundle",
+      "PROBE_KEYS",
+      "networkEgressFingerprintSha256",
+      "per-viewer-short-lived",
+      "cross-generator-transfer",
+      "candidateSelections",
+      "unknown must equal 0",
+      "synthetic evidence requires --allow-synthetic"
+    ]
+  },
+  {
+    file: "scripts/load-ladder-probe-runner.js",
+    required: [
+      "--allow-synthetic",
+      "target.trackerUrl must use wss",
+      "target.trackerUrl must resolve only to public addresses",
+      "load driver SHA-256 does not match manifest",
+      "SWARMCAST_LOAD_DRIVER_",
+      "MAX_DRIVER_OUTPUT_BYTES",
+      "load driver start differs from synchronized startAt",
+      "per-viewer-short-lived",
+      "validateLoadProbe"
+    ]
+  },
+  {
+    file: "scripts/run-load-ladder-probe.js",
+    required: [
+      "--acknowledge-staging-load",
+      "--manifest",
+      "--driver",
+      "--output",
+      "runLoadLadderProbe",
+      "mode: 0o600",
+      "chmodSync(outputPath, 0o600)",
+      "Load ladder probe OK"
+    ]
+  },
+  {
+    file: "scripts/smoke-load-ladder-probe.js",
+    required: [
+      "probe output permissions are not 0600",
+      "--acknowledge-staging-load is required",
+      "private production target",
+      "driver hash mismatch",
+      "unknown ICE candidate",
+      "sensitive driver output key",
+      "load ladder probe smoke OK"
+    ]
+  },
+  {
     file: "scripts/run-turn-capacity-probe.js",
     required: [
       "--acknowledge-staging-load",
@@ -1083,6 +1216,10 @@ for (const check of [
   {
     file: "package.json",
     required: ["turn:capacity:probe", "turn:capacity:evidence:validate", "smoke:turn-capacity-probe", "smoke:turn-capacity-evidence-validation"]
+  },
+  {
+    file: "package.json",
+    required: ["load:ladder:probe", "load:ladder:validate", "smoke:load-ladder-probe", "smoke:load-ladder-evidence-validation"]
   }
 ]) {
   const text = readFileSync(check.file, "utf8");
@@ -1712,7 +1849,9 @@ for (const required of [
   "Dependency review evidence passes `npm run dependency:review:validate -- path/to/dependency-review.json`; evidence must cover npm audit, SBOM, release image refs, image scans, Android debug/release builds, inventory decisions, reviewer roles, and waiver expiry; local guard coverage remains `npm run smoke:dependency-review-validation`",
   "Release artifact evidence includes the `swarmcast-release-manifest` and `swarmcast-sbom` artifacts, plus `npm run smoke:release-manifest-production` output",
   "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 15 expected service and infrastructure scan report paths",
-  "Capacity/load ladder evidence passes `npm run capacity:plan:validate -- config/capacity-plan.json` without `--allow-draft` and `npm run load:ladder:validate -- path/to/load-ladder-evidence.json`, including measured direct-P2P offload, measured sustained TLS edge throughput, approved provider traffic terms, relay egress accounting, the self-sustaining sweep, and 1K/10K/100K single-channel cell stages; local guard coverage remains `npm run smoke:capacity-plan-validation` and `npm run smoke:load-ladder-evidence-validation`",
+  "Capacity/load ladder evidence follows `docs/distributed-load-ladder.md`, uses `npm run load:ladder:probe` on independent generator hosts",
+  "It requires hash-bound mode-`0600` raw probes, exact peer-range coverage, synchronized cross-provider starts",
+  "local guard coverage remains `npm run smoke:capacity-plan-validation`, `npm run smoke:load-ladder-probe`, and `npm run smoke:load-ladder-evidence-validation`",
   "Owned TURN packaging passes `npm run smoke:turn`; production evidence must additionally pass `npm run turn:capacity:evidence:validate -- path/to/turn-capacity-evidence.json`",
   "Data retention approval evidence passes `npm run retention:approval:validate -- path/to/retention-approval.json`, retention execution evidence passes `npm run retention:execution:evidence:validate -- path/to/retention-execution-evidence.json`, and local guard coverage remains `npm run smoke:retention-approval-validation` plus `npm run smoke:retention-execution-evidence-validation`",
   "Accessibility and UX evidence passes `npm run android:accessibility:validate -- path/to/android-accessibility-evidence.json` for TalkBack, 200% fonts, small screens, player controls, P2P/privacy controls, touch targets, error states, and localization readiness; local guard coverage remains `npm run smoke:android-accessibility-evidence-validation`",
@@ -1761,7 +1900,7 @@ for (const required of [
   "`deployment-execution` with `deployment:evidence:validate`, `release-manifest-validated`, `image-digests-pinned`, `compose-rendered`, `images-pulled`, `deployed-up-no-build`, `service-health`, `post-deploy-smokes`, and `rollback-ready`",
   "`nginx-tls-smoke` with `nginx:tls:evidence:validate`, `smoke:nginx-origin-playback`, `smoke:nginx-edge-cache`, `valid-certificate`, `hostname-verified`, `origin-auth-401`, `origin-segment-200`, `edge-cache-miss`, `edge-cache-hit`, `cross-token-hit`, `no-third-party-cdn`, `source-url-redaction`, and `cache-key-redaction`",
   "`canary-rollout` with `canary:rollout:evidence:validate`, `canary:metrics:validate`, `peerTimeouts5m`, `peerHashFailures5m=0`, and `peerDisconnects5m=0`",
-  "`capacity-load-ladder` with `capacity:plan:validate`, `load:ladder:validate`, `direct-p2p-offload-measured`, `edge-tls-throughput-measured`, `provider-traffic-terms-approved`, `relay-egress-included`, `selfSustainingSweep`, `webrtc-datachannel`, `tracker-signaling-relay`, and the `single-channel-cell-ladder-1k`, `single-channel-cell-ladder-10k`, and `single-channel-cell-ladder-100k` markers",
+  "`capacity-load-ladder` with `capacity:plan:validate`, `load:ladder:validate`, `direct-p2p-offload-measured`, `edge-tls-throughput-measured`, `provider-traffic-terms-approved`, `relay-egress-included`, `selfSustainingSweep`, `webrtc-datachannel`, `tracker-signaling-relay`, `raw-probe-artifacts-sha256`, `independent-generator-providers`, `exact-peer-range-coverage`, `cross-generator-webrtc`, and the `single-channel-cell-ladder-1k`, `single-channel-cell-ladder-10k`, and `single-channel-cell-ladder-100k` markers",
   "`turn-relay` with `smoke:turn`, `turn:capacity:evidence:validate`, `turn-rest-credentials`, `turn-udp-relay`, `turn-tls-relay`, `turn-prometheus`, `turn-private-peer-deny`, `android-relay-candidate-selected`, `direct-relay-payload-attribution`, `relay-egress-reconciled`, `relay-egress-included`, `turn-capacity-sustained`, `independent-load-generators`, `udp-tls-capacity`, and `provider-egress-reconciled`",
   "`staging-chaos-drills` with `chaos:staging:validate`, `android-playback-continuity`, `owned-edge-failover`, `placement-failover`, `durable-placement-restore`, `peer-health-incident`, `SwarmcastPeerHashFailures`, and `docs/runbooks/peer-health.md`",
   "`production-smokes` with `production:smoke:evidence:validate`, `source-preflight`, `catalog-search-pagination`, `ingest-demand-segments`, `edge-cache-miss-hit`, `tracker-join-peer-list-signal-stats-metrics`, `retention-health-metrics`, and `offload-dashboard-alert-query`",
@@ -2386,6 +2525,10 @@ for (const required of [
   "selfSustainingSweep",
   "webrtc-datachannel",
   "tracker-signaling-relay",
+  "raw-probe-artifacts-sha256",
+  "independent-generator-providers",
+  "exact-peer-range-coverage",
+  "cross-generator-webrtc",
   "single-channel-cell-ladder-1k",
   "single-channel-cell-ladder-10k",
   "single-channel-cell-ladder-100k",
@@ -2594,6 +2737,10 @@ for (const required of [
   "selfSustainingSweep",
   "webrtc-datachannel",
   "tracker-signaling-relay",
+  "raw-probe-artifacts-sha256",
+  "independent-generator-providers",
+  "exact-peer-range-coverage",
+  "cross-generator-webrtc",
   "single-channel-cell-ladder-1k",
   "single-channel-cell-ladder-10k",
   "single-channel-cell-ladder-100k",
@@ -5311,9 +5458,16 @@ const androidTextChecks = [
     file: "android/app/src/main/res/values/styles.xml",
     required: [
       "android:windowLightStatusBar",
-      "android:windowLightNavigationBar",
       "android:statusBarColor",
-      "android:navigationBarColor"
+      "android:navigationBarColor",
+      "AppTheme.Base"
+    ]
+  },
+  {
+    file: "android/app/src/main/res/values-v27/styles.xml",
+    required: [
+      "android:windowLightNavigationBar",
+      "AppTheme.Base"
     ]
   },
   {
@@ -5337,11 +5491,39 @@ const androidTextChecks = [
       "tv.swarmcast.P2P_ENABLED",
       "tv.swarmcast.EDGE_ONLY_MODE",
       "tv.swarmcast.RLNC_ENABLED",
+      "android:dataExtractionRules=\"@xml/data_extraction_rules\"",
+      "android:fullBackupContent=\"@xml/backup_rules\"",
+      "android:icon=\"@mipmap/ic_launcher\"",
+      "android:roundIcon=\"@mipmap/ic_launcher_round\"",
       ".diagnostics.DeviceLabControlReceiver",
       "android:permission=\"android.permission.DUMP\"",
       "tv.swarmcast.action.DEVICE_LAB_SNAPSHOT",
       "tv.swarmcast.action.DEVICE_LAB_SET_P2P"
     ]
+  },
+  {
+    file: "android/app/src/main/res/xml/data_extraction_rules.xml",
+    required: ["cloud-backup", "device-transfer", "domain=\"root\"", "domain=\"file\"", "domain=\"database\"", "domain=\"sharedpref\"", "domain=\"external\""]
+  },
+  {
+    file: "android/app/src/main/res/xml/backup_rules.xml",
+    required: ["full-backup-content", "domain=\"root\"", "domain=\"file\"", "domain=\"database\"", "domain=\"sharedpref\"", "domain=\"external\""]
+  },
+  {
+    file: "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    required: ["adaptive-icon", "@color/launcher_background", "@drawable/ic_launcher_foreground"]
+  },
+  {
+    file: "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    required: ["adaptive-icon", "@color/launcher_background", "@drawable/ic_launcher_foreground"]
+  },
+  {
+    file: "android/app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+    required: ["adaptive-icon", "@color/launcher_background", "@drawable/ic_launcher_foreground", "monochrome"]
+  },
+  {
+    file: "android/app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+    required: ["adaptive-icon", "@color/launcher_background", "@drawable/ic_launcher_foreground", "monochrome"]
   },
   {
     file: "android/app/src/main/java/tv/swarmcast/diagnostics/DeviceLabDiagnostics.kt",
