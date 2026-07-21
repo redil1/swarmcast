@@ -521,6 +521,7 @@ for (const required of [
   "\"security:review:validate\": \"node scripts/validate-security-review.js\"",
   "\"smoke:tracker-ws\"",
   "\"smoke:tracker-ws-cells-1k\"",
+  "\"smoke:tracker-ws-cells-10k\"",
   "\"verify\""
 ]) {
   if (!packageText.includes(required)) {
@@ -578,12 +579,14 @@ for (const required of [
   "`npm run smoke:tracker-ws-restart`",
   "`npm run smoke:tracker-ws-cells`",
   "`npm run smoke:tracker-ws-cells-1k`",
+  "`npm run smoke:tracker-ws-cells-10k`",
   "`uWebSockets.js` v20.51.0",
   "Node 18, 20, 22, or 23",
   "`TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws`",
   "Use the same `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local` prefix for `npm run smoke:tracker-ws-load`, `npm run smoke:tracker-ws-multichannel`, and `npm run smoke:tracker-ws-restart`",
   "`TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws-cells-1k`",
-  "The 1K cell preflight is control-plane evidence only",
+  "`TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws-cells-10k`",
+  "The 1K and 10K cell preflights are control-plane evidence only",
   "rejects an invalid JWT",
   "two-client WebRTC signaling relay",
   "connection-limit rejection",
@@ -758,7 +761,7 @@ for (const check of [
   },
   {
     file: "scripts/smoke-tracker-ws-cells-1k.js",
-    required: ["PEER_COUNT = 1000", "CELL_COUNT = 4", "CELL_MAX_PEERS = 300", "JOIN_BATCH_SIZE = 25", "JOIN_ACK_TIMEOUT_MS", "MAX_JOIN_ATTEMPTS", "MAX_TOTAL_JOIN_RETRIES", "TRACKER_CELL_LOAD_DOCKER_IMAGE", "reservePorts", "assignmentsByCell", "selectTrackerCell", "closeWebSocket", "connection attempts", "announceAndMeasure", "proveSignalingIsolation", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_rejections_total", "RECOVERY_P95_BUDGET_MS", "joinRetries=", "closeCode=1012", "crossCellSignal=blocked", "tracker cell 1K WebSocket load OK"]
+    required: ["positiveOption(\"peers\", 1000", "positiveOption(\"cells\", 4", "PEER_COUNT === 1000 && CELL_COUNT === 4 ? 300", "positiveOption(\"join-batch-size\", 25", "JOIN_ACK_TIMEOUT_MS", "MAX_JOIN_ATTEMPTS", "MAX_TOTAL_JOIN_RETRIES", "TRACKER_CELL_LOAD_DOCKER_IMAGE", "reservePorts", "assignmentsByCell", "selectTrackerCell", "closeWebSocket", "connection attempts", "announceAndMeasure", "proveSignalingIsolation", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_rejections_total", "RECOVERY_P95_BUDGET_MS", "joinRetries=", "closeCode=1012", "crossCellSignal=blocked", "tracker cell ${LOAD_LABEL} WebSocket load OK"]
   },
   {
     file: "scripts/smoke-tracker-ws.js",
@@ -943,6 +946,10 @@ for (const check of [
   {
     file: "package.json",
     required: ["android:release-config:validate", "smoke:android-release-config-validation"]
+  },
+  {
+    file: "package.json",
+    required: ["smoke:tracker-ws-cells-10k"]
   }
 ]) {
   const text = readFileSync(check.file, "utf8");
