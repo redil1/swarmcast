@@ -45,6 +45,86 @@ function expectFailure(label, file, pattern) {
 
 expectPass("complete synthetic launch evidence", fixture);
 expectFailure(
+  "missing launch evidence schema version",
+  writeVariant("missing-schema-version", (record) => {
+    delete record.schemaVersion;
+    return record;
+  }),
+  /launch evidence has unsupported or missing fields/
+);
+expectFailure(
+  "unsupported launch evidence field",
+  writeVariant("unsupported-launch-field", (record) => {
+    record.validatorCommand = "node attacker.js";
+    return record;
+  }),
+  /launch evidence has unsupported or missing fields/
+);
+expectFailure(
+  "non-boolean launch synthetic mode",
+  writeVariant("non-boolean-synthetic", (record) => {
+    record.synthetic = "false";
+    return record;
+  }),
+  /synthetic must be a boolean/
+);
+expectFailure(
+  "missing launch artifact bundle",
+  writeVariant("missing-artifact-bundle", (record) => {
+    delete record.artifactBundle;
+    return record;
+  }),
+  /launch evidence has unsupported or missing fields/
+);
+expectFailure(
+  "launch artifact bundle hash mismatch",
+  writeVariant("artifact-bundle-hash-mismatch", (record) => {
+    record.artifactBundle.sha256 = "0".repeat(64);
+    return record;
+  }),
+  /artifact bundle SHA-256 mismatch/
+);
+expectFailure(
+  "launch artifact bundle path traversal",
+  writeVariant("artifact-bundle-traversal", (record) => {
+    record.artifactBundle.path = "../evidence.json";
+    return record;
+  }),
+  /artifactBundle.path must be repository-root relative without traversal/
+);
+expectFailure(
+  "launch artifact bundle command injection",
+  writeVariant("artifact-bundle-command", (record) => {
+    record.artifactBundle.command = "node attacker.js";
+    return record;
+  }),
+  /artifactBundle has unsupported or missing fields/
+);
+expectFailure(
+  "unexpected launch gate",
+  writeVariant("unexpected-gate", (record) => {
+    record.gates[0].id = "unexpected-gate";
+    return record;
+  }),
+  /unexpected gate unexpected-gate/
+);
+expectFailure(
+  "duplicate launch reviewer identity",
+  writeVariant("duplicate-reviewer-identity", (record) => {
+    record.reviewers[1].reviewerId = record.reviewers[0].reviewerId;
+    return record;
+  }),
+  /reviewer roles and identities must be distinct/
+);
+expectFailure(
+  "launch review before artifact generation",
+  writeVariant("review-before-artifacts", (record) => {
+    record.reviewers[0].reviewedAt = "2026-07-04T23:59:59.000Z";
+    return record;
+  }),
+  /must be between artifact generation and final launch review/
+);
+expectFailure(
   "non-synthetic staging launch evidence",
   writeVariant("non-synthetic-staging", (record) => {
     record.synthetic = false;
@@ -491,4 +571,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=47");
+console.log("launch evidence validation smoke OK: pass=1 failures=57");

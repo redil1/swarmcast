@@ -35,7 +35,8 @@ const requiredThreats = [
   "T-014",
   "T-015",
   "T-016",
-  "T-017"
+  "T-017",
+  "T-018"
 ];
 const requiredOpenGates = [
   "android-rlnc-library",

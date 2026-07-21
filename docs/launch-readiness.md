@@ -123,13 +123,15 @@ Each staged rollout record must carry per-cohort peer-health evidence from the m
 
 ## Machine-Readable Launch Evidence
 
-Before a release can be approved, attach a JSON evidence bundle to the release record and validate it with:
+Before a release can be approved, build the immutable artifact bundle described in `docs/launch-artifact-bundle.md` and validate the schema-version-2 launch record with:
 
 ```bash
 npm run launch:evidence:validate -- path/to/launch-evidence.json
 ```
 
-The validator requires every hard blocker to be present, owned, complete, and backed by evidence. It fails by default when any gate is `blocked`, `partial`, or `waived`; use `--allow-incomplete` only for rehearsal or shape checks before the final go/no-go review.
+The launch record must bind the artifact bundle path and SHA-256. The bundle must contain the exact 52-artifact inventory for all 34 gates; every artifact is hash-checked and passed to one of 38 repository-owned fixed validator groups. The record also requires distinct release, operations, and security approvals after artifact generation. Evidence files cannot select validator commands.
+
+The validator requires every hard blocker to be present, owned, complete, and backed by evidence. It fails by default when any gate is `blocked`, `partial`, or `waived`; use `--allow-incomplete` only for rehearsal or shape checks before the final go/no-go review. That evidence must also be present in the validated artifact bundle. Production records cannot use `test-fixtures/`, synthetic artifacts, symlinks, aliased artifact paths, or a bundle that is not mode `0600`.
 
 Required gate IDs:
 
@@ -167,4 +169,4 @@ Required gate IDs:
 - `restore-drill` with `restore:evidence:validate` and `docs/runbooks/restore-drill.md`
 - `rollback-drill` with `rollback:evidence:validate`, `docs/runbooks/rollback-drill.md`, `android-release-halt-ready`, `app-incident-delivery-fleet-only`, and `tail-edge-only-mode`
 
-Synthetic evidence fixtures must be validated with `--allow-synthetic` and cannot be used as production launch evidence.
+Synthetic evidence fixtures must be validated with `--allow-synthetic` and cannot be used as production launch evidence. The complete synthetic record, inventory, and generated bundle under `test-fixtures/launch/` prove shape and validator integration only; they do not satisfy any real launch gate.

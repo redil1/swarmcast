@@ -191,6 +191,13 @@
       "owner": "platform",
       "decision": "Publish-once durability and reconnect replay are implemented; real three-node failure-domain and capacity proof remains open.",
       "evidence": ["T-017 npm run smoke:segment-bus", "docs/runbooks/segment-metadata-bus.md"]
+    },
+    {
+      "id": "T-018",
+      "status": "mitigated",
+      "owner": "security",
+      "decision": "Launch approval is bound to an immutable exact artifact inventory and fixed repository-owned validators.",
+      "evidence": ["T-018 npm run smoke:launch-artifact-bundle-validation", "docs/launch-artifact-bundle.md"]
     }
   ],
   "openGates": [

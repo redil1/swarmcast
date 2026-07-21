@@ -1,0 +1,494 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "releaseVersion": "v0.1.0-rc1",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "generatedAt": "2026-07-05T00:00:00.000Z",
+  "artifacts": [
+    {
+      "id": "legal-approval",
+      "path": "test-fixtures/legal/legal-approval-complete.synthetic.json",
+      "sha256": "961ca410e9e86c88607d904ad705eba02b8eaf2598f7eacf27f91d685ff0e32d"
+    },
+    {
+      "id": "privacy-store-compliance",
+      "path": "test-fixtures/privacy/privacy-store-compliance-complete.synthetic.json",
+      "sha256": "5c17f2714cb5c69901ca2e9fac868082b6527c162394d6e4350a0588ed6e9d65"
+    },
+    {
+      "id": "release-manifest",
+      "path": "test-fixtures/security/image-scan-release-manifest.synthetic.json",
+      "sha256": "0e075eb54d8a4e92b72098fffc3d48f73de9c79d0d1de34c629704c9a90344e6"
+    },
+    {
+      "id": "android-release-config",
+      "path": "test-fixtures/android/release-config.complete.properties",
+      "sha256": "d4b5030f883982397a1b26a7aeb5cbd1ebf758e7798644336143677a51629c24"
+    },
+    {
+      "id": "android-app-attestation",
+      "path": "test-fixtures/android/attestation-evidence-complete.synthetic.json",
+      "sha256": "66350cde72036db318cde05ae2bbf1d44008f930b5bd0707648160529270deaf"
+    },
+    {
+      "id": "android-ci-build",
+      "path": "test-fixtures/android/ci-build-complete.synthetic.json",
+      "sha256": "0c3f64730b762054a616160a88294b1207a618bcc3343c7435a984ee0b3063b5"
+    },
+    {
+      "id": "android-device-playback",
+      "path": "test-fixtures/android/playback-delivery-fleet-complete.synthetic.json",
+      "sha256": "ee8809fd19e7af9dcb1278c498fb27cab4c07488f5c42a522849923a81881d93"
+    },
+    {
+      "id": "android-p2p-transfer",
+      "path": "test-fixtures/android/p2p-transfer-complete.synthetic.json",
+      "sha256": "bcc203856fda22e480b7afebbd3c7b256a6a26f9ec702de4ca4c3eb095d478f0"
+    },
+    {
+      "id": "android-rlnc-decision",
+      "path": "test-fixtures/android/rlnc-decision-complete.synthetic.json",
+      "sha256": "26732e22dd48b0266fd21452089637705e36a0d4537f468c25e78bc5523dc7df"
+    },
+    {
+      "id": "threat-model-review",
+      "path": "test-fixtures/security/threat-model-review-complete.synthetic.json",
+      "sha256": "f9a1ba65c0426485750470952a67dd34004d0278e47f15bb27c41709e2c6ee1f"
+    },
+    {
+      "id": "security-review",
+      "path": "test-fixtures/security/security-review-complete.synthetic.json",
+      "sha256": "ffd659eaab48af2625994abf03e64852674a13a7ec2cd30b2e41b83b3d2ae8b4"
+    },
+    {
+      "id": "dependency-review",
+      "path": "test-fixtures/dependency/dependency-review-complete.synthetic.json",
+      "sha256": "e8d1a8ac209676ecba6dd93f2e0bafcf690ef59760808cb17083ef60ceaac8ed"
+    },
+    {
+      "id": "repository-governance",
+      "path": "test-fixtures/security/repository-governance-complete.synthetic.json",
+      "sha256": "6855fbaa5be42fa282ad446e634736a58e8d2cd147ceb73208b01dc4da7ec6f3"
+    },
+    {
+      "id": "image-scan-segment-bus",
+      "path": "test-fixtures/security/scans/segment-bus.trivy.json",
+      "sha256": "7f5aa4216cb95b9736c447471bd93c8f2b0593df2f1d12b7aeabd09a6496cdb1"
+    },
+    {
+      "id": "image-scan-segment-bus-exporter",
+      "path": "test-fixtures/security/scans/segment-bus-exporter.trivy.json",
+      "sha256": "73ae5e0b5273a8de39cf1a14e37c345d6fc1314dcd9c40f6e239026d78dc48b6"
+    },
+    {
+      "id": "image-scan-auth",
+      "path": "test-fixtures/security/scans/auth.trivy.json",
+      "sha256": "2435c291fbe4bb384bc7d75d663a5d07ade4033e5501631f3ce92372b677b9b1"
+    },
+    {
+      "id": "image-scan-ingest",
+      "path": "test-fixtures/security/scans/ingest.trivy.json",
+      "sha256": "3728984473af0ce8c75b07f9815622ec5732da5a4d7adc56fcb29153179e7942"
+    },
+    {
+      "id": "image-scan-tracker",
+      "path": "test-fixtures/security/scans/tracker.trivy.json",
+      "sha256": "8661b0989e13d3d0077d2765df148c75a90dc5bdceb87fbfa369a32bc2d408bc"
+    },
+    {
+      "id": "image-scan-control-plane",
+      "path": "test-fixtures/security/scans/control-plane.trivy.json",
+      "sha256": "990beb3a19aa360d4d28132b6e43c2d6efa0676421cd82c37e79a8dc2146f102"
+    },
+    {
+      "id": "image-scan-retention-worker",
+      "path": "test-fixtures/security/scans/retention-worker.trivy.json",
+      "sha256": "7008f6ad2fb114137cdecc26fa882138618fdf4c90c2d084b889715420324839"
+    },
+    {
+      "id": "image-scan-nginx",
+      "path": "test-fixtures/security/scans/nginx.trivy.json",
+      "sha256": "6b7a8056534ddab4ff3648dd2e8c55c3a529df03c8d83d13a03e51e27403653e"
+    },
+    {
+      "id": "image-scan-prometheus",
+      "path": "test-fixtures/security/scans/prometheus.trivy.json",
+      "sha256": "1600e5a19fd549f7ad5458f9dfce602359f21f65c67546556f583f54f4966555"
+    },
+    {
+      "id": "image-scan-alertmanager",
+      "path": "test-fixtures/security/scans/alertmanager.trivy.json",
+      "sha256": "6f778216452327a205aaf974a425feaebf092d444b4a8d149eb0ab26e00ae34c"
+    },
+    {
+      "id": "image-scan-grafana",
+      "path": "test-fixtures/security/scans/grafana.trivy.json",
+      "sha256": "1a55947859d80cab9e4db2def014e7adaca25c2c5987fd5ec503f7810bec9936"
+    },
+    {
+      "id": "image-scan-edge-nginx",
+      "path": "test-fixtures/security/scans/edge-nginx.trivy.json",
+      "sha256": "deb9efb3683f64e77e83f71f0a19392ffb2298f2e18ddf2a8e722a50b82d7865"
+    },
+    {
+      "id": "image-scan-edge-metrics",
+      "path": "test-fixtures/security/scans/edge-metrics.trivy.json",
+      "sha256": "18e4b964d9d69d2577e0037f68db49c37ed9a7a84dc8656749d6335aa3c42490"
+    },
+    {
+      "id": "image-scan-node-exporter",
+      "path": "test-fixtures/security/scans/node-exporter.trivy.json",
+      "sha256": "9e7782bdf1bc6432093c6379f2fbd1e3169fa407eb2f7b91c43991dfd869f889"
+    },
+    {
+      "id": "image-scan-turn",
+      "path": "test-fixtures/security/scans/turn.trivy.json",
+      "sha256": "ff14f6b425738ca4694cd18d46e53207728b819892be8f3077e62aa5694b0586"
+    },
+    {
+      "id": "retention-approval",
+      "path": "test-fixtures/retention/retention-approval-complete.synthetic.json",
+      "sha256": "3914bdab627c5f47082ae4b2980eac7f70142960c3ac8ebfa88bd85f3c6e40b2"
+    },
+    {
+      "id": "retention-execution",
+      "path": "test-fixtures/retention/retention-execution-complete.synthetic.json",
+      "sha256": "1bd6ba22764eb3467f6d281e5ea4ad5c22db8f0ffdc2b03986f3dd8c2e52f543"
+    },
+    {
+      "id": "android-accessibility",
+      "path": "test-fixtures/android/accessibility-complete.synthetic.json",
+      "sha256": "0038c91a24de27b4d6a998a00b416133e72c86720c7c370c2b384f0f1f5c24b1"
+    },
+    {
+      "id": "host-provisioning",
+      "path": "test-fixtures/infra/host-provisioning-complete.synthetic.json",
+      "sha256": "e6fdaa07c05bd8702c305c5e9c506f3225d4f86e04b978d7b4c1e04ab6e245e0"
+    },
+    {
+      "id": "production-secrets",
+      "path": "test-fixtures/security/secrets-evidence-complete.synthetic.json",
+      "sha256": "ef0d90d3de1f3e6b75b59abab92b28e121ec8a3df38177d153e5422140264334"
+    },
+    {
+      "id": "production-environment",
+      "path": "test-fixtures/config/production.env",
+      "sha256": "30a4538b35c84ede8486c3d6612ab3405002e91e85a0015ecc8705b33631918e"
+    },
+    {
+      "id": "turn-capacity",
+      "path": "test-fixtures/load/turn-capacity-complete.synthetic.json",
+      "sha256": "17d2aaefd0060076764560793419db758f9efb7b42bb6d1bfa8b0d18cc0768c0"
+    },
+    {
+      "id": "deployment-execution",
+      "path": "test-fixtures/deployment/deployment-complete.synthetic.json",
+      "sha256": "b45a3c36ed26c943eab8aa699a56ab0d05f45435332e4c8cdc3e90f00de94b72"
+    },
+    {
+      "id": "nginx-tls-smoke",
+      "path": "test-fixtures/launch/nginx-tls-smoke-complete.synthetic.json",
+      "sha256": "3ca7703cdffdfbe8ce4edc67112c9153cada73f63dd5ff5317903f4a22437141"
+    },
+    {
+      "id": "source-allowlist",
+      "path": "test-fixtures/launch/source-allowlist-complete.synthetic.json",
+      "sha256": "f3cd0965c6e411c17126086face12e9dcabea3e954ba6e4bf6ef8396dde0bf8b"
+    },
+    {
+      "id": "catalog-import",
+      "path": "test-fixtures/catalog/catalog-import-complete.synthetic.json",
+      "sha256": "8c7a8edcecb0483cb9d13b032439f7c48d10e598178497609f09c2f9f585469f"
+    },
+    {
+      "id": "production-smokes",
+      "path": "test-fixtures/launch/production-smokes-complete.synthetic.json",
+      "sha256": "62fbbcacc8d94153edeb5511b44bd53a924682d3ecfeb13dfe8eb6c728115c97"
+    },
+    {
+      "id": "canary-metrics",
+      "path": "test-fixtures/launch/canary-metrics-pass.json",
+      "sha256": "284ff7dfc630fd4653e7302b08ccffd2150a5a791b5b56d1e6709e74126c3424"
+    },
+    {
+      "id": "canary-rollout",
+      "path": "test-fixtures/launch/canary-rollout-complete.synthetic.json",
+      "sha256": "0d84cb9ffcc55696ad70203e68d1707fe008b5c3c556fb9904209e0b62822983"
+    },
+    {
+      "id": "prometheus-alerts",
+      "path": "infra/monitoring/alerts.yml",
+      "sha256": "9e01b02c1ae1cd151c4bfe9dd845a85b876bf5ba3c72e431ac53312caa87d0c7"
+    },
+    {
+      "id": "grafana-dashboard",
+      "path": "infra/monitoring/grafana/dashboards/swarmcast-overview.json",
+      "sha256": "6255d7d5bf5ba3f59904081ec000b7047220551d2da0e485c0fe796ba7fe9d43"
+    },
+    {
+      "id": "alertmanager-config",
+      "path": "test-fixtures/monitoring/alertmanager-production.yml",
+      "sha256": "f2613acaa6c919f678cb8d9f7777ef30780a6de72fed23aa71bd1a86fbbf0f5c"
+    },
+    {
+      "id": "alertmanager-fire-drill",
+      "path": "test-fixtures/monitoring/alertmanager-fire-drill-complete.synthetic.json",
+      "sha256": "9ccdb8be87344e8b5251b5ca51ceb524790e5ff84caafcaac8dbf38901358f43"
+    },
+    {
+      "id": "segment-bus-capacity",
+      "path": "test-fixtures/segment-bus/segment-bus-capacity.complete.synthetic.json",
+      "sha256": "f34cf52a3d1e2b3d510c4639dc5130132647acab6470c5f71e781251b8b6defd"
+    },
+    {
+      "id": "capacity-plan",
+      "path": "config/capacity-plan.json",
+      "sha256": "f3589ff7c6b3e0322ea1b05e020024863c58f769d0631aecfa34c0fa49f2c3b9"
+    },
+    {
+      "id": "load-ladder",
+      "path": "test-fixtures/load/load-ladder-complete.synthetic.json",
+      "sha256": "dca1bd5d68a7d4bbfb1fa3080f9bad41f3d5c2b0b721aa4eb831d22dac259f89"
+    },
+    {
+      "id": "staging-chaos",
+      "path": "test-fixtures/chaos/staging-chaos-complete.synthetic.json",
+      "sha256": "13d066c150821d8992d6005f747a994b36d8c45631f5b01f5e9e87b85c428cdf"
+    },
+    {
+      "id": "restore-drill",
+      "path": "test-fixtures/restore/evidence-complete.synthetic.json",
+      "sha256": "d93e2db578e56ff4a0a9fdf753a32c06f37a289b4de8835e91ed15086533b1f8"
+    },
+    {
+      "id": "rollback-drill",
+      "path": "test-fixtures/rollback/rollback-drill-complete.synthetic.json",
+      "sha256": "efe41333ac5a2be4299ab359c46d657d4eb13f40d0955d57cf775044f63d79f2"
+    }
+  ],
+  "gates": [
+    {
+      "id": "legal-approval",
+      "artifactIds": [
+        "legal-approval"
+      ]
+    },
+    {
+      "id": "privacy-store-compliance",
+      "artifactIds": [
+        "privacy-store-compliance"
+      ]
+    },
+    {
+      "id": "release-artifacts",
+      "artifactIds": [
+        "release-manifest"
+      ]
+    },
+    {
+      "id": "android-release-config",
+      "artifactIds": [
+        "android-release-config"
+      ]
+    },
+    {
+      "id": "android-app-attestation",
+      "artifactIds": [
+        "android-app-attestation"
+      ]
+    },
+    {
+      "id": "android-ci-build",
+      "artifactIds": [
+        "android-ci-build"
+      ]
+    },
+    {
+      "id": "android-device-playback",
+      "artifactIds": [
+        "android-device-playback"
+      ]
+    },
+    {
+      "id": "android-p2p-transfer",
+      "artifactIds": [
+        "android-p2p-transfer"
+      ]
+    },
+    {
+      "id": "android-rlnc-decision",
+      "artifactIds": [
+        "android-rlnc-decision"
+      ]
+    },
+    {
+      "id": "threat-model-signoff",
+      "artifactIds": [
+        "threat-model-review"
+      ]
+    },
+    {
+      "id": "security-review",
+      "artifactIds": [
+        "security-review"
+      ]
+    },
+    {
+      "id": "dependency-review",
+      "artifactIds": [
+        "dependency-review"
+      ]
+    },
+    {
+      "id": "repository-governance",
+      "artifactIds": [
+        "repository-governance"
+      ]
+    },
+    {
+      "id": "image-scan-reports",
+      "artifactIds": [
+        "release-manifest",
+        "image-scan-segment-bus",
+        "image-scan-segment-bus-exporter",
+        "image-scan-auth",
+        "image-scan-ingest",
+        "image-scan-tracker",
+        "image-scan-control-plane",
+        "image-scan-retention-worker",
+        "image-scan-nginx",
+        "image-scan-prometheus",
+        "image-scan-alertmanager",
+        "image-scan-grafana",
+        "image-scan-edge-nginx",
+        "image-scan-edge-metrics",
+        "image-scan-node-exporter",
+        "image-scan-turn"
+      ]
+    },
+    {
+      "id": "data-retention-approval",
+      "artifactIds": [
+        "retention-approval",
+        "retention-execution"
+      ]
+    },
+    {
+      "id": "accessibility-ux-baseline",
+      "artifactIds": [
+        "android-accessibility"
+      ]
+    },
+    {
+      "id": "host-provisioning",
+      "artifactIds": [
+        "host-provisioning"
+      ]
+    },
+    {
+      "id": "production-secrets",
+      "artifactIds": [
+        "production-secrets"
+      ]
+    },
+    {
+      "id": "production-environment",
+      "artifactIds": [
+        "production-environment"
+      ]
+    },
+    {
+      "id": "turn-relay",
+      "artifactIds": [
+        "turn-capacity"
+      ]
+    },
+    {
+      "id": "deployment-execution",
+      "artifactIds": [
+        "deployment-execution"
+      ]
+    },
+    {
+      "id": "nginx-tls-smoke",
+      "artifactIds": [
+        "nginx-tls-smoke"
+      ]
+    },
+    {
+      "id": "source-allowlist",
+      "artifactIds": [
+        "source-allowlist"
+      ]
+    },
+    {
+      "id": "catalog-import",
+      "artifactIds": [
+        "catalog-import"
+      ]
+    },
+    {
+      "id": "production-smokes",
+      "artifactIds": [
+        "production-smokes"
+      ]
+    },
+    {
+      "id": "canary-rollout",
+      "artifactIds": [
+        "canary-metrics",
+        "canary-rollout"
+      ]
+    },
+    {
+      "id": "prometheus-alerts",
+      "artifactIds": [
+        "prometheus-alerts"
+      ]
+    },
+    {
+      "id": "grafana-dashboard",
+      "artifactIds": [
+        "grafana-dashboard"
+      ]
+    },
+    {
+      "id": "alert-receiver-fire-drill",
+      "artifactIds": [
+        "alertmanager-config",
+        "alertmanager-fire-drill"
+      ]
+    },
+    {
+      "id": "segment-metadata-bus",
+      "artifactIds": [
+        "segment-bus-capacity"
+      ]
+    },
+    {
+      "id": "capacity-load-ladder",
+      "artifactIds": [
+        "capacity-plan",
+        "load-ladder"
+      ]
+    },
+    {
+      "id": "staging-chaos-drills",
+      "artifactIds": [
+        "staging-chaos"
+      ]
+    },
+    {
+      "id": "restore-drill",
+      "artifactIds": [
+        "restore-drill"
+      ]
+    },
+    {
+      "id": "rollback-drill",
+      "artifactIds": [
+        "rollback-drill"
+      ]
+    }
+  ]
+}

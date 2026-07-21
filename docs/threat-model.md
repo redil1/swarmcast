@@ -13,7 +13,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 - Control-plane placement state, ingest node inventory, and edge/origin routing templates.
 - Retention policy, retention worker action logs, and production datastore adapter credentials.
 - Android app configuration, P2P privacy controls, and future RLNC decoder library.
-- Container images, GitHub release workflow secrets, and dependency versions.
+- Container images, GitHub release workflow secrets, dependency versions, launch evidence, and artifact bundle hashes.
 - Prometheus metrics, Grafana dashboards, Alertmanager routes, and operational logs.
 
 ## Trust Boundaries
@@ -30,6 +30,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 | Android and auth to TURN | Public viewer and credential service to owned relay | Short-lived HMAC credentials, TLS endpoint, quotas, private-peer denial, secret rotation overlap, metrics, and edge fallback. |
 | RLNC decoder boundary | Coded packets to stored bytes | Rank checks, fuzzed decoder, hash verification before `SegmentStore`, license and ABI review. |
 | Release pipeline to production | CI artifacts to runtime fleet | Immutable tags, image digest pinning, SBOM, vulnerability scan, rollback record. |
+| Launch evidence to approval board | Operator artifacts to production decision | Exact artifact inventory, SHA-256 binding, fixed validators, non-symlink files, release/commit binding, and three independent approvals. |
 | Monitoring and logs | Services to operators | Redaction, no JWTs, no source URLs, retention limits. |
 
 ## Threat Scenarios
@@ -53,6 +54,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 | T-015 | Retention worker deletes or aggregates the wrong records. | Dry-run default, `RETENTION_EXECUTE=1` guard, policy-driven actions, fixture tests, failure/staleness alerts. | Production datastore adapter review, scoped credentials, and staging retention drill. |
 | T-016 | TURN credentials are abused for bandwidth theft or relays are used to reach private services. | Subject-bound expiring credentials, issuance rate limits, allocation/bandwidth quotas, private-peer denial, restricted metrics, immutable image, and rotation overlap. | Real carrier/device relay proof, relay egress reconciliation, external abuse test, and production secret review. |
 | T-017 | Segment metadata is forged, replayed, lost, or made unavailable, causing poisoned scheduling or fleet-wide fallback. | Distinct subject-scoped bcrypt credentials, hostname-verified client TLS, mutually authenticated broker routes, strict metadata/hash validation, JetStream acknowledgements, duplicate suppression, sequence gates, latest replay, quorum replication, readiness, metrics, edge fallback, and a local three-node leader-loss/rotation/recovery proof. | Repeat the proof across three real failure domains and prove sustained peak latency and disk recovery in staging. |
+| T-018 | A forged, stale, aliased, symlinked, or validator-substituted evidence bundle is approved as launch-ready. | Schema-version-2 launch records bind a mode-0600 bundle by SHA-256; the bundle binds the exact 52-artifact inventory by SHA-256, rejects aliases/symlinks/test fixtures, executes 38 fixed validator groups without a shell, and requires distinct release, operations, and security approvals after generation. | Use only immutable real artifacts and complete the three-person approval on the final generated bundle. |
 
 ## Abuse Cases To Test
 
@@ -70,6 +72,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 - Compromised dependency or image scan finding blocks launch.
 - Expired, forged, and replayed TURN credentials fail; relay attempts toward private and loopback addresses are denied.
 - Unauthorized NATS subjects, stale segment sequences, broker restart, one-node loss, credential rotation, and disk pressure fail safely without bypassing segment integrity.
+- Missing, extra, hash-mismatched, aliased, traversal, symlinked, synthetic, release-drifted, and command-injected launch artifacts are rejected before approval.
 
 ## Required Before Production
 
