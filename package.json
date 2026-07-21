@@ -49,6 +49,7 @@
     "smoke:webrtc-200": "node scripts/smoke-webrtc-tracker-200.js",
     "smoke:webrtc-hash-rejection": "node scripts/smoke-webrtc-tracker-200.js --expect-hash-mismatch",
     "smoke:webrtc-turn-relay": "node scripts/smoke-webrtc-tracker-200.js --force-turn-relay",
+    "smoke:webrtc-turn-relay-20": "node scripts/smoke-webrtc-tracker-200.js --force-turn-relay-20",
     "smoke:webrtc-turn-auth-rejection": "node scripts/smoke-webrtc-tracker-200.js --expect-turn-auth-rejection",
     "smoke:turn": "node scripts/smoke-turn.js",
     "smoke:tracker-ws": "node scripts/smoke-tracker-ws.js",
