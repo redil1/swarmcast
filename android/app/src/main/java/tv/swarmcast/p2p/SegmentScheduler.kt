@@ -25,7 +25,8 @@ data class SchedulerStats(
     val uploadedToPeers: Long = 0,
     val peerTimeouts: Long = 0,
     val peerHashFailures: Long = 0,
-    val peerDisconnects: Long = 0
+    val peerDisconnects: Long = 0,
+    val activePeerLinks: Int = 0
 )
 
 internal data class PeerDownloadAttribution(
@@ -250,7 +251,8 @@ class SegmentScheduler(
             uploadedToPeers = uploadedToPeers,
             peerTimeouts = peerTimeouts,
             peerHashFailures = peerHashFailures,
-            peerDisconnects = peerDisconnects
+            peerDisconnects = peerDisconnects,
+            activePeerLinks = links.size
         )
 
     private suspend fun tryPeers(seq: Int, urgencyMs: Long): ByteArray? {

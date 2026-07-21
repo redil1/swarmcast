@@ -3,6 +3,7 @@
   "environment": "staging",
   "commit": "0123456789abcdef0123456789abcdef01234567",
   "appVersion": "v0.1.0-rc1",
+  "releaseApkSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "testedAt": "2026-07-05T00:00:00.000Z",
   "synthetic": true,
   "devices": [
@@ -10,19 +11,49 @@
       "id": "pixel-8-a",
       "name": "Pixel 8 synthetic sender",
       "androidVersion": "15",
-      "network": "wifi"
+      "network": "wifi",
+      "physical": true,
+      "installationSource": "play-store",
+      "deviceFingerprintSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "apkSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "measuredUploadBytes": 5000000,
+      "wifiNetworkId": "wifi-lab-a"
     },
     {
       "id": "pixel-8-b",
       "name": "Pixel 8 synthetic receiver",
       "androidVersion": "15",
-      "network": "cellular"
+      "network": "cellular",
+      "physical": true,
+      "installationSource": "play-store",
+      "deviceFingerprintSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "apkSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "measuredUploadBytes": 0,
+      "carrierId": "carrier-lab-a"
     },
     {
       "id": "pixel-8-c",
       "name": "Pixel 8 synthetic wifi observer",
       "androidVersion": "15",
-      "network": "wifi"
+      "network": "wifi",
+      "physical": true,
+      "installationSource": "play-store",
+      "deviceFingerprintSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "apkSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "measuredUploadBytes": 4250000,
+      "wifiNetworkId": "wifi-lab-b"
+    },
+    {
+      "id": "pixel-8-d",
+      "name": "Pixel 8 synthetic second-carrier receiver",
+      "androidVersion": "15",
+      "network": "cellular",
+      "physical": true,
+      "installationSource": "play-store",
+      "deviceFingerprintSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "apkSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "measuredUploadBytes": 0,
+      "carrierId": "carrier-lab-b"
     }
   ],
   "checks": [
@@ -86,7 +117,7 @@
       "id": "cellular-receive-only",
       "status": "pass",
       "owner": "android",
-      "deviceIds": ["pixel-8-a", "pixel-8-b"],
+      "deviceIds": ["pixel-8-a", "pixel-8-b", "pixel-8-d"],
       "evidence": ["device-lab/p2p/cellular-receive-only.cellular-no-upload.synthetic.json", "android/app/src/main/java/tv/swarmcast/p2p/NetworkPolicy.kt"]
     },
     {
@@ -98,20 +129,34 @@
     }
   ],
   "connectivity": {
-    "networks": [
+    "devices": [
       {
-        "network": "wifi",
-        "attempts": 20,
-        "successes": 18,
-        "failures": 2,
-        "selectedCandidates": { "host": 2, "srflx": 16, "prflx": 0, "relay": 0, "unknown": 0 }
+        "deviceId": "pixel-8-a",
+        "attempts": 10,
+        "successes": 9,
+        "failures": 1,
+        "selectedCandidates": { "host": 1, "srflx": 8, "prflx": 0, "relay": 0, "unknown": 0 }
       },
       {
-        "network": "cellular",
-        "attempts": 20,
-        "successes": 12,
-        "failures": 8,
-        "selectedCandidates": { "host": 0, "srflx": 10, "prflx": 2, "relay": 0, "unknown": 0 }
+        "deviceId": "pixel-8-b",
+        "attempts": 10,
+        "successes": 6,
+        "failures": 4,
+        "selectedCandidates": { "host": 0, "srflx": 3, "prflx": 1, "relay": 2, "unknown": 0 }
+      },
+      {
+        "deviceId": "pixel-8-c",
+        "attempts": 10,
+        "successes": 9,
+        "failures": 1,
+        "selectedCandidates": { "host": 1, "srflx": 8, "prflx": 0, "relay": 0, "unknown": 0 }
+      },
+      {
+        "deviceId": "pixel-8-d",
+        "attempts": 10,
+        "successes": 5,
+        "failures": 5,
+        "selectedCandidates": { "host": 0, "srflx": 2, "prflx": 0, "relay": 3, "unknown": 0 }
       }
     ],
     "evidence": ["tracker-metrics/ice-network-class.ice-selected-candidate-type.synthetic.prom"]
@@ -123,22 +168,35 @@
     "edgeFallbackVerified": true,
     "sourceDeviceId": "pixel-8-a",
     "sinkDeviceId": "pixel-8-b",
-    "verifiedSegments": 24,
-    "directP2pBytes": 6291456,
-    "edgeBytes": 1048576,
-    "bootstrapOriginBytes": 0,
-    "relayBytes": 0,
-    "relayAccessEgressBytes": 0,
+    "durationSeconds": 1800,
+    "sampleIntervalSeconds": 30,
+    "sampleCount": 60,
+    "verifiedSegments": 300,
+    "directP2pBytes": 9000000,
+    "edgeBytes": 500000,
+    "bootstrapOriginBytes": 250000,
+    "relayBytes": 250000,
+    "relayAccessEgressBytes": 250000,
+    "edgeAccessEgressBytes": 500000,
+    "originAccessBootstrapBytes": 250000,
+    "trackerP2pDownloadBytes": 9000000,
+    "trackerRelayDownloadBytes": 250000,
+    "sourceUploadBytes": 9250000,
+    "sinkUploadBytes": 0,
+    "trackerUploadBytes": 9250000,
+    "p2pDisabledActiveLinks": 0,
+    "p2pDisabledEdgeBytes": 250000,
     "reconciliationTolerance": 0.05,
     "hashFailures": 0,
     "disconnects": 0,
-    "offloadRatio": 0.857143,
+    "offloadRatio": 0.9,
     "stallRate": 0.002,
     "bufferMsMin": 28000,
+    "batteryDrainPctPerHour": 6.0,
     "evidence": [
-      "device-lab/p2p/transfer-summary.webrtc-datachannel.tracker-signaling-relay.synthetic.json",
+      "device-lab/p2p/transfer-summary.webrtc-datachannel.tracker-signaling-relay.physical-devices.two-wifi-networks.two-cellular-carriers.play-installed.30m-soak.synthetic.json",
       "device-lab/p2p/verified-segment-hash.edge-fallback.p2p-disable-closes-peers.cellular-no-upload.synthetic.json",
-      "device-lab/p2p/direct-relay-payload-attribution.relay-egress-reconciled.synthetic.json",
+      "device-lab/p2p/direct-relay-payload-attribution.relay-egress-reconciled.edge-egress-reconciled.origin-bootstrap-reconciled.cellular-zero-upload-measured.synthetic.json",
       "tracker-metrics/p2p-transfer.synthetic.prom"
     ]
   }

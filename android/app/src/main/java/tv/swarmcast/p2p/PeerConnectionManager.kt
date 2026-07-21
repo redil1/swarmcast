@@ -45,6 +45,8 @@ class PeerConnectionManager(
 
     fun drainIceTelemetry(): IceConnectivityDelta = iceTelemetry.drain()
 
+    fun iceTelemetrySnapshot(): IceConnectivityDelta = iceTelemetry.snapshot()
+
     fun updateIceServers(configs: List<IceServerConfig>) {
         iceServers = buildIceServers(configs)
     }

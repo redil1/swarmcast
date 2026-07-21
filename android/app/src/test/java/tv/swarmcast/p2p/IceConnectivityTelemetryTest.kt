@@ -25,6 +25,10 @@ class IceConnectivityTelemetryTest {
 
         assertEquals(IceConnectivityDelta(attempts = 2, successes = 1, failures = 1, srflxSuccesses = 1), telemetry.drain())
         assertEquals(IceConnectivityDelta(), telemetry.drain())
+        assertEquals(
+            IceConnectivityDelta(attempts = 2, successes = 1, failures = 1, srflxSuccesses = 1),
+            telemetry.snapshot()
+        )
     }
 
     @Test

@@ -436,7 +436,7 @@ for (const file of jsonFiles) {
 if (failed) process.exit(1);
 const packageText = readFileSync("package.json", "utf8");
 for (const required of [
-  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
+  "\"check\": \"node scripts/check-syntax.js && node scripts/validate-prometheus-alerts.js && node scripts/smoke-prometheus-alerts-validation.js && node scripts/validate-grafana-dashboard.js && node scripts/smoke-grafana-dashboard-validation.js && node scripts/smoke-production-env-validation.js && node scripts/smoke-compose-production-env.js && node scripts/smoke-release-images-validation.js && node scripts/smoke-release-manifest-production.js && node scripts/smoke-image-scan-bundle-validation.js && node scripts/smoke-image-scan-report-validation.js && node scripts/smoke-deployment-evidence-validation.js && node scripts/smoke-rollback-evidence-validation.js && node scripts/smoke-secrets-evidence-validation.js && node scripts/smoke-repository-governance-evidence-validation.js && node scripts/smoke-host-provisioning-evidence-validation.js && node scripts/smoke-source-allowlist-evidence-validation.js && node scripts/smoke-production-smoke-evidence-validation.js && node scripts/smoke-privacy-store-compliance-validation.js && node scripts/smoke-legal-approval-validation.js && node scripts/smoke-android-ci-evidence-validation.js && node scripts/smoke-android-release-config-validation.js && node scripts/smoke-android-attestation-evidence-validation.js && node scripts/smoke-android-playback-evidence-validation.js && node scripts/smoke-android-p2p-evidence-validation.js && node scripts/smoke-android-device-lab.js && node scripts/smoke-android-rlnc-decision-validation.js && node scripts/smoke-android-accessibility-evidence-validation.js && node scripts/smoke-catalog-import-validation.js && node scripts/smoke-nginx-tls-evidence-validation.js && node scripts/smoke-alertmanager-receivers-validation.js && node scripts/smoke-alertmanager-fire-drill-validation.js && node scripts/smoke-canary-metrics-validation.js && node scripts/smoke-canary-rollout-evidence-validation.js && node scripts/smoke-capacity-plan-validation.js && node scripts/smoke-load-ladder-evidence-validation.js && node scripts/smoke-turn-capacity-evidence-validation.js && node scripts/smoke-turn-capacity-probe.js && node scripts/smoke-staging-chaos-evidence-validation.js && node scripts/smoke-restore-evidence-validation.js && node scripts/smoke-security-review-validation.js && node scripts/smoke-dependency-review-validation.js && node scripts/smoke-threat-model-review-validation.js && node scripts/smoke-retention-approval-validation.js && node scripts/smoke-retention-execution-evidence-validation.js && node scripts/smoke-launch-evidence-validation.js && npm run evidence:committed:validate && node scripts/validate-configs.js\"",
   "\"smoke:compose-production-env\": \"node scripts/smoke-compose-production-env.js\"",
   "\"smoke:production-env-validation\": \"node scripts/smoke-production-env-validation.js\"",
   "\"smoke:release-images-validation\": \"node scripts/smoke-release-images-validation.js\"",
@@ -458,6 +458,7 @@ for (const required of [
   "\"smoke:android-attestation-evidence-validation\": \"node scripts/smoke-android-attestation-evidence-validation.js\"",
   "\"smoke:android-playback-evidence-validation\": \"node scripts/smoke-android-playback-evidence-validation.js\"",
   "\"smoke:android-p2p-evidence-validation\": \"node scripts/smoke-android-p2p-evidence-validation.js\"",
+  "\"smoke:android-device-lab\": \"node scripts/smoke-android-device-lab.js\"",
   "\"smoke:android-rlnc-decision-validation\": \"node scripts/smoke-android-rlnc-decision-validation.js\"",
   "\"smoke:android-accessibility-evidence-validation\": \"node scripts/smoke-android-accessibility-evidence-validation.js\"",
   "\"smoke:nginx-tls-evidence-validation\": \"node scripts/smoke-nginx-tls-evidence-validation.js\"",
@@ -509,6 +510,7 @@ for (const required of [
   "\"android:accessibility:validate\": \"node scripts/validate-android-accessibility-evidence.js\"",
   "\"android:playback:evidence:validate\": \"node scripts/validate-android-playback-evidence.js\"",
   "\"android:p2p:evidence:validate\": \"node scripts/validate-android-p2p-evidence.js\"",
+  "\"android:device-lab\": \"node scripts/run-android-device-lab.js\"",
   "\"android:rlnc:decision:validate\": \"node scripts/validate-android-rlnc-decision.js\"",
   "\"load:ladder:validate\": \"node scripts/validate-load-ladder-evidence.js\"",
   "\"turn:capacity:probe\": \"node scripts/run-turn-capacity-probe.js\"",
@@ -1065,6 +1067,10 @@ for (const check of [
   {
     file: "package.json",
     required: ["android:release-config:validate", "smoke:android-release-config-validation"]
+  },
+  {
+    file: "package.json",
+    required: ["android:device-lab", "smoke:android-device-lab"]
   },
   {
     file: "package.json",
@@ -1695,7 +1701,11 @@ for (const required of [
   "Android release Gradle properties pass `npm run android:release-config:validate -- path/to/release.properties`; an RLNC-enabled release must also pass a real decision through `--rlnc-decision path/to/android-rlnc-decision.json`; local guard coverage remains `npm run smoke:android-release-config-validation`",
   "Android debug and release build evidence passes `npm run android:ci:evidence:validate -- path/to/android-ci-evidence.json`, including `swarmcast-android-debug-apk`, `swarmcast-android-release-unsigned-apk`, and checksum sidecar evidence; local guard coverage remains `npm run smoke:android-ci-evidence-validation`",
   "Android Delivery-Fleet-only playback evidence passes `npm run android:playback:evidence:validate -- path/to/android-playback-evidence.json` with 30-minute WiFi and cellular soaks, edge cache hit evidence, and crash-free playback; local guard coverage remains `npm run smoke:android-playback-evidence-validation`",
-  "Android P2P transfer evidence passes `npm run android:p2p:evidence:validate -- path/to/android-p2p-evidence.json` with WebRTC DataChannel, tracker-signaling relay, verified segment hashes, edge fallback, P2P-disable closure, cellular receive-only/no-upload proof, direct-versus-relay payload attribution, recomputed offload, and reconciled relay egress; local guard coverage remains `npm run smoke:android-p2p-evidence-validation`",
+  "Android P2P transfer evidence follows `docs/android-device-lab.md` and passes `npm run android:p2p:evidence:validate -- path/to/android-p2p-evidence.json`",
+  "at least four distinct Play-installed physical devices across two WiFi failure domains and two cellular carriers",
+  "direct `rho >= 0.90`",
+  "Raw device-lab output is not launch evidence until those server/provider records and independent reviews are joined",
+  "local guard coverage remains `npm run smoke:android-device-lab` and `npm run smoke:android-p2p-evidence-validation`",
   "Android RLNC decoder decision evidence passes `npm run android:rlnc:decision:validate -- path/to/android-rlnc-decision.json`; local guard coverage remains `npm run smoke:android-rlnc-decision-validation`",
   "Threat model sign-off evidence passes `npm run threat:model:validate -- path/to/threat-model-review.json` for auth, tracker, control plane, ingest, segment metadata bus, retention worker, edge, Android P2P, RLNC, release, and dependency supply chain; local guard coverage remains `npm run smoke:threat-model-review-validation`",
   "retention worker",
@@ -4669,18 +4679,41 @@ for (const required of [
   "tracker-signaling-relay",
   "verified-segment-hash",
   "cellular-no-upload",
+  "physical-devices",
+  "two-wifi-networks",
+  "two-cellular-carriers",
+  "play-installed",
+  "cellular-zero-upload-measured",
+  "30m-soak",
+  "devices must include at least four physical devices",
+  "devices must include at least two WiFi network failure domains",
+  "devices must include at least two cellular carrier failure domains",
   "transfer source device must be wifi for upload evidence",
   "transfer sink device must be cellular for receive-only evidence",
-  "connectivity.networks must be an array",
+  "connectivity.devices must be an array",
   "ice-network-class",
   "ice-selected-candidate-type",
   "directP2pBytes",
   "bootstrapOriginBytes",
   "relayAccessEgressBytes",
+  "edgeAccessEgressBytes",
+  "originAccessBootstrapBytes",
+  "trackerP2pDownloadBytes",
+  "trackerRelayDownloadBytes",
+  "trackerUploadBytes",
+  "measuredUploadBytes must prove useful WiFi upload",
+  "measuredUploadBytes must be zero on cellular",
+  "transfer device upload",
   "direct-relay-payload-attribution",
   "relay-egress-reconciled",
+  "edge-egress-reconciled",
+  "origin-bootstrap-reconciled",
   "transfer.offloadRatio does not match direct P2P over all delivery bytes",
   "transfer relay egress",
+  "transfer edge egress",
+  "transfer origin bootstrap",
+  "transfer tracker direct P2P",
+  "selected candidates must not be unknown",
   "edge-fallback",
   "p2p-with-edge-fallback",
   "synthetic Android P2P evidence requires --allow-synthetic",
@@ -4697,7 +4730,7 @@ for (const required of [
   "scripts/validate-android-p2p-evidence.js",
   "test-fixtures/android/p2p-transfer-complete.synthetic.json",
   "synthetic Android P2P evidence requires --allow-synthetic",
-  "devices must include at least two devices",
+  "devices must include at least four physical devices",
   "devices must include cellular Android P2P evidence",
   "missing required Android P2P check datachannel-open",
   "missing required Android P2P check cellular-receive-only",
@@ -4710,10 +4743,10 @@ for (const required of [
   "transfer\\.edgeFallbackVerified must be true",
   "transfer source and sink devices must differ",
   "transfer source device must be wifi for upload evidence",
-  "transfer\\.verifiedSegments must be between 1 and Infinity",
+  "transfer\\.verifiedSegments must be between 100 and Infinity",
   "transfer\\.hashFailures must be between 0 and 0",
   "transfer\\.disconnects must be between 0 and 0",
-  "transfer\\.offloadRatio must be between 0.01 and 1",
+  "transfer\\.offloadRatio must be between 0.9 and 1",
   "transfer\\.directP2pBytes must be an integer",
   "transfer\\.offloadRatio does not match direct P2P over all delivery bytes",
   "transfer relay egress is not reconciled within tolerance",
@@ -4722,11 +4755,29 @@ for (const required of [
   "transfer\\.evidence must mention webrtc-datachannel",
   "transfer\\.evidence must mention direct-relay-payload-attribution",
   "transfer\\.evidence evidence reference looks like it may contain sensitive material",
-  "connectivity must include cellular ICE outcomes",
-  "connectivity\\.wifi outcomes exceed attempts",
-  "connectivity\\.cellular selected candidates must sum to successes",
+  "connectivity must include device pixel-8-b",
+  "connectivity\\.pixel-8-a outcomes must equal attempts",
+  "connectivity\\.pixel-8-b selected candidates must sum to successes",
   "connectivity\\.evidence must mention ice-selected-candidate-type",
-  "Android P2P evidence validation smoke OK: pass=1 failures=30"
+  "pixel-8-a\\.physical must be true",
+  "duplicate physical device fingerprint for pixel-8-b",
+  "at least two WiFi network failure domains",
+  "at least two cellular carrier failure domains",
+  "pixel-8-a\\.installationSource has invalid format",
+  "pixel-8-a\\.apkSha256 must match releaseApkSha256",
+  "pixel-8-c\\.measuredUploadBytes must prove useful WiFi upload",
+  "pixel-8-d\\.measuredUploadBytes must be zero on cellular",
+  "transfer\\.durationSeconds must be between 1800 and Infinity",
+  "sourceUploadBytes must cover direct and relayed peer payload",
+  "transfer\\.sinkUploadBytes must be between 0 and 0",
+  "transfer edge egress is not reconciled within tolerance",
+  "transfer origin bootstrap is not reconciled within tolerance",
+  "transfer tracker direct P2P is not reconciled within tolerance",
+  "transfer\\.batteryDrainPctPerHour must be between 0 and 8",
+  "selected candidates must not be unknown",
+  "transfer\\.p2pDisabledActiveLinks must be between 0 and 0",
+  "transfer\\.p2pDisabledEdgeBytes must be between 1 and Infinity",
+  "Android P2P evidence validation smoke OK: pass=1 failures=50"
 ]) {
   if (!androidP2pEvidenceSmokeText.includes(required)) {
     console.error(`scripts/smoke-android-p2p-evidence-validation.js: missing Android P2P smoke text: ${required}`);
@@ -4747,20 +4798,112 @@ for (const required of [
   "tracker-signaling-relay",
   "verified-segment-hash",
   "cellular-no-upload",
+  "\"physical\": true",
+  "\"installationSource\": \"play-store\"",
+  "\"measuredUploadBytes\": 5000000",
+  "\"wifiNetworkId\": \"wifi-lab-b\"",
+  "\"carrierId\": \"carrier-lab-b\"",
   "\"deliveryMode\": \"p2p-with-edge-fallback\"",
-  "\"verifiedSegments\": 24",
+  "\"durationSeconds\": 1800",
+  "\"verifiedSegments\": 300",
   "\"hashFailures\": 0",
-  "\"directP2pBytes\": 6291456",
-  "\"bootstrapOriginBytes\": 0",
-  "\"relayBytes\": 0",
-  "\"relayAccessEgressBytes\": 0",
-  "\"offloadRatio\": 0.857143",
+  "\"directP2pBytes\": 9000000",
+  "\"bootstrapOriginBytes\": 250000",
+  "\"relayBytes\": 250000",
+  "\"relayAccessEgressBytes\": 250000",
+  "\"edgeAccessEgressBytes\": 500000",
+  "\"originAccessBootstrapBytes\": 250000",
+  "\"offloadRatio\": 0.9",
   "\"selectedCandidates\"",
   "ice-network-class.ice-selected-candidate-type",
   "\"synthetic\": true"
 ]) {
   if (!androidP2pEvidenceFixtureText.includes(required)) {
     console.error(`test-fixtures/android/p2p-transfer-complete.synthetic.json: missing Android P2P fixture text: ${required}`);
+    failed = true;
+  }
+}
+
+if (failed) process.exit(1);
+const androidDeviceLabRunnerText = readFileSync("scripts/android-device-lab-runner.js", "utf8");
+for (const required of [
+  "devices must include at least four physical devices",
+  "manifest must include two WiFi network failure domains",
+  "manifest must include two cellular carrier failure domains",
+  "synthetic device-lab runs require --allow-synthetic",
+  "each configured entry must resolve to a distinct physical device",
+  "was not installed by Google Play",
+  "installed APK does not match releaseApkSha256",
+  "must remain unplugged during measurement",
+  "did not provide useful WiFi upload",
+  "uploaded payload on cellular",
+  "ICE outcomes are incomplete",
+  "has unknown selected ICE candidates",
+  "retained P2P state after disable",
+  "did not prove edge fallback after P2P disable",
+  "below 0.90",
+  "SWARMCAST_DEVICE_FINGERPRINT_SALT",
+  "FORBIDDEN_SNAPSHOT_KEYS",
+  "finally"
+]) {
+  if (!androidDeviceLabRunnerText.includes(required)) {
+    console.error(`scripts/android-device-lab-runner.js: missing device-lab runner text: ${required}`);
+    failed = true;
+  }
+}
+
+const androidDeviceLabCliText = readFileSync("scripts/run-android-device-lab.js", "utf8");
+for (const required of [
+  "--acknowledge-physical-device-test",
+  "--allow-synthetic",
+  "maxBuffer: 512 * 1024 * 1024",
+  "mode: 0o600",
+  "chmodSync(outputPath, 0o600)",
+  "Android device lab OK"
+]) {
+  if (!androidDeviceLabCliText.includes(required)) {
+    console.error(`scripts/run-android-device-lab.js: missing device-lab CLI text: ${required}`);
+    failed = true;
+  }
+}
+
+const androidDeviceLabSmokeText = readFileSync("scripts/smoke-android-device-lab.js", "utf8");
+for (const required of [
+  "test-fixtures/android/device-lab-manifest.complete.synthetic.json",
+  "require --allow-synthetic",
+  "duplicate device serial environment",
+  "forbidden key accessToken",
+  "is an emulator",
+  "was not installed by Google Play",
+  "does not match releaseApkSha256",
+  "uploaded payload on cellular",
+  "below 0.90",
+  "ICE outcomes are incomplete",
+  "retained P2P state after disable",
+  "must remain unplugged during measurement",
+  "Android device lab smoke OK: pass=1 failures=11 devices=4"
+]) {
+  if (!androidDeviceLabSmokeText.includes(required)) {
+    console.error(`scripts/smoke-android-device-lab.js: missing device-lab smoke text: ${required}`);
+    failed = true;
+  }
+}
+
+const androidDeviceLabDocsText = readFileSync("docs/android-device-lab.md", "utf8");
+for (const required of [
+  "At least four distinct physical Android devices",
+  "distinct WiFi failure domains",
+  "distinct cellular carriers",
+  "Google Play test or production track",
+  "android.permission.DUMP",
+  "releaseApkSha256",
+  "--acknowledge-physical-device-test",
+  "The output is a raw, sanitized measurement record. It is not launch-valid by itself",
+  "direct `rho = direct / (direct + edge + origin-bootstrap + relay)` is at least `0.90`",
+  "Synthetic output cannot satisfy a launch gate"
+]) {
+  if (!androidDeviceLabDocsText.includes(required)) {
+    console.error(`docs/android-device-lab.md: missing device-lab runbook text: ${required}`);
     failed = true;
   }
 }
@@ -4871,12 +5014,15 @@ for (const file of [
   "android/app/src/main/java/tv/swarmcast/data/CatalogDiskCache.kt",
   "android/app/src/main/java/tv/swarmcast/data/ChannelRepository.kt",
   "android/app/src/main/java/tv/swarmcast/data/ErrorTaxonomy.kt",
+  "android/app/src/main/java/tv/swarmcast/diagnostics/DeviceLabControlReceiver.kt",
+  "android/app/src/main/java/tv/swarmcast/diagnostics/DeviceLabDiagnostics.kt",
   "android/app/src/main/java/tv/swarmcast/playback/PlaybackUrls.kt",
   "android/app/src/main/java/tv/swarmcast/playback/PlaybackSessionCoordinator.kt",
   "android/app/src/main/java/tv/swarmcast/playback/PlaybackBufferPolicy.kt",
   "android/app/src/main/java/tv/swarmcast/playback/PlayerHolder.kt",
   "android/app/src/main/java/tv/swarmcast/playback/SwarmSegmentDataSource.kt",
   "android/app/src/main/java/tv/swarmcast/p2p/PeerConnectionManager.kt",
+  "android/app/src/main/java/tv/swarmcast/p2p/IceConnectivityTelemetry.kt",
   "android/app/src/main/java/tv/swarmcast/p2p/CodedFetch.kt",
   "android/app/src/main/java/tv/swarmcast/p2p/NetworkCodingDecoder.kt",
   "android/app/src/main/java/tv/swarmcast/p2p/RlncCodec.kt",
@@ -4889,6 +5035,8 @@ for (const file of [
   "android/app/src/main/java/tv/swarmcast/p2p/TrackerClient.kt",
   "android/app/src/main/java/tv/swarmcast/p2p/Wire.kt",
   "android/app/src/main/java/tv/swarmcast/p2p/SegmentStore.kt",
+  "android/app/src/test/java/tv/swarmcast/diagnostics/DeviceLabDiagnosticsTest.kt",
+  "android/app/src/test/java/tv/swarmcast/p2p/IceConnectivityTelemetryTest.kt",
   "android/app/src/main/java/tv/swarmcast/ui/SwarmCastScreen.kt",
   "scripts/smoke-android-runtime.js"
 ]) {
@@ -5188,7 +5336,49 @@ const androidTextChecks = [
       "tv.swarmcast.APP_API_KEY",
       "tv.swarmcast.P2P_ENABLED",
       "tv.swarmcast.EDGE_ONLY_MODE",
-      "tv.swarmcast.RLNC_ENABLED"
+      "tv.swarmcast.RLNC_ENABLED",
+      ".diagnostics.DeviceLabControlReceiver",
+      "android:permission=\"android.permission.DUMP\"",
+      "tv.swarmcast.action.DEVICE_LAB_SNAPSHOT",
+      "tv.swarmcast.action.DEVICE_LAB_SET_P2P"
+    ]
+  },
+  {
+    file: "android/app/src/main/java/tv/swarmcast/diagnostics/DeviceLabDiagnostics.kt",
+    required: [
+      "data class DeviceLabSnapshot",
+      "capturedAtElapsedRealtimeMs",
+      "downloadedFromBootstrapOrigin",
+      "iceCandidateUnknown",
+      "Base64.getUrlEncoder()",
+      "AtomicReference<Registration?>",
+      "if (registration?.owner === owner) null else registration"
+    ]
+  },
+  {
+    file: "android/app/src/main/java/tv/swarmcast/diagnostics/DeviceLabControlReceiver.kt",
+    required: [
+      "ACTION_SNAPSHOT",
+      "ACTION_SET_P2P",
+      "DeviceLabDiagnostics.setP2pEnabled",
+      "ERROR_NO_ACTIVE_SESSION"
+    ]
+  },
+  {
+    file: "android/app/src/main/java/tv/swarmcast/playback/PlaybackSessionCoordinator.kt",
+    required: [
+      "DeviceLabDiagnostics.register",
+      "DeviceLabDiagnostics.unregister",
+      "fun deviceLabSnapshot(): DeviceLabSnapshot",
+      "iceTelemetrySnapshot()"
+    ]
+  },
+  {
+    file: "android/app/src/main/java/tv/swarmcast/p2p/IceConnectivityTelemetry.kt",
+    required: [
+      "private var cumulative = IceConnectivityDelta()",
+      "cumulative = cumulative.copy",
+      "fun snapshot(): IceConnectivityDelta = cumulative"
     ]
   },
   {
@@ -5241,6 +5431,7 @@ const androidTextChecks = [
       "DataChannel.State.OPEN",
       "recordIceSuccess(peerId) { candidateType ->",
       "isDirectP2pCandidateType(candidateType)",
+      "fun iceTelemetrySnapshot(): IceConnectivityDelta = iceTelemetry.snapshot()",
       "closeDataChannel",
       "runCatching { channel.unregisterObserver() }",
       "runCatching { channel.dispose() }",
@@ -5379,6 +5570,7 @@ const androidTextChecks = [
       "PlaybackUrls.segmentUrl",
       "downloadedFromPeers",
       "downloadedFromEdge",
+      "activePeerLinks = links.size",
       "apiExceptionFromResponse",
       "ErrorCodes.EDGE_UNAVAILABLE",
       "links.remove(link.peerId)?.close(notifyClosed = false)",

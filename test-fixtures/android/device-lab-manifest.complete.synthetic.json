@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "runId": "android-device-lab-synthetic-20260721",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "appVersion": "1.0.0",
+  "releaseApkSha256": "c3fe61e6156e14753e4f4e06789c0f72a4f7c6fc2f244771c3a839d234fbe4ae",
+  "packageName": "tv.swarmcast",
+  "channelId": "device-lab-channel",
+  "synthetic": true,
+  "durationSeconds": 2,
+  "sampleIntervalSeconds": 1,
+  "policySettleSeconds": 0,
+  "edgeFallbackSeconds": 0,
+  "devices": [
+    {
+      "id": "pixel-wifi-a",
+      "serialEnv": "SWARMCAST_DEVICE_WIFI_A_SERIAL",
+      "network": "wifi",
+      "wifiNetworkId": "wifi-lab-a"
+    },
+    {
+      "id": "pixel-wifi-b",
+      "serialEnv": "SWARMCAST_DEVICE_WIFI_B_SERIAL",
+      "network": "wifi",
+      "wifiNetworkId": "wifi-lab-b"
+    },
+    {
+      "id": "pixel-cell-a",
+      "serialEnv": "SWARMCAST_DEVICE_CELL_A_SERIAL",
+      "network": "cellular",
+      "carrierId": "carrier-lab-a"
+    },
+    {
+      "id": "pixel-cell-b",
+      "serialEnv": "SWARMCAST_DEVICE_CELL_B_SERIAL",
+      "network": "cellular",
+      "carrierId": "carrier-lab-b"
+    }
+  ]
+}
