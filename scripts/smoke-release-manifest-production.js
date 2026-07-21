@@ -6,6 +6,8 @@ import { spawnSync } from "node:child_process";
 
 const fixture = "test-fixtures/config/production.env";
 const requiredImages = [
+  "segment-bus",
+  "segment-bus-exporter",
   "auth",
   "ingest",
   "tracker",

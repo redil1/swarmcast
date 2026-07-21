@@ -8,13 +8,15 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/config/package.json packages/config/package.json
 COPY packages/p2p/package.json packages/p2p/package.json
+COPY packages/segment-bus/package.json packages/segment-bus/package.json
 COPY services/auth/package.json services/auth/package.json
 COPY services/control-plane/package.json services/control-plane/package.json
 COPY services/ingest/package.json services/ingest/package.json
 COPY services/retention-worker/package.json services/retention-worker/package.json
 COPY services/tracker/package.json services/tracker/package.json
-RUN npm ci --omit=dev --ignore-scripts --workspace @swarmcast/tracker --workspace @swarmcast/config
+RUN npm ci --omit=dev --ignore-scripts --workspace @swarmcast/tracker --workspace @swarmcast/config --workspace @swarmcast/segment-bus
 COPY packages/config/src packages/config/src
+COPY packages/segment-bus/src packages/segment-bus/src
 COPY services/tracker/src services/tracker/src
 
 FROM ${NODE_RUNTIME_IMAGE}

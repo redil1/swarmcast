@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 const requiredScopes = [
   "authentication-and-tokens",
   "internal-apis",
+  "segment-metadata-bus",
   "source-url-protection",
   "tracker-abuse",
   "p2p-poisoning",

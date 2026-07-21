@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@swarmcast/config": "0.1.0",
+    "@swarmcast/segment-bus": "0.1.0",
     "jose": "^5.9.0",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.51.0"
   }

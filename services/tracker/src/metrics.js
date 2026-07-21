@@ -79,6 +79,12 @@ export function formatPrometheusMetrics(stats) {
     line("swarmcast_tracker_backpressure_drops_total", stats.backpressureDrops || 0, "Tracker messages dropped by the backpressure budget", "counter"),
     line("swarmcast_tracker_cell_capacity_spillovers_total", stats.cellCapacitySpillovers || 0, "Tracker joins redirected from a full swarm cell", "counter"),
     line("swarmcast_tracker_cell_capacity_rejections_total", stats.cellCapacityRejections || 0, "Tracker joins rejected by a full swarm cell", "counter"),
+    line("swarmcast_tracker_segment_bus_healthy", stats.segmentBusHealthy ? 1 : 0, "Whether the durable segment metadata subscriber is connected"),
+    line("swarmcast_tracker_segment_bus_active_channels", stats.segmentBusActiveChannels || 0, "Channel-specific segment metadata subscriptions"),
+    line("swarmcast_tracker_segment_bus_received_total", stats.segmentBusReceived || 0, "Live segment metadata received from the durable bus", "counter"),
+    line("swarmcast_tracker_segment_bus_replayed_total", stats.segmentBusReplayed || 0, "Persisted segment metadata replayed from the durable bus", "counter"),
+    line("swarmcast_tracker_segment_bus_duplicates_total", stats.segmentBusDuplicates || 0, "Duplicate or out-of-order segment metadata suppressed", "counter"),
+    line("swarmcast_tracker_segment_bus_failures_total", stats.segmentBusFailures || 0, "Segment metadata subscriber failures", "counter"),
     ...iceMetricsByNetwork(stats.iceByNetwork)
   ].join("\n") + "\n";
 }
@@ -101,6 +107,12 @@ export function metricsForState(state) {
     rollingPeerDisconnects: rolling.peerDisconnects,
     rollingStartupLatencyMsAvg: rolling.startupLatencyMsAvg,
     rollingBufferMsAvg: rolling.bufferMsAvg,
-    rollingBufferMsMin: rolling.bufferMsMin
+    rollingBufferMsMin: rolling.bufferMsMin,
+    segmentBusHealthy: state.segmentSubscriber?.isHealthy() || false,
+    segmentBusActiveChannels: state.segmentSubscriber?.activeChannels() || 0,
+    segmentBusReceived: state.segmentSubscriber?.stats.received || 0,
+    segmentBusReplayed: state.segmentSubscriber?.stats.replayed || 0,
+    segmentBusDuplicates: state.segmentSubscriber?.stats.duplicates || 0,
+    segmentBusFailures: state.segmentSubscriber?.stats.failures || 0
   });
 }

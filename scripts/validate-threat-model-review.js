@@ -8,6 +8,7 @@ const requiredAreas = [
   "tracker",
   "control-plane",
   "ingest",
+  "segment-metadata-bus",
   "retention-worker",
   "edge",
   "turn-relay",
@@ -33,7 +34,8 @@ const requiredThreats = [
   "T-013",
   "T-014",
   "T-015",
-  "T-016"
+  "T-016",
+  "T-017"
 ];
 const requiredOpenGates = [
   "android-rlnc-library",
@@ -42,7 +44,8 @@ const requiredOpenGates = [
   "staging-chaos-drills",
   "data-retention-approval",
   "dependency-review",
-  "turn-carrier-proof"
+  "turn-carrier-proof",
+  "segment-bus-cluster-proof"
 ];
 const requiredSignoffRoles = ["security", "platform", "android", "operations"];
 const allowedThreatStatuses = new Set(["mitigated", "accepted", "waived"]);

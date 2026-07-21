@@ -1,4 +1,6 @@
 const requiredImages = [
+  ["segment-bus", "SWARMCAST_NATS_IMAGE"],
+  ["segment-bus-exporter", "SWARMCAST_NATS_EXPORTER_IMAGE"],
   ["auth", "SWARMCAST_AUTH_IMAGE"],
   ["ingest", "SWARMCAST_INGEST_IMAGE"],
   ["tracker", "SWARMCAST_TRACKER_IMAGE"],

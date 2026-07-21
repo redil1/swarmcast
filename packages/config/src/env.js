@@ -55,6 +55,16 @@ export const ENV_DEFAULTS = Object.freeze({
   RESTART_BACKOFF_MS: [1000, 2000, 5000, 10000, 30000],
   RLNC_K: 32,
   SEGMENT_SECONDS: 2,
+  SEGMENT_BUS_ENABLED: false,
+  SEGMENT_BUS_SERVERS: [],
+  SEGMENT_BUS_TLS_REQUIRED: false,
+  SEGMENT_BUS_MANAGE_STREAM: true,
+  SEGMENT_BUS_CONNECT_TIMEOUT_MS: 5_000,
+  SEGMENT_BUS_PUBLISH_TIMEOUT_MS: 2_000,
+  SEGMENT_BUS_MAX_AGE_SECONDS: 600,
+  SEGMENT_BUS_MAX_MESSAGES_PER_SUBJECT: 120,
+  SEGMENT_BUS_MAX_BYTES: 1_073_741_824,
+  SEGMENT_BUS_REPLICAS: 1,
   SOURCE_ALLOWED_HOSTS: "",
   SOURCE_ALLOW_PRIVATE_NETWORKS: false,
   TAIL_IDLE_TEARDOWN_MS: 15_000,
@@ -190,6 +200,49 @@ export function ownedUrlEnv(env, key, fallback, options = {}) {
   const raw = options.required ? requiredEnv(env, key) : stringEnv(env, key, fallback);
   if (!raw) return "";
   return normalizedUrlValue(raw, key, { ...options, rejectThirdPartyCdn: true });
+}
+
+export function segmentBusConfigFromEnv(env = process.env, { requireEnabled = false } = {}) {
+  const enabled = boolEnv(env, "SEGMENT_BUS_ENABLED", ENV_DEFAULTS.SEGMENT_BUS_ENABLED);
+  if (requireEnabled && !enabled) {
+    throw new ConfigError("SEGMENT_BUS_ENABLED must be enabled", { key: "SEGMENT_BUS_ENABLED" });
+  }
+  const tlsRequired = boolEnv(env, "SEGMENT_BUS_TLS_REQUIRED", ENV_DEFAULTS.SEGMENT_BUS_TLS_REQUIRED);
+  const input = jsonEnv(env, "SEGMENT_BUS_SERVERS", ENV_DEFAULTS.SEGMENT_BUS_SERVERS);
+  if (!Array.isArray(input)) throw new ConfigError("SEGMENT_BUS_SERVERS must be a JSON array", { key: "SEGMENT_BUS_SERVERS" });
+  const servers = [...new Set(input.map((value, index) => {
+    const key = `SEGMENT_BUS_SERVERS[${index}]`;
+    const normalized = normalizedUrlValue(value, key, { protocols: ["nats:", "tls:"] });
+    const parsed = new URL(normalized);
+    if (parsed.username || parsed.password) throw new ConfigError(`${key} must not contain credentials`, { key });
+    if (tlsRequired && parsed.protocol !== "tls:") throw new ConfigError(`${key} must use tls when SEGMENT_BUS_TLS_REQUIRED is enabled`, { key });
+    return normalized;
+  }))];
+  if (enabled && servers.length === 0) throw new ConfigError("SEGMENT_BUS_SERVERS requires at least one server", { key: "SEGMENT_BUS_SERVERS" });
+
+  const user = enabled ? requiredEnv(env, "SEGMENT_BUS_USER").trim() : stringEnv(env, "SEGMENT_BUS_USER").trim();
+  if (enabled && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(user)) {
+    throw new ConfigError("SEGMENT_BUS_USER must be a safe 1-64 character identifier", { key: "SEGMENT_BUS_USER" });
+  }
+  const password = enabled ? requiredEnv(env, "SEGMENT_BUS_PASSWORD").trim() : stringEnv(env, "SEGMENT_BUS_PASSWORD").trim();
+  if (enabled && !/^[A-Za-z0-9_-]{32,256}$/.test(password)) {
+    throw new ConfigError("SEGMENT_BUS_PASSWORD must be 32-256 URL-safe characters", { key: "SEGMENT_BUS_PASSWORD" });
+  }
+
+  return {
+    enabled,
+    servers,
+    user,
+    password,
+    tlsRequired,
+    manageStream: boolEnv(env, "SEGMENT_BUS_MANAGE_STREAM", ENV_DEFAULTS.SEGMENT_BUS_MANAGE_STREAM),
+    connectTimeoutMs: intEnv(env, "SEGMENT_BUS_CONNECT_TIMEOUT_MS", ENV_DEFAULTS.SEGMENT_BUS_CONNECT_TIMEOUT_MS, { min: 500, max: 60_000 }),
+    publishTimeoutMs: intEnv(env, "SEGMENT_BUS_PUBLISH_TIMEOUT_MS", ENV_DEFAULTS.SEGMENT_BUS_PUBLISH_TIMEOUT_MS, { min: 250, max: 30_000 }),
+    maxAgeMs: intEnv(env, "SEGMENT_BUS_MAX_AGE_SECONDS", ENV_DEFAULTS.SEGMENT_BUS_MAX_AGE_SECONDS, { min: 60, max: 86_400 }) * 1000,
+    maxMessagesPerSubject: intEnv(env, "SEGMENT_BUS_MAX_MESSAGES_PER_SUBJECT", ENV_DEFAULTS.SEGMENT_BUS_MAX_MESSAGES_PER_SUBJECT, { min: 10, max: 10_000 }),
+    maxBytes: intEnv(env, "SEGMENT_BUS_MAX_BYTES", ENV_DEFAULTS.SEGMENT_BUS_MAX_BYTES, { min: 10_000_000, max: 1_000_000_000_000 }),
+    replicas: intEnv(env, "SEGMENT_BUS_REPLICAS", ENV_DEFAULTS.SEGMENT_BUS_REPLICAS, { min: 1, max: 5 })
+  };
 }
 
 export function parseSourceAllowedHosts(value = "") {
@@ -586,6 +639,7 @@ export function loadIngestConfig(env = process.env, { requireSecrets = false } =
     restApiPort: intEnv(env, "INGEST_PORT", ENV_DEFAULTS.INGEST_PORT, { min: 1, max: 65535 }),
     trackerInternalUrl,
     trackerInternalUrls,
+    segmentBus: segmentBusConfigFromEnv(env),
     internalToken,
     ffmpegBin: stringEnv(env, "FFMPEG_BIN", ENV_DEFAULTS.FFMPEG_BIN),
     restartBackoffMs: ENV_DEFAULTS.RESTART_BACKOFF_MS,
@@ -629,7 +683,8 @@ export function loadTrackerConfig(env = process.env, { requireSecrets = false } 
     rateLimitCapacity: intEnv(env, "TRACKER_RATE_LIMIT_CAPACITY", ENV_DEFAULTS.TRACKER_RATE_LIMIT_CAPACITY, { min: 1 }),
     rateLimitRefillPerSecond: intEnv(env, "TRACKER_RATE_LIMIT_REFILL_PER_SECOND", ENV_DEFAULTS.TRACKER_RATE_LIMIT_REFILL_PER_SECOND, { min: 1 }),
     trackerShardId,
-    trackerShards
+    trackerShards,
+    segmentBus: segmentBusConfigFromEnv(env)
   };
 }
 

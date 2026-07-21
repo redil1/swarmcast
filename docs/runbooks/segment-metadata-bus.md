@@ -1,0 +1,51 @@
+# Segment Metadata Bus Runbook
+
+## Scope
+
+This runbook covers the NATS JetStream cluster that durably carries segment hash, size, sequence, and coding metadata from ingest to active tracker cells. It carries no media bytes.
+
+## Alerts
+
+- `SwarmcastSegmentBusPublishFailures`: ingest did not receive a durable publish acknowledgement.
+- `SwarmcastSegmentBusSubscriberFailures`: a tracker failed to consume or replay metadata.
+- `SwarmcastSegmentBusStoragePressure`: stored metadata exceeds 80% of configured capacity.
+- `SwarmcastSegmentBusApiErrors`: JetStream reported API errors.
+- `SwarmcastServiceTargetDown` for `swarmcast-segment-bus`: the exporter or broker health path is unavailable.
+
+## Immediate Checks
+
+1. Confirm at least two of three JetStream nodes are healthy and the stream leader is elected.
+2. Compare ingest publish rate with aggregate tracker receive rate and active channel subscriptions.
+3. Check stream replicas, storage usage, filesystem latency, API errors, slow consumers, and reconnect counters.
+4. Confirm TLS certificate validity and that ingest and tracker credentials still have their intended subject permissions.
+5. Confirm the stream exists with the reviewed limits before restarting ingest; production runtime credentials cannot create or update it.
+6. Check whether the incident is isolated to one tracker, one region, or the cluster.
+
+## Mitigation
+
+- Keep tracker and Android edge fallback enabled. Do not bypass segment hash validation.
+- Restart one failed broker at a time. Preserve `/data/jetstream`; never delete quorum state as a recovery shortcut.
+- If storage is high, verify retention settings and disk availability before increasing the limit. Metadata expires automatically.
+- If one tracker is failing, drain and restart that tracker; active channels replay their latest metadata after reconnect.
+- If publication is failing cluster-wide, stop risky deployments and restore JetStream quorum before increasing ingest load.
+
+## Recovery Verification
+
+1. All three nodes report healthy JetStream status and expected cluster membership.
+2. Stream replica count is three and no replica is behind.
+3. Publish and subscriber failure counters stop increasing.
+4. A tracker with no local viewers has no channel subscription; first join creates one and receives latest metadata.
+5. Run `npm run smoke:segment-bus` to verify publish-once delivery, selective subscriptions, duplicate suppression, restart persistence, and replay.
+6. Confirm new segments reach every active tracker cell and Android playback leaves edge fallback without integrity failures.
+
+Provision or reconcile the stream with the deployment-only identity before application rollout:
+
+```bash
+SEGMENT_BUS_USER="$NATS_ADMIN_USER" SEGMENT_BUS_PASSWORD="$NATS_ADMIN_PASSWORD" npm run segment-bus:provision
+```
+
+## Production Requirements
+
+- Three failure-domain-separated nodes with local SSD, `SEGMENT_BUS_REPLICAS=3`, TLS client validation, and encrypted backups of configuration and credentials.
+- Capacity tests must measure publish acknowledgement latency, delivery latency, reconnect recovery, disk latency, storage growth, and one-node loss at projected peak channel rate.
+- Rotate ingest and tracker credentials independently and retain evidence without recording secret values.

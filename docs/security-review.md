@@ -17,6 +17,14 @@
 - Control-plane placement routes reject missing or invalid internal tokens.
 - Ingest segment announce route rejects missing or invalid internal tokens.
 
+## Segment Metadata Bus
+
+- Ingest and tracker credentials are distinct, stored in the production secret manager, and rotated independently.
+- Production ingest may only publish channel metadata. Stream creation/update uses a separate deployment identity; trackers may read the named stream and subscribe to channel subjects but cannot publish segment metadata.
+- Production uses three hostname-verified TLS endpoints, mutually authenticated broker routes, file-backed storage on local SSD, and three stream replicas.
+- Segment payloads are schema-bounded and hash-validated; duplicate and out-of-order sequences are suppressed per channel.
+- Readiness fails during disconnect, while Android retains owned edge fallback and never accepts media without matching hash metadata.
+
 ## Source URL Protection
 
 - Public catalog responses never include upstream source URLs.

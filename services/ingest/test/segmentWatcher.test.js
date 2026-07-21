@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { announceSegment, describeSegment, segmentSeqFromFilename } from "../src/segmentWatcher.js";
+import { announceSegment, deliverSegmentMetadata, describeSegment, segmentSeqFromFilename } from "../src/segmentWatcher.js";
 
 test("segmentSeqFromFilename extracts numeric sequence", () => {
   assert.equal(segmentSeqFromFilename("channel/seg_00000042.m4s"), 42);
@@ -72,4 +72,25 @@ test("announceSegment distributes metadata to every tracker cell endpoint and re
 
   assert.equal(attempts.get("http://tracker-a.local/internal/segment"), 1);
   assert.equal(attempts.get("http://tracker-b.local/internal/segment"), 2);
+});
+
+test("durable publisher replaces direct tracker fanout without fallback", async () => {
+  const published = [];
+  let fetches = 0;
+  const value = await deliverSegmentMetadata({
+    segment: { channelId: "demo", seq: 3, sha256: "a".repeat(64), size: 10, k: 32 },
+    publishSegment: async (segment) => {
+      published.push(segment);
+      return { duplicate: false, seq: 7 };
+    },
+    trackerInternalUrls: ["http://tracker-a.local", "http://tracker-b.local"],
+    internalToken: "secret",
+    fetchFn: async () => {
+      fetches += 1;
+      throw new Error("HTTP fallback must not run when durable publishing is enabled");
+    }
+  });
+  assert.equal(value.seq, 7);
+  assert.equal(published.length, 1);
+  assert.equal(fetches, 0);
 });

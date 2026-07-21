@@ -73,6 +73,7 @@ jobs:
       - run: docker compose -f infra/docker-compose.yml build auth control-plane ingest retention-worker tracker
       - run: docker compose -f infra/edge/docker-compose.yml build edge-metrics
       - run: npm run smoke:service-lifecycle-containers
+      - run: npm run smoke:segment-bus
       - run: docker pull nginx:1.29.8-alpine3.23-slim@sha256:c9366b8c560169b101ca0e5422ed063b20779e6454c2326b9c9704225c9b0c08
       - run: npm run smoke:nginx-config
       - run: npm run smoke:nginx-origin-playback

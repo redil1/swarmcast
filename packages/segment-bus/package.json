@@ -1,14 +1,14 @@
 {
-  "name": "@swarmcast/ingest",
+  "name": "@swarmcast/segment-bus",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": "./src/index.js",
   "scripts": {
-    "start": "node src/index.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
-    "@swarmcast/config": "0.1.0",
-    "@swarmcast/segment-bus": "0.1.0"
+    "@nats-io/jetstream": "3.4.0",
+    "@nats-io/transport-node": "3.4.0"
   }
 }

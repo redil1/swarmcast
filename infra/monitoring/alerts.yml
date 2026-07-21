@@ -181,6 +181,66 @@ groups:
           description: "At least one active ingest channel has not announced a fresh segment within 30 seconds."
           runbook_url: "docs/runbooks/ingest-degraded.md"
 
+      - alert: SwarmcastSegmentBusPublishFailures
+        expr: increase(swarmcast_ingest_segment_bus_publish_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Segment metadata publication is failing"
+          description: "Ingest could not durably publish segment metadata during the last five minutes. New segment announcements may stall."
+          runbook_url: "docs/runbooks/segment-metadata-bus.md"
+
+      - alert: SwarmcastSegmentBusProducerDisconnected
+        expr: swarmcast_ingest_segment_bus_healthy == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ingest is disconnected from the segment metadata bus"
+          description: "The ingest publisher has remained disconnected from JetStream for one minute."
+          runbook_url: "docs/runbooks/segment-metadata-bus.md"
+
+      - alert: SwarmcastSegmentBusSubscriberFailures
+        expr: increase(swarmcast_tracker_segment_bus_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tracker segment metadata delivery is failing"
+          description: "A tracker failed to consume or replay segment metadata during the last five minutes. Affected cells may use owned edge fallback."
+          runbook_url: "docs/runbooks/segment-metadata-bus.md"
+
+      - alert: SwarmcastSegmentBusConsumerDisconnected
+        expr: swarmcast_tracker_segment_bus_healthy == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A tracker is disconnected from the segment metadata bus"
+          description: "A tracker subscriber has remained disconnected from JetStream for one minute."
+          runbook_url: "docs/runbooks/segment-metadata-bus.md"
+
+      - alert: SwarmcastSegmentBusStoragePressure
+        expr: jetstream_server_total_message_bytes / clamp_min(jetstream_server_max_storage, 1) > 0.80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JetStream storage pressure is high"
+          description: "Segment metadata storage exceeded 80% of the configured JetStream capacity."
+          runbook_url: "docs/runbooks/segment-metadata-bus.md"
+
+      - alert: SwarmcastSegmentBusApiErrors
+        expr: delta(gnatsd_varz_jetstream_stats_api_errors[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JetStream API errors detected"
+          description: "The segment metadata cluster reported JetStream API errors in the last five minutes."
+          runbook_url: "docs/runbooks/segment-metadata-bus.md"
+
       - alert: SwarmcastFfmpegFailureSpike
         expr: increase(swarmcast_ingest_ffmpeg_failures_total[15m]) > 5
         for: 5m
@@ -212,7 +272,7 @@ groups:
           runbook_url: "docs/runbooks/app-attestation.md"
 
       - alert: SwarmcastServiceTargetDown
-        expr: up{job=~"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker)|edge-cache-metrics)"} == 0
+        expr: up{job=~"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker|segment-bus)|edge-cache-metrics)"} == 0
         for: 2m
         labels:
           severity: critical

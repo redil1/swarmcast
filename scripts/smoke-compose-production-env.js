@@ -28,6 +28,7 @@ for (const required of [
   "CATALOG_DB_PATH: /data/catalog.sqlite",
   "PLACEMENT_DB_PATH: /data/placements.sqlite",
   "RETENTION_RECORDS_FILE: /data/retention-records.jsonl",
+  "SEGMENT_BUS_SERVERS: '[\"nats://segment-bus:4222\"]'",
   "target: /etc/alertmanager/alertmanager.yml"
 ]) {
   assert.ok(defaultConfig.includes(required), `default compose render missing ${required}`);
@@ -38,6 +39,8 @@ for (const required of [
   "AUTH_KEY_PATH: /data/es256.pem",
   "TURN_ENABLED: \"1\"",
   "TURN_CREDENTIAL_TTL_SECONDS: \"3600\"",
+  "SEGMENT_BUS_SERVERS: '[\"tls://segment-bus-a.swarmcast.tv:4222\",\"tls://segment-bus-b.swarmcast.tv:4222\",\"tls://segment-bus-c.swarmcast.tv:4222\"]'",
+  "SEGMENT_BUS_REPLICAS: \"3\"",
   "M3U_PATH: /config/source.m3u",
   "INGEST_NODES: '[{\"id\":\"origin-a\",\"baseUrl\":\"https://origin.swarmcast.tv\",\"ingestUrl\":\"https://origin.swarmcast.tv\"}]'",
   "CATALOG_DB_PATH: /data/catalog.sqlite",
@@ -54,7 +57,9 @@ for (const required of [
   "image: nginx:1.27@sha256:1111111111111111111111111111111111111111111111111111111111111111",
   "image: prom/prometheus:v2.53.0@sha256:2222222222222222222222222222222222222222222222222222222222222222",
   "image: prom/alertmanager:v0.27.0@sha256:3333333333333333333333333333333333333333333333333333333333333333",
-  "image: grafana/grafana:11.1.0@sha256:4444444444444444444444444444444444444444444444444444444444444444"
+  "image: grafana/grafana:11.1.0@sha256:4444444444444444444444444444444444444444444444444444444444444444",
+  "image: nats:2.12.1-alpine@sha256:9999999999999999999999999999999999999999999999999999999999999999",
+  "image: natsio/prometheus-nats-exporter:0.17.3@sha256:0000000000000000000000000000000000000000000000000000000000000000"
 ]) {
   assert.ok(productionConfig.includes(required), `production compose render missing infrastructure image ${required}`);
 }
@@ -68,7 +73,9 @@ for (const required of [
   "image: ghcr.io/aziz/ads/ingest@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "image: ghcr.io/aziz/ads/tracker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "image: ghcr.io/aziz/ads/control-plane@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-  "image: ghcr.io/aziz/ads/retention-worker@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  "image: ghcr.io/aziz/ads/retention-worker@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "image: nats:2.12.1-alpine@sha256:9999999999999999999999999999999999999999999999999999999999999999",
+  "image: natsio/prometheus-nats-exporter:0.17.3@sha256:0000000000000000000000000000000000000000000000000000000000000000"
 ]) {
   assert.ok(releaseConfig.includes(required), `production release compose render missing ${required}`);
 }

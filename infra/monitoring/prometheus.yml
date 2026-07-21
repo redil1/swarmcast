@@ -30,6 +30,12 @@ scrape_configs:
     static_configs:
       - targets: ["ingest:7001"]
 
+  - job_name: swarmcast-segment-bus
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ["segment-bus-exporter:7777"]
+
   - job_name: swarmcast-tracker
     metrics_path: /metrics
     scheme: http

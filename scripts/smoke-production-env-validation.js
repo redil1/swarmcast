@@ -149,4 +149,25 @@ expectFailure(
   /TURN_TOTAL_QUOTA must not exceed the relay port count/
 );
 
-console.log("production env validation smoke OK: pass=1 failures=16");
+expectFailure(
+  "segment bus without TLS",
+  writeVariant("segment-bus-no-tls", replaceLine("SEGMENT_BUS_TLS_REQUIRED", "0")),
+  /SEGMENT_BUS_TLS_REQUIRED must be 1/
+);
+expectFailure(
+  "segment bus with one endpoint",
+  writeVariant("segment-bus-one-server", replaceLine("SEGMENT_BUS_SERVERS", '["tls://segment-bus-a.swarmcast.tv:4222"]')),
+  /at least three cluster endpoints/
+);
+expectFailure(
+  "segment bus without quorum replication",
+  writeVariant("segment-bus-one-replica", replaceLine("SEGMENT_BUS_REPLICAS", "1")),
+  /SEGMENT_BUS_REPLICAS must be 3/
+);
+expectFailure(
+  "segment bus runtime credential can manage streams",
+  writeVariant("segment-bus-manage-stream", replaceLine("SEGMENT_BUS_MANAGE_STREAM", "1")),
+  /SEGMENT_BUS_MANAGE_STREAM must be 0/
+);
+
+console.log("production env validation smoke OK: pass=1 failures=20");

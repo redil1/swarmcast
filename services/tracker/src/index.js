@@ -3,6 +3,7 @@ import { loadTrackerConfig } from "@swarmcast/config/env";
 import { ERROR_CODES, publicError } from "@swarmcast/config/errors";
 import { createServiceLifecycle } from "@swarmcast/config/lifecycle";
 import { createLogger } from "@swarmcast/config/logging";
+import { createSegmentSubscriber } from "@swarmcast/segment-bus";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { parseMessage } from "./protocol.js";
 import { TokenBucketRateLimiter } from "./rateLimit.js";
@@ -40,7 +41,8 @@ export function createTrackerState() {
       backpressureDrops: 0,
       cellCapacitySpillovers: 0,
       cellCapacityRejections: 0
-    }
+    },
+    segmentSubscriber: null
   };
 }
 
@@ -142,6 +144,16 @@ export function removePeerFromState(state, peer, { policy = TRACKER_POLICY, send
   detachPeerFromSwarm(state, peer, { policy, send });
 }
 
+function deleteEmptySwarm(state, channelId, key) {
+  state.swarms.delete(key);
+  const keys = state.channelSwarms.get(channelId);
+  keys?.delete(key);
+  if (keys?.size === 0) {
+    state.channelSwarms.delete(channelId);
+    state.segmentSubscriber?.unsubscribeChannel(channelId);
+  }
+}
+
 function detachPeerFromSwarm(state, peer, { policy = TRACKER_POLICY, send = null } = {}) {
   if (peer.channelId) {
     const key = swarmKey(peer.channelId, peer.cellId || "default");
@@ -153,10 +165,7 @@ function detachPeerFromSwarm(state, peer, { policy = TRACKER_POLICY, send = null
       peer.statsRegistered = false;
     }
     if (swarm?.size === 0) {
-      state.swarms.delete(key);
-      const keys = state.channelSwarms.get(peer.channelId);
-      keys?.delete(key);
-      if (keys?.size === 0) state.channelSwarms.delete(peer.channelId);
+      deleteEmptySwarm(state, peer.channelId, key);
     } else if (previousMode !== swarmModeForSize(swarm.size, policy)) {
       broadcastSwarmMode(state, swarm, policy, send);
     }
@@ -364,6 +373,25 @@ export async function handlePeerMessage({
         peer.cellId = null;
         return;
       }
+      if (swarm.size === 0 && state.segmentSubscriber) {
+        try {
+          await state.segmentSubscriber.subscribeChannel(peer.channelId);
+        } catch (error) {
+          deleteEmptySwarm(state, peer.channelId, swarmKey(peer.channelId, peer.cellId));
+          logger?.error("tracker_segment_bus_subscribe_failed", {
+            peer_id: peer.id,
+            channel_id: peer.channelId,
+            cell_id: peer.cellId,
+            error_class: "segment_bus_subscribe_failed",
+            error
+          }, "tracker could not subscribe to channel segment metadata");
+          const unavailable = publicError(ERROR_CODES.TRACKER_UNAVAILABLE, "segment metadata unavailable");
+          ws.send(JSON.stringify({ t: "error", code: unavailable.error, msg: unavailable.message }));
+          peer.channelId = null;
+          peer.cellId = null;
+          return;
+        }
+      }
       const previousMode = swarm.mode || swarmModeForSize(swarm.size, policy);
       swarm.demandUrl = demandUrl;
       swarm.addPeer(peer);
@@ -472,6 +500,36 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 
   const send = createTrackerSender({ state, maxBackpressureBytes: runtimeConfig.maxBackpressureBytes });
+  state.segmentSubscriber = runtimeConfig.segmentBus.enabled
+    ? await createSegmentSubscriber({
+      ...runtimeConfig.segmentBus,
+      clientName: `swarmcast-tracker-${runtimeConfig.trackerShardId || process.env.HOSTNAME || "local"}`
+    }, {
+      onSegment: async (segment, { replayed }) => {
+        const result = announceSegmentToState({ state, segment, send });
+        if (!result.ok) {
+          logger.warn("segment_bus_announce_rejected", {
+            channel_id: segment.channelId,
+            segment_seq: segment.seq,
+            error_class: "bad_segment_metadata",
+            error: result.error
+          }, "durable segment metadata was rejected");
+          return;
+        }
+        logger.info("segment_bus_announced", {
+          channel_id: result.segment.channelId,
+          segment_seq: result.segment.seq,
+          cells: result.cells,
+          recipients: result.recipients,
+          replayed
+        }, "durable segment metadata announced to local cells");
+      },
+      onError: (error) => logger.error("tracker_segment_bus_error", {
+        error_class: "segment_bus_error",
+        error
+      }, "tracker segment metadata bus error")
+    })
+    : null;
 
   const wsApp = uWS.App()
     .ws("/ws", {
@@ -544,7 +602,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       res.end('{"ok":true}');
     })
     .get("/ready", (res) => {
-      const ready = lifecycle.isReady();
+      const ready = lifecycle.isReady() && (!state.segmentSubscriber || state.segmentSubscriber.isHealthy());
       res.writeStatus(ready ? "200 OK" : "503 Service Unavailable");
       res.writeHeader("content-type", "application/json");
       res.end(JSON.stringify({ ok: ready }));
@@ -619,6 +677,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const ws of state.peersById.values()) ws.end?.(1012, "service restart");
     wsApp.close();
     internalApp.close();
+    return state.segmentSubscriber?.close();
   });
 
   let readyListeners = 0;

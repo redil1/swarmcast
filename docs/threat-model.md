@@ -2,7 +2,7 @@
 
 Review date: 2026-07-05
 
-This model covers the current SwarmCast architecture: authenticated HLS origin, owned edge cache, auth service, tracker, control plane, lazy ingest workers, retention worker, owned TURN relay, Android app, WebRTC DataChannels, RLNC/coded-packet path, monitoring, release pipeline, and dependency supply chain.
+This model covers the current SwarmCast architecture: authenticated HLS origin, owned edge cache, auth service, tracker, control plane, lazy ingest workers, durable segment metadata bus, retention worker, owned TURN relay, Android app, WebRTC DataChannels, RLNC/coded-packet path, monitoring, release pipeline, and dependency supply chain.
 
 ## Assets
 
@@ -24,6 +24,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 | Nginx edge to auth/origin | Edge proxy to internal services | `auth_request`, cache lock, protected origin paths, no third-party CDN endpoints. |
 | Tracker to control plane | Internal service call | `x-internal-token`, strict payload validation, placement response sanitization. |
 | Ingest to tracker | Internal segment announce | `x-internal-token`, SHA-256 manifest, bounded channel lifecycle. |
+| Ingest and tracker to segment metadata bus | Internal durable messaging | Hostname-verified TLS, distinct role credentials, subject permissions, bounded message schema, sequence gate, three replicas, local SSD, and monitored replay. Broker routes require mutual CA verification. |
 | Retention worker to operational stores | Internal worker to sensitive logs/metrics stores | Non-destructive default, explicit execution guard, adapter permissions scoped to retention actions, monitored success/failure metrics. |
 | Peer to peer | Viewer device to viewer device | WebRTC DTLS, bounded upload policy, segment hash verification, reputation, P2P disable path. |
 | Android and auth to TURN | Public viewer and credential service to owned relay | Short-lived HMAC credentials, TLS endpoint, quotas, private-peer denial, secret rotation overlap, metrics, and edge fallback. |
@@ -51,6 +52,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 | T-014 | Release workflow publishes mutable or unreviewed artifacts. | Release workflow scaffolds immutable version/SHA tags and release summary. | Protect production environment secrets, require approval, pin images by digest, rehearse rollback. |
 | T-015 | Retention worker deletes or aggregates the wrong records. | Dry-run default, `RETENTION_EXECUTE=1` guard, policy-driven actions, fixture tests, failure/staleness alerts. | Production datastore adapter review, scoped credentials, and staging retention drill. |
 | T-016 | TURN credentials are abused for bandwidth theft or relays are used to reach private services. | Subject-bound expiring credentials, issuance rate limits, allocation/bandwidth quotas, private-peer denial, restricted metrics, immutable image, and rotation overlap. | Real carrier/device relay proof, relay egress reconciliation, external abuse test, and production secret review. |
+| T-017 | Segment metadata is forged, replayed, lost, or made unavailable, causing poisoned scheduling or fleet-wide fallback. | Distinct subject-scoped credentials, hostname-verified client TLS, mutually authenticated broker routes, strict metadata/hash validation, JetStream acknowledgements, duplicate suppression, sequence gates, latest replay, quorum replication, readiness, metrics, and edge fallback. | Prove three-node failure-domain separation, one-node-loss behavior, credential rotation, sustained peak latency, and disk recovery in staging. |
 
 ## Abuse Cases To Test
 
@@ -67,6 +69,7 @@ This model covers the current SwarmCast architecture: authenticated HLS origin, 
 - Retention worker dry-run and execute modes against staging stores, including incident hold exceptions.
 - Compromised dependency or image scan finding blocks launch.
 - Expired, forged, and replayed TURN credentials fail; relay attempts toward private and loopback addresses are denied.
+- Unauthorized NATS subjects, stale segment sequences, broker restart, one-node loss, credential rotation, and disk pressure fail safely without bypassing segment integrity.
 
 ## Required Before Production
 

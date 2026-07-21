@@ -2,7 +2,7 @@
 
 ## Artifacts
 
-The release workflow builds or mirrors immutable container images in GHCR for all 13 runtime components:
+The release workflow builds or mirrors immutable container images in GHCR for all 15 runtime components:
 
 - `auth`
 - `ingest`
@@ -17,14 +17,16 @@ The release workflow builds or mirrors immutable container images in GHCR for al
 - `edge-metrics`
 - `node-exporter`
 - `turn`
+- `segment-bus`
+- `segment-bus-exporter`
 
 Each image is tagged with the requested release version and Git commit SHA, resolved back to its registry digest, scanned with Trivy, documented with a CycloneDX image SBOM, and signed plus verified with keyless Cosign identity. All workflow actions are pinned to immutable release commits.
 
 The release workflow generates `var/release/swarmcast-release-manifest.json`, validates it with `npm run release:manifest -- --input var/release/swarmcast-release-manifest.json --check`, uploads it as the `swarmcast-release-manifest` artifact, and links it from the release summary. The manifest records the release version, commit SHA, target environment, service and infrastructure image refs, expected SBOM artifact, expected image scan report paths, and required verification gates. After final service and infrastructure images are scanned, validate release coverage with `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`.
 
-`npm run smoke:release-manifest-production` proves the production env file can generate a `--require-digests` production release manifest with all 13 image refs and matching expected scan report paths.
+`npm run smoke:release-manifest-production` proves the production env file can generate a `--require-digests` production release manifest with all 15 image refs and matching expected scan report paths.
 
-The release workflow also generates `var/sbom/swarmcast-sbom.json`, validates parser coverage with `npm run sbom:generate -- --check`, uploads it as the `swarmcast-sbom` artifact, and links it from the release summary. Per-image CycloneDX SBOMs, Cosign verification records, digest records, and all 13 real Trivy JSON reports are uploaded as separate release evidence artifacts.
+The release workflow also generates `var/sbom/swarmcast-sbom.json`, validates parser coverage with `npm run sbom:generate -- --check`, uploads it as the `swarmcast-sbom` artifact, and links it from the release summary. Per-image CycloneDX SBOMs, Cosign verification records, digest records, and all 15 real Trivy JSON reports are uploaded as separate release evidence artifacts.
 
 Production deploys use `infra/docker-compose.release.yml` plus env-backed base and edge compose image refs so every production container is named with an explicit immutable image ref:
 
@@ -41,6 +43,8 @@ Production deploys use `infra/docker-compose.release.yml` plus env-backed base a
 - `SWARMCAST_EDGE_METRICS_IMAGE`
 - `SWARMCAST_NODE_EXPORTER_IMAGE`
 - `SWARMCAST_TURN_IMAGE`
+- `SWARMCAST_NATS_IMAGE`
+- `SWARMCAST_NATS_EXPORTER_IMAGE`
 
 Production values must be digest-pinned with `@sha256:` and pass `npm run release:images:check` before deployment. This check covers the five app services plus nginx, Prometheus, Alertmanager, Grafana, edge metrics, node exporter, and coturn image refs. Operators must deploy the override with `pull` and `up --no-build` so rollback uses published images instead of rebuilding local contexts.
 

@@ -18,6 +18,8 @@ This review records the production dependency posture for SwarmCast. It does not
 | Monitoring | Alertmanager | `v0.33.1` source rebuild with Go `1.26.5` and `x/crypto v0.53.0` | Staging candidate | Pass clean scan and receiver fire-drill. |
 | Monitoring | Grafana | `13.1.0` source rebuild with Go `1.26.5`; unused Tempo backend excluded | Staging candidate | Pass clean scan and dashboard/health smokes. |
 | Monitoring | node_exporter | `v1.12.0-distroless`, digest-pinned | Staging candidate | Pass clean scan and edge metrics scrape. |
+| Messaging | NATS JetStream | Server `2.12.1` and Node clients `3.4.0`, exact and digest-pinned | Staging candidate | Pass three-node TLS/quorum, one-node-loss, persistence, latency, scan, SBOM, and credential-scope evidence. |
+| Monitoring | NATS Prometheus exporter | `0.17.3`, digest-pinned | Staging candidate | Pass clean scan and verify broker health, storage, API-error, and slow-consumer metrics. |
 | Networking | coturn | `4.7.0` commit `678996a`, minimal digest-pinned Alpine 3.23 build | Staging candidate | Pass clean scan, authenticated UDP/TLS relay smoke, external carrier tests, measured relay capacity, and signed staging publication. |
 | Android | Android Gradle Plugin | `8.7.3` | Staging only | Local wrapper-based debug/release assembly passes; review AGP 9.x before production. |
 | Android | Kotlin Gradle plugins | `2.0.21` | Staging only | Local wrapper-based debug/release assembly passes; review Kotlin 2.4 migration before production. |
@@ -47,7 +49,7 @@ This review records the production dependency posture for SwarmCast. It does not
 
 - Run `npm audit --audit-level=moderate` and keep zero moderate-or-higher findings.
 - Generate an SBOM for Node workspaces, Android artifacts, and runtime container images with `npm run sbom:generate -- --output var/sbom/swarmcast-sbom.json`, and verify parser coverage with `npm run sbom:generate -- --check`.
-- Replace tag-only local defaults with digest-pinned images from production env refs after final upgrade decisions and verify all 13 service and infrastructure release refs with `npm run release:images:check` plus `npm run smoke:compose-production-env`.
+- Replace tag-only local defaults with digest-pinned images from production env refs after final upgrade decisions and verify all 15 service and infrastructure release refs with `npm run release:images:check` plus `npm run smoke:compose-production-env`.
 - Run vulnerability scans for service and infrastructure images after final Docker builds, write Trivy JSON reports under `var/scans/`, validate each report with `npm run image:scan:validate -- var/scans/*.json`, keep report-level guard coverage in `npm run check` with `npm run smoke:image-scan-report-validation`, and validate release coverage with `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`.
 - Run Android debug and release builds in CI before approving any Android dependency versions.
 - Run real-device playback, WebRTC/DataChannel, and RLNC decode tests before approving Android media/P2P dependencies.

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-const requiredServices = ["auth", "ingest", "tracker", "control-plane", "retention-worker", "turn"];
+const requiredServices = ["auth", "ingest", "tracker", "control-plane", "retention-worker", "segment-bus", "segment-bus-exporter", "turn"];
 const requiredChecks = [
   "release-manifest-validated",
   "image-digests-pinned",

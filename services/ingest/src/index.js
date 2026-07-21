@@ -2,6 +2,7 @@ import http from "node:http";
 import { ERROR_CODES, httpStatusForError, publicError } from "@swarmcast/config/errors";
 import { closeHttpServer, createServiceLifecycle } from "@swarmcast/config/lifecycle";
 import { createLogger, logHttpRequest } from "@swarmcast/config/logging";
+import { createSegmentPublisher } from "@swarmcast/segment-bus";
 import { parseM3u, publicChannel } from "./catalog.js";
 import { ChannelManager } from "./channelManager.js";
 import { config, loadConfig } from "./config.js";
@@ -32,6 +33,7 @@ export function createIngestServer({
   cfg = config,
   catalog = parseM3u(cfg.m3uPath, { sourcePolicy: cfg.sourcePolicy }),
   manager,
+  segmentPublisher = null,
   logger = null,
   isReady = () => true
 } = {}) {
@@ -53,7 +55,13 @@ export function createIngestServer({
 
     if (req.method === "GET" && url.pathname === "/metrics") {
       res.writeHead(200, { "content-type": "text/plain; version=0.0.4; charset=utf-8" });
-      res.end(formatIngestMetrics(ingestStats(channelManager)));
+      res.end(formatIngestMetrics({
+        ...ingestStats(channelManager),
+        segmentBusPublished: segmentPublisher?.stats.published || 0,
+        segmentBusDuplicates: segmentPublisher?.stats.duplicates || 0,
+        segmentBusFailures: segmentPublisher?.stats.failures || 0,
+        segmentBusHealthy: segmentPublisher ? segmentPublisher.isHealthy() : false
+      }));
       return;
     }
 
@@ -93,10 +101,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const runtimeConfig = loadConfig(process.env, { requireSecrets: true });
   const logger = createLogger({ service: "ingest" });
   const lifecycle = createServiceLifecycle({ service: "ingest", logger });
+  const segmentPublisher = runtimeConfig.segmentBus.enabled
+    ? await createSegmentPublisher({
+      ...runtimeConfig.segmentBus,
+      clientName: `swarmcast-ingest-${process.env.HOSTNAME || "local"}`
+    })
+    : null;
   const { server, catalog, manager } = createIngestServer({
     cfg: runtimeConfig,
     logger,
-    isReady: lifecycle.isReady
+    segmentPublisher,
+    isReady: () => lifecycle.isReady() && (!segmentPublisher || segmentPublisher.isHealthy())
   });
   const watcher = watchSegments({
     hlsRoot: runtimeConfig.hlsRoot,
@@ -105,6 +120,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     internalToken: runtimeConfig.internalToken,
     rlncK: runtimeConfig.rlncK,
     logger,
+    publishSegment: segmentPublisher ? (segment) => segmentPublisher.publish(segment) : null,
     onSegment: (segment) => manager.recordSegment(segment.channelId)
   });
 
@@ -113,6 +129,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     clearInterval(reapTimer);
     watcher.close();
     manager.stopAll();
+    await segmentPublisher?.close();
     await closeHttpServer(server);
   });
 

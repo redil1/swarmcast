@@ -16,6 +16,8 @@ This template records the production deployment shape. Fill every value before l
 | grafana | TBD | TBD | 3000 | `/api/health` | TBD |
 | edge-metrics | TBD | TBD | 9101 | `/health`, `/ready`, and `/metrics` | TBD |
 | turn | TBD | TBD | 3478/5349 plus relay range | STUN probe and `/metrics` on 9641 | TBD |
+| segment-bus | Three failure domains | TBD | 4222/6222; monitoring on loopback 8222 | JetStream health, quorum, replicas, storage, and publish/replay smoke | TBD |
+| segment-bus-exporter | Per monitored cluster | TBD | 7777 internal | Prometheus `/metrics` scrape | TBD |
 
 `/health` is the process liveness endpoint. `/ready` is the traffic admission endpoint and must return `503` during startup and shutdown. Prometheus continues to scrape `/metrics`; Docker and deployment orchestration use `/ready`. A core service is not restored to traffic until readiness returns `200` and its dependency checks pass.
 
@@ -41,6 +43,7 @@ Production environment files must set persistent mounted SQLite paths for `CATAL
 - `TURN_SHARED_SECRET` shared by auth and the active relay fleet; optional `TURN_PREVIOUS_SHARED_SECRET` exists only during rotation overlap
 - Play Integrity service-account JSON mounted read-only into auth
 - `AUTH_ATTESTATION_CHALLENGE_SECRET`; optional `AUTH_ATTESTATION_PREVIOUS_CHALLENGE_SECRET` exists only for one challenge-TTL rotation overlap
+- distinct `NATS_INGEST_PASSWORD`, `NATS_TRACKER_PASSWORD`, and deployment-only `NATS_ADMIN_PASSWORD` credentials with subject-scoped permissions
 - production catalog source credentials if applicable
 
 ## Launch Evidence
@@ -51,6 +54,7 @@ Production environment files must set persistent mounted SQLite paths for `CATAL
 - deployment execution evidence that passes `npm run deployment:evidence:validate -- path/to/deployment-evidence.json`, with service command coverage, digest-pinned pulls, `up --no-build`, service health, post-deploy smokes, rollback readiness, and exact evidence markers
 - production smoke evidence that passes `npm run production:smoke:evidence:validate -- path/to/production-smoke-evidence.json`
 - owned TURN evidence covering short-lived REST credentials, UDP and TLS relay, Prometheus scraping, private-peer denial, real Android relay candidate selection, and reconciled relay egress; local packaging coverage is `npm run smoke:turn`
+- segment metadata bus evidence covering a three-node TLS cluster, three replicas, subject permission denial, one-node loss, persistent latest replay, credential rotation, peak publish/delivery latency, and storage recovery; local behavior coverage is `npm run smoke:segment-bus`
 - Play Integrity evidence that passes `npm run android:attestation:evidence:validate -- path/to/android-attestation-evidence.json`, including app recognition, license and device verdicts, request-hash/package/signing-certificate binding, replay rejection, token issuance, and no raw integrity-token storage
 - nginx/TLS evidence that passes `npm run nginx:tls:evidence:validate -- path/to/nginx-tls-evidence.json`, including valid certificate, hostname verification, origin auth, authorized segment fetch, edge MISS/HIT, cross-token cache reuse, source URL redaction, cache-key redaction, and no third-party CDN fallback; local guard coverage remains `npm run smoke:nginx-tls-evidence-validation`
 - source allowlist evidence that passes `npm run source:allowlist:evidence:validate -- path/to/source-allowlist-evidence.json`

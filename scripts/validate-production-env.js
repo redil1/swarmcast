@@ -8,6 +8,7 @@ import {
   keyIdEnv,
   loadAuthConfig,
   ownedUrlEnv,
+  segmentBusConfigFromEnv,
   sourcePolicyFromEnv,
   stringEnv,
   validateIngestNodes
@@ -51,6 +52,17 @@ const requiredProductionKeys = [
   "TURN_BPS_CAPACITY",
   "TURN_PROMETHEUS_PORT",
   "TURN_TARGETS_DIR",
+  "SEGMENT_BUS_ENABLED",
+  "SEGMENT_BUS_SERVERS",
+  "SEGMENT_BUS_TLS_REQUIRED",
+  "SEGMENT_BUS_MANAGE_STREAM",
+  "SEGMENT_BUS_REPLICAS",
+  "NATS_INGEST_USER",
+  "NATS_INGEST_PASSWORD",
+  "NATS_TRACKER_USER",
+  "NATS_TRACKER_PASSWORD",
+  "NATS_ADMIN_USER",
+  "NATS_ADMIN_PASSWORD",
   "INGEST_NODES",
   "CATALOG_DB_PATH",
   "PLACEMENT_DB_PATH",
@@ -78,7 +90,9 @@ const requiredProductionKeys = [
   "SWARMCAST_EDGE_NGINX_IMAGE",
   "SWARMCAST_EDGE_METRICS_IMAGE",
   "SWARMCAST_NODE_EXPORTER_IMAGE",
-  "SWARMCAST_TURN_IMAGE"
+  "SWARMCAST_TURN_IMAGE",
+  "SWARMCAST_NATS_IMAGE",
+  "SWARMCAST_NATS_EXPORTER_IMAGE"
 ];
 
 const releaseImageKeys = [
@@ -97,7 +111,9 @@ const infrastructureImageKeys = [
   "SWARMCAST_EDGE_NGINX_IMAGE",
   "SWARMCAST_EDGE_METRICS_IMAGE",
   "SWARMCAST_NODE_EXPORTER_IMAGE",
-  "SWARMCAST_TURN_IMAGE"
+  "SWARMCAST_TURN_IMAGE",
+  "SWARMCAST_NATS_IMAGE",
+  "SWARMCAST_NATS_EXPORTER_IMAGE"
 ];
 
 const productionImageKeys = [
@@ -254,6 +270,34 @@ function validateProductionEnv(env, file) {
   if (previousTurnSecret) {
     if (!/^[A-Za-z0-9_-]{32,256}$/.test(previousTurnSecret)) fail("TURN_PREVIOUS_SHARED_SECRET is invalid");
     if (previousTurnSecret === authConfig.turnSharedSecret) fail("TURN_PREVIOUS_SHARED_SECRET must differ from TURN_SHARED_SECRET");
+  }
+
+  const segmentBus = segmentBusConfigFromEnv({
+    ...env,
+    SEGMENT_BUS_USER: env.NATS_INGEST_USER,
+    SEGMENT_BUS_PASSWORD: env.NATS_INGEST_PASSWORD
+  }, { requireEnabled: true });
+  segmentBusConfigFromEnv({
+    ...env,
+    SEGMENT_BUS_USER: env.NATS_TRACKER_USER,
+    SEGMENT_BUS_PASSWORD: env.NATS_TRACKER_PASSWORD
+  }, { requireEnabled: true });
+  segmentBusConfigFromEnv({
+    ...env,
+    SEGMENT_BUS_USER: env.NATS_ADMIN_USER,
+    SEGMENT_BUS_PASSWORD: env.NATS_ADMIN_PASSWORD
+  }, { requireEnabled: true });
+  if (!segmentBus.tlsRequired) fail("SEGMENT_BUS_TLS_REQUIRED must be 1 for production");
+  if (segmentBus.manageStream) fail("SEGMENT_BUS_MANAGE_STREAM must be 0 for production runtime credentials");
+  if (segmentBus.servers.length < 3) fail("SEGMENT_BUS_SERVERS must include at least three cluster endpoints");
+  if (segmentBus.replicas !== 3) fail("SEGMENT_BUS_REPLICAS must be 3 for production");
+  if (env.NATS_INGEST_USER === env.NATS_TRACKER_USER) fail("NATS ingest and tracker users must be distinct");
+  if (env.NATS_INGEST_PASSWORD === env.NATS_TRACKER_PASSWORD) fail("NATS ingest and tracker passwords must be distinct");
+  if (new Set([env.NATS_INGEST_USER, env.NATS_TRACKER_USER, env.NATS_ADMIN_USER]).size !== 3) {
+    fail("NATS ingest, tracker, and admin users must be distinct");
+  }
+  if (new Set([env.NATS_INGEST_PASSWORD, env.NATS_TRACKER_PASSWORD, env.NATS_ADMIN_PASSWORD]).size !== 3) {
+    fail("NATS ingest, tracker, and admin passwords must be distinct");
   }
 
   validateIngestNodes(jsonEnv(env, "INGEST_NODES", []));

@@ -27,11 +27,19 @@ test("formatIngestMetrics emits prometheus text", () => {
     startingChannels: 0,
     degradedChannels: 1,
     ffmpegFailures: 6,
-    segmentAgeSeconds: 12
+    segmentAgeSeconds: 12,
+    segmentBusHealthy: true,
+    segmentBusPublished: 9,
+    segmentBusDuplicates: 1,
+    segmentBusFailures: 2
   });
 
   assert.match(text, /swarmcast_ingest_active_channels 2/);
   assert.match(text, /swarmcast_ingest_degraded_channels 1/);
   assert.match(text, /swarmcast_ingest_segment_age_seconds 12/);
   assert.match(text, /swarmcast_ingest_ffmpeg_failures_total 6/);
+  assert.match(text, /swarmcast_ingest_segment_bus_healthy 1/);
+  assert.match(text, /swarmcast_ingest_segment_bus_published_total 9/);
+  assert.match(text, /swarmcast_ingest_segment_bus_duplicates_total 1/);
+  assert.match(text, /swarmcast_ingest_segment_bus_failures_total 2/);
 });

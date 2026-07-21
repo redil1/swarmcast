@@ -27,6 +27,11 @@
       "evidence": ["services/ingest/test/channelManager.test.js", "npm run smoke:ingest-ffmpeg-chaos"]
     },
     {
+      "id": "segment-metadata-bus",
+      "owner": "platform",
+      "evidence": ["npm run smoke:segment-bus", "docs/adr/0011-jetstream-segment-metadata.md"]
+    },
+    {
       "id": "retention-worker",
       "owner": "operations",
       "evidence": ["services/retention-worker/test/worker.test.js", "npm run smoke:retention-execute"]
@@ -179,6 +184,13 @@
       "owner": "platform",
       "decision": "TURN abuse controls are implemented; real carrier relay and egress proof remains open.",
       "evidence": ["T-016 npm run smoke:turn", "docs/runbooks/turn-relay.md"]
+    },
+    {
+      "id": "T-017",
+      "status": "accepted",
+      "owner": "platform",
+      "decision": "Publish-once durability and reconnect replay are implemented; real three-node failure-domain and capacity proof remains open.",
+      "evidence": ["T-017 npm run smoke:segment-bus", "docs/runbooks/segment-metadata-bus.md"]
     }
   ],
   "openGates": [
@@ -223,6 +235,12 @@
       "owner": "platform",
       "riskAcceptedBy": "synthetic-release-board",
       "evidence": ["turn-carrier-proof docs/runbooks/turn-relay.md#synthetic-open"]
+    },
+    {
+      "id": "segment-bus-cluster-proof",
+      "owner": "platform",
+      "riskAcceptedBy": "synthetic-release-board",
+      "evidence": ["segment-bus-cluster-proof docs/runbooks/segment-metadata-bus.md#synthetic-open"]
     }
   ],
   "signoffs": [

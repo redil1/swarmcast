@@ -10,6 +10,9 @@ const requiredSecrets = [
   "alertmanager-webhook-default",
   "alertmanager-webhook-critical",
   "turn-shared-secret",
+  "segment-bus-ingest-credential",
+  "segment-bus-tracker-credential",
+  "segment-bus-admin-credential",
   "production-env-file"
 ];
 
@@ -23,6 +26,9 @@ const requiredSecretDefinitions = new Map([
   ["alertmanager-webhook-default", { purpose: "default alert notifications", injectedInto: ["alertmanager"] }],
   ["alertmanager-webhook-critical", { purpose: "critical alert notifications", injectedInto: ["alertmanager"] }],
   ["turn-shared-secret", { purpose: "short-lived turn credential derivation", injectedInto: ["auth", "turn"] }],
+  ["segment-bus-ingest-credential", { purpose: "segment metadata publication", injectedInto: ["ingest", "segment-bus"] }],
+  ["segment-bus-tracker-credential", { purpose: "segment metadata subscription", injectedInto: ["tracker", "segment-bus"] }],
+  ["segment-bus-admin-credential", { purpose: "segment stream provisioning", injectedInto: ["deployment", "segment-bus"] }],
   ["production-env-file", { purpose: "production environment injection", injectedInto: ["compose"] }]
 ]);
 
@@ -32,6 +38,7 @@ const requiredChecks = [
   "deployment-injection-tested",
   "auth-key-rotation-ready",
   "turn-secret-rotation-ready",
+  "segment-bus-credentials-rotation-ready",
   "play-integrity-credentials-reviewed",
   "backup-restore-covered",
   "redaction-proof-reviewed",

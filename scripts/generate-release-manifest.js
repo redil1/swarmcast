@@ -2,6 +2,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const releaseImages = [
+  ["segment-bus", "SWARMCAST_NATS_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["segment-bus-exporter", "SWARMCAST_NATS_EXPORTER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["auth", "SWARMCAST_AUTH_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["ingest", "SWARMCAST_INGEST_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["tracker", "SWARMCAST_TRACKER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],

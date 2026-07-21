@@ -17,13 +17,13 @@ Deliverables:
 
 - Select only an owned GHCR digest after mirroring an upstream image.
 - Reject missing, malformed, upstream-only, or ambiguous repository digests.
-- Publish, scan, generate SBOMs for, sign, and verify all 13 images, including the owned TURN relay image.
+- Publish, scan, generate SBOMs for, sign, and verify all 15 images, including the owned TURN relay, NATS, and NATS exporter images.
 
 Acceptance evidence:
 
 - Unit tests for upstream-first and failure cases.
 - Remote CI success for the repair commit.
-- One staging release with 13 clean scan reports, 13 image SBOMs, 13 owned digests, 13 verified signatures, source SBOM, and validated release manifest.
+- One staging release with 15 clean scan reports, 15 image SBOMs, 15 owned digests, 15 verified signatures, source SBOM, and validated release manifest.
 
 ## Phase B: Client Connectivity And Topology Repair
 
@@ -78,6 +78,7 @@ Deliverables:
 - Maintain seeder pools incrementally instead of sorting all peers per segment.
 - Encode segment payload variants once per announcement and enforce backpressure/drop metrics.
 - Maintain incremental tracker counters so Prometheus scrapes are independent of peer count.
+- Publish each segment once to a durable JetStream channel subject; trackers subscribe only for locally active channels and replay the latest persisted metadata after reconnect.
 
 Acceptance evidence:
 
