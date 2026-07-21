@@ -677,6 +677,10 @@ for (const required of [
   "cellFailureEdgeFallback",
   "cellFailureRejoin",
   "sameCellSignalViolations",
+  "originBootstrapCellCount",
+  "originSeedAssignments",
+  "edgeBootstrapCellCount",
+  "edgeSeedAssignments",
   "androidStallRateMax",
   "trackerCpuMsPerMessageP95",
   "webrtc-datachannel",
@@ -713,6 +717,10 @@ for (const required of [
   "\"configuredCellMaxPeers\": 20000",
   "\"cellPeerCounts\"",
   "\"segmentFanoutCells\"",
+  "\"originBootstrapCellCount\": 1",
+  "\"originSeedAssignments\"",
+  "\"edgeBootstrapCellCount\"",
+  "\"edgeSeedAssignments\"",
   "\"cellFailureEdgeFallback\": true",
   "\"cellFailureRejoin\": true",
   "\"peerCount\": 2000",
@@ -740,6 +748,10 @@ for (const required of [
   "segment fanout misses a cell",
   "cell failure does not retain edge fallback",
   "cell backpressure drops present",
+  "multiple origin bootstrap cells",
+  "origin seed assignments exceed the per-channel bound",
+  "secondary cell lacks edge bootstrap",
+  "bootstrap evidence marker missing",
   "edge fallback after flatten",
   "missing helper bootstrap accounting",
   "edge access reconciliation drift",
@@ -750,7 +762,7 @@ for (const required of [
   "dataChannelTransfer = false",
   "alertState = \"firing\"",
   "token=synthetic-secret",
-  "load ladder evidence validation smoke OK: pass=1 failures=18"
+  "load ladder evidence validation smoke OK: pass=1 failures=22"
 ]) {
   if (!loadLadderSmokeText.includes(required)) {
     console.error(`scripts/smoke-load-ladder-evidence-validation.js: missing load ladder smoke text: ${required}`);
@@ -769,7 +781,7 @@ for (const check of [
   },
   {
     file: "services/tracker/src/sharding.js",
-    required: ["rankTrackerShards", "selectTrackerShard", "rankTrackerCells", "selectTrackerCell", "selectTrackerSpillover", "createTrackerCellRouteToken", "verifyTrackerCellRouteToken", "assignmentKey", "region", "routeTrackerJoin", "createHash", "createHmac", "timingSafeEqual", "localeCompare"]
+    required: ["rankTrackerShards", "selectTrackerShard", "selectOriginBootstrapCell", "rankTrackerCells", "selectTrackerCell", "selectTrackerSpillover", "createTrackerCellRouteToken", "verifyTrackerCellRouteToken", "assignmentKey", "region", "routeTrackerJoin", "createHash", "createHmac", "timingSafeEqual", "localeCompare"]
   },
   {
     file: "services/tracker/src/peerIndex.js",
@@ -781,11 +793,11 @@ for (const check of [
   },
   {
     file: "services/tracker/src/metrics.js",
-    required: ["swarmcast_tracker_cells", "swarmcast_tracker_segment_payload_encodes_total", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_spillovers_total", "swarmcast_tracker_cell_capacity_rejections_total"]
+    required: ["swarmcast_tracker_cells", "swarmcast_tracker_segment_payload_encodes_total", "swarmcast_tracker_origin_seed_assignments_total", "swarmcast_tracker_edge_seed_assignments_total", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_spillovers_total", "swarmcast_tracker_cell_capacity_rejections_total"]
   },
   {
     file: "scripts/smoke-tracker-ws-cells.js",
-    required: ["spawnTracker", "selectTrackerCell", "announceSegment", "TRACKER_CELL_MAX_PEERS", "assignmentKey", "cellRouteToken", "swarmcast_tracker_cell_capacity_spillovers_total 1", "capacitySpillover=pass", "edgeUrlTemplate", "tracker cell WebSocket smoke OK"]
+    required: ["spawnTracker", "selectOriginBootstrapCell", "selectTrackerCell", "announceSegment", "TRACKER_CELL_MAX_PEERS", "assignmentKey", "cellRouteToken", "swarmcast_tracker_origin_seed_assignments_total", "swarmcast_tracker_edge_seed_assignments_total", "originBootstrap=1", "edgeBootstrap=1", "swarmcast_tracker_cell_capacity_spillovers_total 1", "capacitySpillover=pass", "edgeUrlTemplate", "tracker cell WebSocket smoke OK"]
   },
   {
     file: "scripts/smoke-tracker-ws-cells-1k.js",
@@ -937,7 +949,7 @@ for (const check of [
   },
   {
     file: "services/tracker/src/segments.js",
-    required: ["validateSegmentEnvelope", "validateSegmentAnnounce", "announceSegmentToState", "recipients"]
+    required: ["validateSegmentEnvelope", "validateSegmentAnnounce", "announceSegmentToState", "originBootstrapCellId", "originSeedAssignments", "edgeSeedAssignments", "recipients"]
   },
   {
     file: "packages/segment-bus/src/index.js",
@@ -5184,6 +5196,7 @@ const androidTextChecks = [
     required: [
       "TrackerEvent.Joined",
       "TrackerEvent.Segment",
+      "edgeSeedTier",
       "fun reportStats",
       "TrackerEvent.Redirect",
       "assignmentKey",
@@ -5356,6 +5369,7 @@ const androidTextChecks = [
       "originTemplate",
       "checkNotNull(manifest[seq])",
       "meta.seedTier",
+      "meta.edgeSeedTier",
       "downloadedFromBootstrapOriginCounter",
       "downloadedFromRelayCounter",
       "peerDownloadAttribution",

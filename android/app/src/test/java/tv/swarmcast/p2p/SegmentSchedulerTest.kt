@@ -34,6 +34,21 @@ class SegmentSchedulerTest {
     }
 
     @Test
+    fun designatedSuperPeerBootstrapsFromOwnedEdgeWithoutOriginPermission() = withServer { server ->
+        val bytes = "edge-bootstrap-segment".toByteArray()
+        server.enqueue(MockResponse().setResponseCode(200).setBody(bytes.toString(Charsets.ISO_8859_1)))
+        val scheduler = scheduler(server, superPeer = true)
+        scheduler.onSegmentAnnounce(segment(bytes, seedTier = false, edgeSeedTier = true))
+
+        val result = runBlocking { scheduler.fetchSegment(7, "seg-7.m4s", 1_500) }
+
+        assertArrayEquals(bytes, result)
+        assertEquals("/edge/seg-7.m4s?token=test-token", server.takeRequest().path)
+        assertEquals(0L, scheduler.stats().downloadedFromBootstrapOrigin)
+        assertEquals(bytes.size.toLong(), scheduler.stats().downloadedFromEdge)
+    }
+
+    @Test
     fun nonSeedNeverUsesOriginAndFallsBackToEdge() = withServer { server ->
         val bytes = "edge-segment".toByteArray()
         server.enqueue(MockResponse().setResponseCode(200).setBody(bytes.toString(Charsets.ISO_8859_1)))
@@ -109,12 +124,13 @@ class SegmentSchedulerTest {
         }
     }
 
-    private fun segment(bytes: ByteArray, seedTier: Boolean) = TrackerEvent.Segment(
+    private fun segment(bytes: ByteArray, seedTier: Boolean, edgeSeedTier: Boolean = false) = TrackerEvent.Segment(
         seq = 7,
         sha256 = sha256(bytes),
         size = bytes.size.toLong(),
         k = 4,
-        seedTier = seedTier
+        seedTier = seedTier,
+        edgeSeedTier = edgeSeedTier
     )
 
     private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")

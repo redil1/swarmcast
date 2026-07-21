@@ -117,6 +117,39 @@ expectFailure(
   /backpressureDrops must be between 0 and 0/
 );
 expectFailure(
+  "multiple origin bootstrap cells",
+  writeVariant("multiple-origin-bootstrap-cells", (record) => {
+    stage(record, "1-channel-1000-cell-peers").originBootstrapCellCount = 2;
+    return record;
+  }),
+  /originBootstrapCellCount must be between 1 and 1/
+);
+expectFailure(
+  "origin seed assignments exceed the per-channel bound",
+  writeVariant("origin-bootstrap-unbounded", (record) => {
+    stage(record, "1-channel-1000-cell-peers").originSeedAssignments = 201;
+    return record;
+  }),
+  /originSeedAssignments must be between 100 and 200/
+);
+expectFailure(
+  "secondary cell lacks edge bootstrap",
+  writeVariant("edge-bootstrap-cell-missing", (record) => {
+    stage(record, "1-channel-100000-cell-peers").edgeBootstrapCellCount = 3;
+    return record;
+  }),
+  /edgeBootstrapCellCount must be between 4 and 4/
+);
+expectFailure(
+  "bootstrap evidence marker missing",
+  writeVariant("bootstrap-marker-missing", (record) => {
+    const value = stage(record, "1-channel-10000-cell-peers");
+    value.evidence = value.evidence.map((item) => item.replace("global-origin-bootstrap", ""));
+    return record;
+  }),
+  /evidence must include global-origin-bootstrap/
+);
+expectFailure(
   "edge fallback after flatten",
   writeVariant("edge-fallback-after-flatten", (record) => {
     const row = record.selfSustainingSweep.edgeFallbackPackets.find((candidate) => candidate.superPeerFraction === 0.2);
@@ -191,4 +224,4 @@ expectFailure(
   /1-channel-200-peers\.evidence evidence reference looks like it may contain sensitive material/
 );
 
-console.log("load ladder evidence validation smoke OK: pass=1 failures=18");
+console.log("load ladder evidence validation smoke OK: pass=1 failures=22");

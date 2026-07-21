@@ -48,7 +48,7 @@ Acceptance evidence:
 
 Deliverables:
 
-- Consume `seedTier` and `originTemplate` in the Android scheduler.
+- Consume legacy `seedTier` as direct-origin capability and optional `edgeSeedTier` as owned-edge capability in the Android scheduler.
 - Allow only designated helpers to perform controlled bootstrap fetches; all other clients wait for peer supply until their edge-fallback deadline.
 - Advertise useful rank/supply and stop seed pulls when the configured deficit is filled.
 - Count bootstrap, direct P2P, edge, and any relayed bytes separately.
@@ -69,7 +69,7 @@ Target topology:
 - The rendezvous tier assigns viewers by stable hash plus capacity and locality, returning `channelId`, `cellId`, and owning tracker.
 - Each cell has a configured peer ceiling and independent topology, seed pool, counters, and backpressure budget.
 - Segment metadata is published once to the channel and distributed to cells through an internal authenticated bus; trackers do not perform cross-process peer signaling.
-- Controlled bridge helpers or owned seeds distribute initial useful rank across cells.
+- Exactly one shard-order-independent tracker cell per channel assigns direct-origin helpers. Every other active cell assigns owned-edge helpers, so adding cells cannot multiply direct-origin authorization.
 
 Deliverables:
 
@@ -81,11 +81,12 @@ Deliverables:
 - Encode segment payload variants once per announcement and enforce backpressure/drop metrics.
 - Maintain incremental tracker counters so Prometheus scrapes are independent of peer count.
 - Publish each segment once to a durable JetStream channel subject; trackers subscribe only for locally active channels and replay the latest persisted metadata after reconnect.
+- Preserve rolling-upgrade safety: old clients ignore `edgeSeedTier`, and no secondary cell receives the legacy `seedTier` origin capability. During rollout, old secondary-cell clients may reach normal edge fallback, but cannot fetch bootstrap segments from origin.
 
 Acceptance evidence:
 
 - Deterministic assignment, bounded movement, authenticated capacity spillover, cell-cap exhaustion, redirect, and same-cell signaling tests.
-- Multi-process WebSocket smoke proving one channel spans cells, spills a full cell, and survives one cell failure through edge fallback/rejoin.
+- Multi-process WebSocket smoke proving one channel spans cells, assigns origin bootstrap in exactly one deterministic cell, assigns edge bootstrap in every secondary cell, spills a full cell, and survives one cell failure through edge fallback/rejoin.
 - Staged ladder at 1K, 10K, and 100K active viewers per channel shape before any extrapolation to 1M.
 - A 1M single-channel claim remains prohibited until the production-equivalent distributed test passes every budget.
 

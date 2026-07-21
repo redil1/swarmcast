@@ -56,6 +56,7 @@ test("announceSegmentToState broadcasts ordered segment announcements", () => {
   assert.equal(sent[0].message.size, 4096);
   assert.equal(sent[0].message.k, 32);
   assert.equal(typeof sent[0].message.seedTier, "boolean");
+  assert.equal(typeof sent[0].message.edgeSeedTier, "boolean");
 });
 
 test("announceSegmentToState rejects malformed segment announcements", () => {
@@ -88,18 +89,44 @@ test("announceSegmentToState fans one channel announcement across local cells wi
   const state = createTrackerState();
   const cellA = swarmFor(state, "demo", "cell-a");
   const cellB = swarmFor(state, "demo", "cell-b");
-  cellA.addPeer({ ...createPeer(), id: "a", channelId: "demo", cellId: "cell-a" });
-  cellB.addPeer({ ...createPeer(), id: "b", channelId: "demo", cellId: "cell-b" });
-  const encodedPayloads = [];
+  cellA.addPeer({ ...createPeer(), id: "a", channelId: "demo", cellId: "cell-a", transport: "wifi", uploadEnabled: true, uplinkKbps: 30_000, superPeer: true });
+  cellB.addPeer({ ...createPeer(), id: "b", channelId: "demo", cellId: "cell-b", transport: "wifi", uploadEnabled: true, uplinkKbps: 30_000, superPeer: true });
+  const delivered = [];
 
   const result = announceSegmentToState({
     state,
     segment: segment(3),
-    send: (_peer, _message, encoded) => encodedPayloads.push(encoded)
+    originBootstrapCellId: "cell-a",
+    send: (peer, message, encoded) => delivered.push({ peer, message, encoded })
   });
 
   assert.equal(result.cells, 2);
   assert.equal(result.recipients, 2);
+  assert.equal(result.originSeedAssignments, 1);
+  assert.equal(result.edgeSeedAssignments, 1);
   assert.equal(state.delivery.segmentPayloadsEncoded, 4);
-  assert.equal(encodedPayloads.every((payload) => typeof payload === "string"), true);
+  assert.equal(state.delivery.originSeedAssignments, 1);
+  assert.equal(state.delivery.edgeSeedAssignments, 1);
+  assert.equal(delivered.every(({ encoded }) => typeof encoded === "string"), true);
+  assert.equal(delivered.find(({ peer }) => peer.cellId === "cell-a").message.seedTier, true);
+  assert.equal(delivered.find(({ peer }) => peer.cellId === "cell-a").message.edgeSeedTier, false);
+  assert.equal(delivered.find(({ peer }) => peer.cellId === "cell-b").message.seedTier, false);
+  assert.equal(delivered.find(({ peer }) => peer.cellId === "cell-b").message.edgeSeedTier, true);
+  assert.equal(delivered.every(({ message }) => !(message.seedTier && message.edgeSeedTier)), true);
+});
+
+test("announceSegmentToState fails closed when named cells lack a global origin selection", () => {
+  const state = createTrackerState();
+  swarmFor(state, "demo", "cell-a").addPeer({
+    ...createPeer(),
+    id: "a",
+    channelId: "demo",
+    cellId: "cell-a"
+  });
+
+  const result = announceSegmentToState({ state, segment: segment(4), send: () => {} });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /originBootstrapCellId/);
+  assert.equal(state.delivery.segmentPayloadsEncoded, 0);
 });

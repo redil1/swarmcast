@@ -27,6 +27,10 @@ export function selectTrackerShard(channelId, shards = []) {
   return rankTrackerShards(String(channelId), shards)[0].shard;
 }
 
+export function selectOriginBootstrapCell(channelId, shards = []) {
+  return selectTrackerShard(String(channelId), shards)?.id || "default";
+}
+
 export function rankTrackerCells({ channelId, assignmentKey, shards = [], region = "" }) {
   const normalizedRegion = String(region || "").trim().toLowerCase();
   const hasRegionalCandidate = normalizedRegion && shards.some(

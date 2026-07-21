@@ -5,6 +5,7 @@ import {
   rankTrackerCells,
   rankTrackerShards,
   routeTrackerJoin,
+  selectOriginBootstrapCell,
   selectTrackerCell,
   selectTrackerSpillover,
   selectTrackerShard
@@ -25,6 +26,14 @@ test("selectTrackerShard is deterministic and independent of shard order", () =>
   assert.equal(selected.id, reversed.id);
   assert.equal(ranked[0].shard.id, selected.id);
   assert.deepEqual(new Set(ranked.map((entry) => entry.shard.id)), new Set(shards.map((shard) => shard.id)));
+});
+
+test("selectOriginBootstrapCell chooses exactly one order-independent cell", () => {
+  const selected = selectOriginBootstrapCell("sports-main", shards);
+
+  assert.equal(shards.some((shard) => shard.id === selected), true);
+  assert.equal(selected, selectOriginBootstrapCell("sports-main", [...shards].reverse()));
+  assert.equal(selectOriginBootstrapCell("sports-main", []), "default");
 });
 
 test("routeTrackerJoin redirects joins away from non-owning shards", () => {

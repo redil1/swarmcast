@@ -44,7 +44,14 @@ sealed class TrackerEvent {
     data class Peers(val peers: List<PeerInfo>) : TrackerEvent()
     data class SwarmMode(val swarmMode: String, val swarmSize: Int) : TrackerEvent()
     data class Signal(val from: String, val data: JsonObject) : TrackerEvent()
-    data class Segment(val seq: Int, val sha256: String, val size: Long, val k: Int, val seedTier: Boolean) : TrackerEvent()
+    data class Segment(
+        val seq: Int,
+        val sha256: String,
+        val size: Long,
+        val k: Int,
+        val seedTier: Boolean,
+        val edgeSeedTier: Boolean = false
+    ) : TrackerEvent()
     data class Redirect(
         val channelId: String,
         val shardId: String,
@@ -372,7 +379,8 @@ class TrackerClient(
                 sha256 = obj["sha256"]!!.jsonPrimitive.content,
                 size = obj["size"]!!.jsonPrimitive.long,
                 k = obj["k"]!!.jsonPrimitive.int,
-                seedTier = obj["seedTier"]!!.jsonPrimitive.boolean
+                seedTier = obj["seedTier"]?.jsonPrimitive?.boolean ?: false,
+                edgeSeedTier = obj["edgeSeedTier"]?.jsonPrimitive?.boolean ?: false
             )
             "redirect" -> TrackerEvent.Redirect(
                 channelId = obj["channelId"]!!.jsonPrimitive.content,

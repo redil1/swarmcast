@@ -34,7 +34,10 @@ export class Swarm {
     return candidatePeers(this, peer, count, excludedPeerIds);
   }
 
-  announceSegment({ seq, sha256, size, k }, send) {
+  announceSegment({ seq, sha256, size, k }, send, { bootstrapSource = "origin" } = {}) {
+    if (!["origin", "edge"].includes(bootstrapSource)) {
+      throw new Error("bootstrapSource must be origin or edge");
+    }
     this.segments.set(seq, { sha256, size, k, ts: Date.now() });
     for (const oldSeq of this.segments.keys()) {
       if (oldSeq < seq - 60) this.segments.delete(oldSeq);
@@ -42,14 +45,21 @@ export class Swarm {
 
     const seederCount = Math.max(2, Math.ceil(k / 12));
     const seeders = new Set(electSeeders(this, seederCount).map((peer) => peer.id));
-    const regularMessage = { t: "segment", seq, sha256, size, k, seedTier: false };
-    const seedMessage = { ...regularMessage, seedTier: true };
+    const regularMessage = { t: "segment", seq, sha256, size, k, seedTier: false, edgeSeedTier: false };
+    const seedMessage = bootstrapSource === "origin"
+      ? { ...regularMessage, seedTier: true }
+      : { ...regularMessage, edgeSeedTier: true };
     const regularPayload = JSON.stringify(regularMessage);
     const seedPayload = JSON.stringify(seedMessage);
 
     for (const peer of this.peers.values()) {
-      const seedTier = seeders.has(peer.id);
-      send(peer, seedTier ? seedMessage : regularMessage, seedTier ? seedPayload : regularPayload);
+      const bootstrapHelper = seeders.has(peer.id);
+      send(peer, bootstrapHelper ? seedMessage : regularMessage, bootstrapHelper ? seedPayload : regularPayload);
     }
+
+    return {
+      originSeedAssignments: bootstrapSource === "origin" ? seeders.size : 0,
+      edgeSeedAssignments: bootstrapSource === "edge" ? seeders.size : 0
+    };
   }
 }
