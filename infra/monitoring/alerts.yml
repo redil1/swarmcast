@@ -91,6 +91,16 @@ groups:
           description: "Android clients are reporting elevated peer segment request timeouts."
           runbook_url: "docs/runbooks/peer-health.md"
 
+      - alert: SwarmcastTrackerJoinTimeoutSpike
+        expr: (increase(swarmcast_tracker_join_timeouts_total[5m]) > 5) and (increase(swarmcast_tracker_join_timeouts_total[5m]) / clamp_min(swarmcast_tracker_peers, 1) > 0.01)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tracker join acknowledgements are timing out"
+          description: "More than 1% of the connected tracker population reported a missing join acknowledgement in five minutes."
+          runbook_url: "docs/runbooks/tracker-peer-drops.md"
+
       - alert: SwarmcastHighPlaybackStallRate
         expr: swarmcast_tracker_stall_rate_5m > 0.01
         for: 10m

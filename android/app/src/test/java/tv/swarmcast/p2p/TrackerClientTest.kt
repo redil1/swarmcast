@@ -1,5 +1,8 @@
 package tv.swarmcast.p2p
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -49,6 +52,9 @@ class TrackerClientTest {
                 when {
                     text.contains("\"t\":\"join\"") -> {
                         joinMessage.set(text)
+                        webSocket.send(
+                            """{"t":"joined","peerId":"peer-1","cellId":"cell-a","playlistUrl":"https://edge.example.tv/live/demo/index.m3u8","edgeUrlTemplate":"https://edge.example.tv/live/demo/{seq}.m4s","originUrlTemplate":"https://origin.example.tv/live/demo/{seq}.m4s","swarmMode":"p2p","superPeer":false}"""
+                        )
                         joined.countDown()
                     }
                     text.contains("\"t\":\"stats\"") -> {
@@ -83,6 +89,87 @@ class TrackerClientTest {
             assertTrue(joinMessage.get().contains("\"transport\":\"cellular\""))
             assertTrue(statsMessage.get().contains("\"ice_attempts\":2"))
             assertTrue(statsMessage.get().contains("\"ice_candidate_srflx\":1"))
+        } finally {
+            client.close()
+            scope.cancel()
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun buffersAndMergesStatsUntilTheTrackerJoinIsAcknowledged() {
+        val server = MockWebServer()
+        val joinReceived = CountDownLatch(1)
+        val firstStatsReceived = CountDownLatch(1)
+        val secondStatsReceived = CountDownLatch(1)
+        val serverSocket = AtomicReference<WebSocket>()
+        val statsMessages = CopyOnWriteArrayList<String>()
+        server.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                when {
+                    text.contains("\"t\":\"join\"") -> {
+                        serverSocket.set(webSocket)
+                        joinReceived.countDown()
+                    }
+                    text.contains("\"t\":\"stats\"") -> {
+                        statsMessages.add(text)
+                        if (statsMessages.size == 1) firstStatsReceived.countDown() else secondStatsReceived.countDown()
+                    }
+                }
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+            }
+        }))
+        server.start()
+
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val client = TrackerClient(
+            initialWsUrl = server.url("/ws").toString().replaceFirst("http", "ws").removeSuffix("/"),
+            tokenProvider = { "token" },
+            scope = scope
+        )
+
+        try {
+            client.connect("demo", wifi = true, uploadEnabled = true)
+            assertTrue(joinReceived.await(3, TimeUnit.SECONDS))
+            client.reportStats(
+                dlP2p = 10,
+                dlEdge = 20,
+                ul = 5,
+                startupMs = 500,
+                bufferMs = 100,
+                ice = IceConnectivityDelta(attempts = 1, failures = 1)
+            )
+            client.reportStats(
+                dlP2p = 20,
+                dlEdge = 30,
+                ul = 7,
+                startupMs = 600,
+                bufferMs = 200,
+                ice = IceConnectivityDelta(attempts = 2, successes = 2, srflxSuccesses = 2)
+            )
+            Thread.sleep(200L)
+            assertEquals(0, statsMessages.size)
+
+            serverSocket.get().send(
+                """{"t":"joined","peerId":"peer-1","cellId":"cell-a","playlistUrl":"https://edge.example.tv/live/demo/index.m3u8","edgeUrlTemplate":"https://edge.example.tv/live/demo/{seq}.m4s","originUrlTemplate":"https://origin.example.tv/live/demo/{seq}.m4s","swarmMode":"p2p","superPeer":false}"""
+            )
+            assertTrue(firstStatsReceived.await(3, TimeUnit.SECONDS))
+            client.reportStats(dlP2p = 5, dlEdge = 0, ul = 0, bufferMs = 300)
+            assertTrue(secondStatsReceived.await(3, TimeUnit.SECONDS))
+
+            val first = Json.parseToJsonElement(statsMessages[0]).jsonObject
+            val second = Json.parseToJsonElement(statsMessages[1]).jsonObject
+            assertEquals(30L, first["dl_p2p"]?.jsonPrimitive?.content?.toLong())
+            assertEquals(50L, first["dl_edge"]?.jsonPrimitive?.content?.toLong())
+            assertEquals(12L, first["ul"]?.jsonPrimitive?.content?.toLong())
+            assertEquals(3L, first["ice_attempts"]?.jsonPrimitive?.content?.toLong())
+            assertEquals(500L, first["startup_ms"]?.jsonPrimitive?.content?.toLong())
+            assertEquals(200L, first["buffer_ms"]?.jsonPrimitive?.content?.toLong())
+            assertEquals(5L, second["dl_p2p"]?.jsonPrimitive?.content?.toLong())
+            assertEquals(300L, second["buffer_ms"]?.jsonPrimitive?.content?.toLong())
         } finally {
             client.close()
             scope.cancel()
@@ -142,16 +229,25 @@ class TrackerClientTest {
         val joins = CountDownLatch(2)
         val assignmentKeys = CopyOnWriteArrayList<String>()
         val connections = AtomicInteger()
+        val timeoutStats = AtomicReference<String>()
+        val timeoutStatsReceived = CountDownLatch(1)
         val listener = object : WebSocketListener() {
             override fun onMessage(webSocket: WebSocket, text: String) {
-                if (!text.contains("\"t\":\"join\"")) return
-                Regex("\"assignmentKey\":\"([^\"]+)\"").find(text)?.groupValues?.get(1)?.let(assignmentKeys::add)
-                val connection = connections.incrementAndGet()
-                joins.countDown()
-                if (connection == 2) {
-                    webSocket.send(
-                        """{"t":"joined","peerId":"peer-2","cellId":"cell-a","playlistUrl":"https://edge.example.tv/live/demo/index.m3u8","edgeUrlTemplate":"https://edge.example.tv/live/demo/{seq}.m4s","originUrlTemplate":"https://origin.example.tv/live/demo/{seq}.m4s","swarmMode":"p2p","superPeer":false}"""
-                    )
+                when {
+                    text.contains("\"t\":\"join\"") -> {
+                        Regex("\"assignmentKey\":\"([^\"]+)\"").find(text)?.groupValues?.get(1)?.let(assignmentKeys::add)
+                        val connection = connections.incrementAndGet()
+                        joins.countDown()
+                        if (connection == 2) {
+                            webSocket.send(
+                                """{"t":"joined","peerId":"peer-2","cellId":"cell-a","playlistUrl":"https://edge.example.tv/live/demo/index.m3u8","edgeUrlTemplate":"https://edge.example.tv/live/demo/{seq}.m4s","originUrlTemplate":"https://origin.example.tv/live/demo/{seq}.m4s","swarmMode":"p2p","superPeer":false}"""
+                            )
+                        }
+                    }
+                    text.contains("\"t\":\"stats\"") -> {
+                        timeoutStats.set(text)
+                        timeoutStatsReceived.countDown()
+                    }
                 }
             }
 
@@ -174,11 +270,13 @@ class TrackerClientTest {
         try {
             client.connect("demo", wifi = true, uploadEnabled = true)
             assertTrue("tracker did not reconnect after the missing join acknowledgement", joins.await(4, TimeUnit.SECONDS))
+            assertTrue("join-timeout telemetry was not flushed after recovery", timeoutStatsReceived.await(3, TimeUnit.SECONDS))
             Thread.sleep(1_500L)
             assertEquals(2, connections.get())
             assertEquals(2, tokenCalls.get())
             assertEquals(2, assignmentKeys.size)
             assertEquals(assignmentKeys[0], assignmentKeys[1])
+            assertTrue(timeoutStats.get().contains("\"tracker_join_timeouts\":1"))
         } finally {
             client.close()
             scope.cancel()

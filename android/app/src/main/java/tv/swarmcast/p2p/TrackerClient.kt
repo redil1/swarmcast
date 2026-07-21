@@ -82,6 +82,9 @@ class TrackerClient(
     private var connectionGeneration = 0L
     private var closedByUser = true
     private val assignmentKey = UUID.randomUUID().toString()
+    private val statsLock = Any()
+    private val pendingStats = TrackerStatsBuffer()
+    private var joined = false
 
     fun connect(
         channelId: String,
@@ -97,6 +100,10 @@ class TrackerClient(
         reconnectJob = null
         joinAckJob?.cancel()
         joinAckJob = null
+        synchronized(statsLock) {
+            joined = false
+            pendingStats.clear()
+        }
         activeJoin = JoinRequest(channelId, wifi, uploadEnabled, uplinkKbps, networkClass)
         redirectHops = 0
         reconnectAttempt = 0
@@ -132,12 +139,17 @@ class TrackerClient(
                     when (val event = runCatching { parseEvent(text) }.getOrNull()) {
                         is TrackerEvent.Redirect -> {
                             cancelJoinAckWatchdog()
+                            markUnjoined()
                             redirectTo(event)
                         }
                         is TrackerEvent.Joined -> {
                             cancelJoinAckWatchdog()
                             reconnectAttempt = 0
                             redirectHops = 0
+                            synchronized(statsLock) {
+                                joined = true
+                                flushPendingStatsLocked()
+                            }
                             events.tryEmit(event)
                         }
                         is TrackerEvent.Error -> {
@@ -170,6 +182,7 @@ class TrackerClient(
         cancelJoinAckWatchdog()
         connectionGeneration += 1
         ws = null
+        markUnjoined()
         events.tryEmit(TrackerEvent.Disconnected)
         scheduleReconnect()
     }
@@ -182,6 +195,10 @@ class TrackerClient(
             joinAckJob = null
             connectionGeneration += 1
             ws = null
+            synchronized(statsLock) {
+                joined = false
+                pendingStats.incrementJoinTimeout()
+            }
             events.tryEmit(TrackerEvent.Disconnected)
             webSocket.cancel()
             scheduleReconnect()
@@ -272,33 +289,32 @@ class TrackerClient(
         hashFailures: Long = 0,
         peerDisconnects: Long = 0,
         ice: IceConnectivityDelta = IceConnectivityDelta()
-    ) = sendJson(buildJsonObject {
-        put("t", "stats")
-        put("dl_p2p", dlP2p)
-        put("dl_edge", dlEdge)
-        put("dl_bootstrap_origin", dlBootstrapOrigin)
-        put("dl_relay", dlRelay)
-        put("ul", ul)
-        put("stalls", stalls)
-        put("peer_timeouts", peerTimeouts.coerceAtLeast(0L))
-        put("hash_failures", hashFailures.coerceAtLeast(0L))
-        put("peer_disconnects", peerDisconnects.coerceAtLeast(0L))
-        put("ice_attempts", ice.attempts.coerceAtLeast(0L))
-        put("ice_successes", ice.successes.coerceAtLeast(0L))
-        put("ice_failures", ice.failures.coerceAtLeast(0L))
-        put("ice_candidate_host", ice.hostSuccesses.coerceAtLeast(0L))
-        put("ice_candidate_srflx", ice.srflxSuccesses.coerceAtLeast(0L))
-        put("ice_candidate_prflx", ice.prflxSuccesses.coerceAtLeast(0L))
-        put("ice_candidate_relay", ice.relaySuccesses.coerceAtLeast(0L))
-        put("ice_candidate_unknown", ice.unknownSuccesses.coerceAtLeast(0L))
-        startupMs?.let { put("startup_ms", it.coerceAtLeast(0L)) }
-        bufferMs?.let { put("buffer_ms", it.coerceAtLeast(0L)) }
-    })
+    ): Boolean = synchronized(statsLock) {
+        pendingStats.add(
+            dlP2p = dlP2p,
+            dlEdge = dlEdge,
+            dlBootstrapOrigin = dlBootstrapOrigin,
+            dlRelay = dlRelay,
+            ul = ul,
+            stalls = stalls.toLong(),
+            startupMs = startupMs,
+            bufferMs = bufferMs,
+            peerTimeouts = peerTimeouts,
+            hashFailures = hashFailures,
+            peerDisconnects = peerDisconnects,
+            ice = ice
+        )
+        flushPendingStatsLocked()
+    }
 
     fun close() {
         closedByUser = true
         activeJoin = null
         cancelJoinAckWatchdog()
+        synchronized(statsLock) {
+            joined = false
+            pendingStats.clear()
+        }
         reconnectJob?.cancel()
         reconnectJob = null
         connectionGeneration += 1
@@ -309,6 +325,18 @@ class TrackerClient(
 
     private fun sendJson(obj: JsonObject) {
         ws?.send(obj.toString())
+    }
+
+    private fun markUnjoined() {
+        synchronized(statsLock) { joined = false }
+    }
+
+    private fun flushPendingStatsLocked(): Boolean {
+        if (!joined || pendingStats.isEmpty()) return false
+        val socket = ws ?: return false
+        if (!socket.send(pendingStats.toJson().toString())) return false
+        pendingStats.clear()
+        return true
     }
 
     private fun parseEvent(text: String): TrackerEvent? {

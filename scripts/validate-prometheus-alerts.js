@@ -17,6 +17,7 @@ const requiredLaunchAlerts = [
   "SwarmcastPeerHashFailures",
   "SwarmcastPeerDisconnectSpike",
   "SwarmcastPeerTimeoutSpike",
+  "SwarmcastTrackerJoinTimeoutSpike",
   "SwarmcastHighPlaybackStallRate",
   "SwarmcastHighStartupLatency",
   "SwarmcastLowPlaybackBuffer",

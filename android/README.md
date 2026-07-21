@@ -20,6 +20,7 @@ Current status:
 - Auth responses now provide owned STUN and short-lived TURN REST credentials; Android refreshes them before expiry and applies them before creating new WebRTC peer connections.
 - Tracker redirects can carry a signed cell-route token; Android preserves it across joins and reconnects so a full hot-channel cell can spill into the next authorized tracker without trusting a client-selected destination.
 - Tracker joins have a 10-second acknowledgement watchdog; a socket that stays open without `joined`, `redirect`, or `error` is canceled and reconnected through the generation-safe capped backoff path.
+- Tracker byte, playback, peer-health, and ICE deltas are retained while a join/reconnect is incomplete, then flushed after acknowledgement together with a tracker join-timeout counter so recovery does not hide telemetry or corrupt offload accounting.
 - ICE telemetry reports attempts, outcomes, selected candidate type, and network class so real carrier tests can measure direct versus relayed connectivity.
 - Android stat flushes now report peer timeout, hash-failure, and disconnect deltas to the tracker for operational visibility.
 - Peer link cleanup now closes replaced links, completes pending peer requests, and disposes stale WebRTC objects when links stop.

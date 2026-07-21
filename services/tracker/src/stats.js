@@ -81,6 +81,7 @@ function emptyCounters() {
     peerTimeouts: 0,
     peerHashFailures: 0,
     peerDisconnects: 0,
+    trackerJoinTimeouts: 0,
     iceAttempts: 0,
     iceSuccesses: 0,
     iceFailures: 0,
@@ -132,7 +133,8 @@ export function removePeerFromTrackerStats(stats, peer) {
 function addSample(target, sample) {
   for (const key of [
     "dlP2p", "dlEdge", "dlBootstrapOrigin", "dlRelay", "ul", "stalls",
-    "peerTimeouts", "peerHashFailures", "peerDisconnects", "iceAttempts", "iceSuccesses", "iceFailures",
+    "peerTimeouts", "peerHashFailures", "peerDisconnects", "trackerJoinTimeouts",
+    "iceAttempts", "iceSuccesses", "iceFailures",
     "iceCandidateHost", "iceCandidateSrflx", "iceCandidatePrflx", "iceCandidateRelay", "iceCandidateUnknown"
   ]) target[key] += sample[key] || 0;
   if (sample.startupLatencyMs !== undefined) {
@@ -250,6 +252,7 @@ function summary({
   peerTimeouts = 0,
   peerHashFailures = 0,
   peerDisconnects = 0,
+  trackerJoinTimeouts = 0,
   iceAttempts = 0,
   iceSuccesses = 0,
   iceFailures = 0,
@@ -278,6 +281,7 @@ function summary({
     peerTimeouts,
     peerHashFailures,
     peerDisconnects,
+    trackerJoinTimeouts,
     iceAttempts,
     iceSuccesses,
     iceFailures,
@@ -305,6 +309,7 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
   const peerTimeouts = nonNegativeInt(msg.peer_timeouts ?? msg.peerTimeouts);
   const peerHashFailures = nonNegativeInt(msg.hash_failures ?? msg.hashFailures);
   const peerDisconnects = nonNegativeInt(msg.peer_disconnects ?? msg.peerDisconnects);
+  const trackerJoinTimeouts = nonNegativeInt(msg.tracker_join_timeouts ?? msg.trackerJoinTimeouts);
   const iceFailures = nonNegativeInt(msg.ice_failures ?? msg.iceFailures);
   const iceCandidateHost = nonNegativeInt(msg.ice_candidate_host ?? msg.iceCandidateHost);
   const iceCandidateSrflx = nonNegativeInt(msg.ice_candidate_srflx ?? msg.iceCandidateSrflx);
@@ -326,6 +331,7 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
     peerTimeouts,
     peerHashFailures,
     peerDisconnects,
+    trackerJoinTimeouts,
     iceAttempts,
     iceSuccesses,
     iceFailures,
@@ -347,6 +353,7 @@ export function recordPeerStats(peer, msg, nowMs = Date.now(), windowMs = STATS_
   peer.peerTimeouts = (peer.peerTimeouts || 0) + peerTimeouts;
   peer.peerHashFailures = (peer.peerHashFailures || 0) + peerHashFailures;
   peer.peerDisconnects = (peer.peerDisconnects || 0) + peerDisconnects;
+  peer.trackerJoinTimeouts = (peer.trackerJoinTimeouts || 0) + trackerJoinTimeouts;
   if (startupLatencyMs !== null) {
     peer.startupLatencyMsTotal = (peer.startupLatencyMsTotal || 0) + startupLatencyMs;
     peer.startupLatencySamples = (peer.startupLatencySamples || 0) + 1;
@@ -373,6 +380,7 @@ export function aggregatePeerStats(peers) {
   let peerTimeouts = 0;
   let peerHashFailures = 0;
   let peerDisconnects = 0;
+  let trackerJoinTimeouts = 0;
   let wifi = 0;
   let superPeers = 0;
   let startupLatencyMsTotal = 0;
@@ -391,6 +399,7 @@ export function aggregatePeerStats(peers) {
     peerTimeouts += peer.peerTimeouts || 0;
     peerHashFailures += peer.peerHashFailures || 0;
     peerDisconnects += peer.peerDisconnects || 0;
+    trackerJoinTimeouts += peer.trackerJoinTimeouts || 0;
     if ((peer.startupLatencySamples || 0) > 0) {
       startupLatencyMsTotal += peer.startupLatencyMsTotal || 0;
       startupLatencySamples += peer.startupLatencySamples || 0;
@@ -416,6 +425,7 @@ export function aggregatePeerStats(peers) {
     peerTimeouts,
     peerHashFailures,
     peerDisconnects,
+    trackerJoinTimeouts,
     wifi,
     superPeers,
     startupLatencyMsTotal,
@@ -436,6 +446,7 @@ export function aggregateRollingPeerStats(peers, nowMs = Date.now(), windowMs = 
   let peerTimeouts = 0;
   let peerHashFailures = 0;
   let peerDisconnects = 0;
+  let trackerJoinTimeouts = 0;
   let wifi = 0;
   let superPeers = 0;
   let startupLatencyMsTotal = 0;
@@ -459,6 +470,7 @@ export function aggregateRollingPeerStats(peers, nowMs = Date.now(), windowMs = 
       peerTimeouts += sample.peerTimeouts || 0;
       peerHashFailures += sample.peerHashFailures || 0;
       peerDisconnects += sample.peerDisconnects || 0;
+      trackerJoinTimeouts += sample.trackerJoinTimeouts || 0;
       const startupLatencyMs = optionalNonNegativeMetric(sample.startupLatencyMs);
       if (startupLatencyMs !== null) {
         startupLatencyMsTotal += startupLatencyMs;
@@ -484,6 +496,7 @@ export function aggregateRollingPeerStats(peers, nowMs = Date.now(), windowMs = 
     peerTimeouts,
     peerHashFailures,
     peerDisconnects,
+    trackerJoinTimeouts,
     wifi,
     superPeers,
     startupLatencyMsTotal,
