@@ -23,6 +23,11 @@
       "evidence": ["services/ingest/test/server.test.js", "services/control-plane/test/catalogServer.test.js"]
     },
     {
+      "id": "segment-metadata-bus",
+      "status": "pass",
+      "evidence": ["segment-metadata-bus npm run smoke:segment-bus", "docs/adr/0011-jetstream-segment-metadata.md"]
+    },
+    {
       "id": "source-url-protection",
       "status": "pass",
       "evidence": ["smoke:source-policy", "smoke:catalog-source-preflight"]

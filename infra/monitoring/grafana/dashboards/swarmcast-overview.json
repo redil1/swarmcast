@@ -254,7 +254,31 @@
         }
       },
       "targets": [
-        { "expr": "up{job=~\"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker)|edge-cache-metrics)\"}", "legendFormat": "{{job}} {{instance}}" }
+        { "expr": "up{job=~\"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker|segment-bus)|edge-cache-metrics)\"}", "legendFormat": "{{job}} {{instance}}" }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Segment Metadata Delivery",
+      "gridPos": { "x": 0, "y": 78, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "rate(swarmcast_ingest_segment_bus_published_total[5m])", "legendFormat": "published/s" },
+        { "expr": "rate(swarmcast_tracker_segment_bus_received_total[5m])", "legendFormat": "received/s" },
+        { "expr": "rate(swarmcast_tracker_segment_bus_replayed_total[5m])", "legendFormat": "replayed/s" },
+        { "expr": "sum(swarmcast_tracker_segment_bus_active_channels)", "legendFormat": "active channel subscriptions" }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "JetStream Capacity",
+      "gridPos": { "x": 12, "y": 78, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "jetstream_server_total_message_bytes", "legendFormat": "stored bytes {{server_name}}" },
+        { "expr": "jetstream_server_max_storage", "legendFormat": "storage limit {{server_name}}" },
+        { "expr": "jetstream_server_total_messages", "legendFormat": "stored messages {{server_name}}" },
+        { "expr": "gnatsd_varz_slow_consumers", "legendFormat": "slow consumers {{server_id}}" }
       ]
     }
   ]

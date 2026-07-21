@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/config/package.json packages/config/package.json
 COPY packages/p2p/package.json packages/p2p/package.json
+COPY packages/segment-bus/package.json packages/segment-bus/package.json
 COPY services/auth/package.json services/auth/package.json
 COPY services/control-plane/package.json services/control-plane/package.json
 COPY services/ingest/package.json services/ingest/package.json

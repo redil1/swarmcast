@@ -34,6 +34,10 @@ export function formatIngestMetrics(stats) {
     line("swarmcast_ingest_starting_channels", stats.startingChannels, "Channels currently starting"),
     line("swarmcast_ingest_degraded_channels", stats.degradedChannels, "Channels in degraded state"),
     line("swarmcast_ingest_segment_age_seconds", stats.segmentAgeSeconds || 0, "Oldest latest segment age across active ingest channels"),
-    line("swarmcast_ingest_ffmpeg_failures_total", stats.ffmpegFailures, "Accumulated ffmpeg failures on active channels", "counter")
+    line("swarmcast_ingest_ffmpeg_failures_total", stats.ffmpegFailures, "Accumulated ffmpeg failures on active channels", "counter"),
+    line("swarmcast_ingest_segment_bus_healthy", stats.segmentBusHealthy ? 1 : 0, "Whether the durable segment metadata publisher is connected"),
+    line("swarmcast_ingest_segment_bus_published_total", stats.segmentBusPublished || 0, "Segment metadata messages persisted by JetStream", "counter"),
+    line("swarmcast_ingest_segment_bus_duplicates_total", stats.segmentBusDuplicates || 0, "Duplicate segment metadata publishes suppressed by JetStream", "counter"),
+    line("swarmcast_ingest_segment_bus_failures_total", stats.segmentBusFailures || 0, "Failed durable segment metadata publishes", "counter")
   ].join("\n") + "\n";
 }

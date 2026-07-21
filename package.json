@@ -49,6 +49,8 @@
     "smoke:tracker-ws-load": "node scripts/smoke-tracker-ws-load.js",
     "smoke:tracker-ws-multichannel": "node scripts/smoke-tracker-ws-load.js --channels=5",
     "smoke:tracker-ws-restart": "node scripts/smoke-tracker-ws-restart.js",
+    "smoke:segment-bus": "node scripts/smoke-segment-bus.js",
+    "segment-bus:provision": "node scripts/provision-segment-bus.js",
     "smoke:retention-execute": "node scripts/smoke-retention-execute.js",
     "smoke:retention-http-store": "node scripts/smoke-retention-http-store.js",
     "smoke:retention-redaction": "node scripts/smoke-retention-redaction.js",

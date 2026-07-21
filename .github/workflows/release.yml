@@ -51,6 +51,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - service: segment-bus
+            mode: mirror
+            source: nats:2.12.1-alpine@sha256:b3f2bd84176ae7bd0afa9c48a00f06d7d0818ff4aaee898e4172e0b8340e5816
+            env_name: SWARMCAST_NATS_IMAGE
+          - service: segment-bus-exporter
+            mode: mirror
+            source: natsio/prometheus-nats-exporter:0.17.3@sha256:26c826662ac8424597cc9bdf89ea5b606eb66e3c11db9b1215c27d2076bbb01b
+            env_name: SWARMCAST_NATS_EXPORTER_IMAGE
           - service: auth
             mode: build
             dockerfile: services/auth/Dockerfile
@@ -265,10 +273,10 @@ jobs:
           {
             echo "## SwarmCast $RELEASE_VERSION"
             echo "- Environment: $RELEASE_ENVIRONMENT"
-            echo "- Images: 13 digest-pinned GHCR images"
+            echo "- Images: 15 digest-pinned GHCR images"
             echo "- Signatures: keyless Cosign signatures verified for every digest"
-            echo "- Scans: 13 real Trivy JSON reports with no blocked findings"
-            echo "- SBOMs: source SBOM plus 13 CycloneDX image SBOMs"
+            echo "- Scans: 15 real Trivy JSON reports with no blocked findings"
+            echo "- SBOMs: source SBOM plus 15 CycloneDX image SBOMs"
             echo "- Release manifest artifact: swarmcast-release-manifest"
             echo "- SBOM artifact: swarmcast-sbom"
             echo "- Commit: $GITHUB_SHA"

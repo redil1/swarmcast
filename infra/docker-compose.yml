@@ -1,4 +1,44 @@
 services:
+  segment-bus:
+    image: ${SWARMCAST_NATS_IMAGE:-nats:2.12.1-alpine@sha256:b3f2bd84176ae7bd0afa9c48a00f06d7d0818ff4aaee898e4172e0b8340e5816}
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    environment:
+      NATS_INGEST_USER: ${NATS_INGEST_USER:-ingest}
+      NATS_INGEST_PASSWORD: ${NATS_INGEST_PASSWORD:-local-ingest-segment-bus-password-0001}
+      NATS_TRACKER_USER: ${NATS_TRACKER_USER:-tracker}
+      NATS_TRACKER_PASSWORD: ${NATS_TRACKER_PASSWORD:-local-tracker-segment-bus-password-0001}
+    volumes:
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+      - segment-bus-data:/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz?js-enabled-only=true"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  segment-bus-exporter:
+    image: ${SWARMCAST_NATS_EXPORTER_IMAGE:-natsio/prometheus-nats-exporter:0.17.3@sha256:26c826662ac8424597cc9bdf89ea5b606eb66e3c11db9b1215c27d2076bbb01b}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      segment-bus:
+        condition: service_healthy
+    command: ["-varz", "-connz", "-healthz", "-healthz_js_enabled_only", "-jsz=all", "http://segment-bus:8222"]
+    networks: [internal]
+
   ingest:
     build:
       context: ..
@@ -24,6 +64,18 @@ services:
       TAIL_DOWNSCALE_ENABLED: ${TAIL_DOWNSCALE_ENABLED:-0}
       TAIL_DOWNSCALE_VIDEO_KBPS: ${TAIL_DOWNSCALE_VIDEO_KBPS:-900}
       TAIL_DOWNSCALE_AUDIO_KBPS: ${TAIL_DOWNSCALE_AUDIO_KBPS:-64}
+      SEGMENT_BUS_ENABLED: ${SEGMENT_BUS_ENABLED:-1}
+      SEGMENT_BUS_SERVERS: ${SEGMENT_BUS_SERVERS:-["nats://segment-bus:4222"]}
+      SEGMENT_BUS_USER: ${NATS_INGEST_USER:-ingest}
+      SEGMENT_BUS_PASSWORD: ${NATS_INGEST_PASSWORD:-local-ingest-segment-bus-password-0001}
+      SEGMENT_BUS_TLS_REQUIRED: ${SEGMENT_BUS_TLS_REQUIRED:-0}
+      SEGMENT_BUS_MANAGE_STREAM: ${SEGMENT_BUS_MANAGE_STREAM:-1}
+      SEGMENT_BUS_CONNECT_TIMEOUT_MS: ${SEGMENT_BUS_CONNECT_TIMEOUT_MS:-5000}
+      SEGMENT_BUS_PUBLISH_TIMEOUT_MS: ${SEGMENT_BUS_PUBLISH_TIMEOUT_MS:-3000}
+      SEGMENT_BUS_MAX_AGE_SECONDS: ${SEGMENT_BUS_MAX_AGE_SECONDS:-600}
+      SEGMENT_BUS_MAX_MESSAGES_PER_SUBJECT: ${SEGMENT_BUS_MAX_MESSAGES_PER_SUBJECT:-120}
+      SEGMENT_BUS_MAX_BYTES: ${SEGMENT_BUS_MAX_BYTES:-1073741824}
+      SEGMENT_BUS_REPLICAS: ${SEGMENT_BUS_REPLICAS:-1}
     volumes:
       - /var/hls:/var/hls
       - ../config:/config:ro
@@ -74,6 +126,12 @@ services:
       TRACKER_RATE_LIMIT_REFILL_PER_SECOND: ${TRACKER_RATE_LIMIT_REFILL_PER_SECOND:-50}
       TRACKER_SHARD_ID: ${TRACKER_SHARD_ID:-}
       TRACKER_SHARDS: ${TRACKER_SHARDS:-[]}
+      SEGMENT_BUS_ENABLED: ${SEGMENT_BUS_ENABLED:-1}
+      SEGMENT_BUS_SERVERS: ${SEGMENT_BUS_SERVERS:-["nats://segment-bus:4222"]}
+      SEGMENT_BUS_USER: ${NATS_TRACKER_USER:-tracker}
+      SEGMENT_BUS_PASSWORD: ${NATS_TRACKER_PASSWORD:-local-tracker-segment-bus-password-0001}
+      SEGMENT_BUS_TLS_REQUIRED: ${SEGMENT_BUS_TLS_REQUIRED:-0}
+      SEGMENT_BUS_CONNECT_TIMEOUT_MS: ${SEGMENT_BUS_CONNECT_TIMEOUT_MS:-5000}
     ulimits:
       nofile:
         soft: 1048576
@@ -261,6 +319,7 @@ networks:
   internal: {}
 
 volumes:
+  segment-bus-data: {}
   auth-keys: {}
   prom-data: {}
   alertmanager-data: {}

@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const requiredServices = [
+  "segment-bus",
+  "segment-bus-exporter",
   "auth",
   "ingest",
   "tracker",

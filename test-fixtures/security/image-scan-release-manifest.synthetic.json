@@ -16,6 +16,8 @@
       "path": "var/release/swarmcast-release-manifest.json"
     },
     "expectedImageScans": [
+      "var/scans/segment-bus.trivy.json",
+      "var/scans/segment-bus-exporter.trivy.json",
       "var/scans/auth.trivy.json",
       "var/scans/ingest.trivy.json",
       "var/scans/tracker.trivy.json",
@@ -40,6 +42,16 @@
     "npm run release:images:check"
   ],
   "images": [
+    {
+      "service": "segment-bus",
+      "env": "SWARMCAST_NATS_IMAGE",
+      "image": "nats:2.12.1-alpine@sha256:9999999999999999999999999999999999999999999999999999999999999999"
+    },
+    {
+      "service": "segment-bus-exporter",
+      "env": "SWARMCAST_NATS_EXPORTER_IMAGE",
+      "image": "natsio/prometheus-nats-exporter:0.17.3@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    },
     {
       "service": "auth",
       "env": "SWARMCAST_AUTH_IMAGE",

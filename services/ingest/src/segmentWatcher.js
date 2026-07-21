@@ -64,6 +64,18 @@ export async function announceSegment({
   }));
 }
 
+export async function deliverSegmentMetadata({
+  segment,
+  publishSegment = null,
+  trackerInternalUrl,
+  trackerInternalUrls,
+  internalToken,
+  fetchFn = fetch
+}) {
+  if (publishSegment) return publishSegment(segment);
+  return announceSegment({ trackerInternalUrl, trackerInternalUrls, internalToken, segment, fetchFn });
+}
+
 export function watchSegments({
   hlsRoot,
   trackerInternalUrl,
@@ -72,6 +84,7 @@ export function watchSegments({
   rlncK,
   logger = createLogger({ service: "ingest" }),
   fetchFn = fetch,
+  publishSegment = null,
   onSegment = null
 }) {
   return watch(hlsRoot, { recursive: true }, async (_event, filename) => {
@@ -82,7 +95,14 @@ export function watchSegments({
       const fullPath = path.join(hlsRoot, filename);
       const segment = await describeSegment({ fullPath, relativePath: filename, rlncK });
       if (!segment) return;
-      await announceSegment({ trackerInternalUrl, trackerInternalUrls, internalToken, segment, fetchFn });
+      await deliverSegmentMetadata({
+        segment,
+        publishSegment,
+        trackerInternalUrl,
+        trackerInternalUrls,
+        internalToken,
+        fetchFn
+      });
       onSegment?.(segment);
     } catch (error) {
       logger?.warn?.("segment_announce_failed", {

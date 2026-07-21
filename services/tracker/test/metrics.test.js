@@ -39,6 +39,12 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
     backpressureDrops: 1,
     cellCapacitySpillovers: 5,
     cellCapacityRejections: 3,
+    segmentBusHealthy: true,
+    segmentBusActiveChannels: 4,
+    segmentBusReceived: 10,
+    segmentBusReplayed: 2,
+    segmentBusDuplicates: 1,
+    segmentBusFailures: 3,
     iceByNetwork: {
       cellular: {
         iceAttempts: 10,
@@ -71,6 +77,12 @@ test("formatPrometheusMetrics emits core tracker metrics", () => {
   assert.match(text, /swarmcast_tracker_cell_capacity_spillovers_total 5/);
   assert.match(text, /swarmcast_tracker_cells 2/);
   assert.match(text, /swarmcast_tracker_cell_capacity_rejections_total 3/);
+  assert.match(text, /swarmcast_tracker_segment_bus_healthy 1/);
+  assert.match(text, /swarmcast_tracker_segment_bus_active_channels 4/);
+  assert.match(text, /swarmcast_tracker_segment_bus_received_total 10/);
+  assert.match(text, /swarmcast_tracker_segment_bus_replayed_total 2/);
+  assert.match(text, /swarmcast_tracker_segment_bus_duplicates_total 1/);
+  assert.match(text, /swarmcast_tracker_segment_bus_failures_total 3/);
   assert.match(text, /swarmcast_tracker_ice_attempts_total\{network_class="cellular"\} 10/);
   assert.match(text, /swarmcast_tracker_ice_successes_total\{network_class="cellular"\} 6/);
   assert.match(text, /swarmcast_tracker_ice_failures_total\{network_class="cellular"\} 4/);

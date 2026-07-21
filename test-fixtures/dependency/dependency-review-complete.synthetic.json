@@ -129,6 +129,20 @@
       "evidence": ["turn npm run smoke:turn synthetic-pass"]
     },
     {
+      "id": "nats-jetstream",
+      "status": "approved",
+      "owner": "platform",
+      "decision": "Approve the exact NATS server and Node client versions for staging pending real clustered capacity evidence.",
+      "evidence": ["nats-jetstream npm run smoke:segment-bus", "nats-jetstream docs/adr/0011-jetstream-segment-metadata.md"]
+    },
+    {
+      "id": "nats-exporter",
+      "status": "approved",
+      "owner": "observability",
+      "decision": "Approve the pinned exporter after metrics and dashboard validation.",
+      "evidence": ["nats-exporter infra/monitoring/prometheus.yml", "nats-exporter infra/monitoring/grafana/dashboards/swarmcast-overview.json"]
+    },
+    {
       "id": "android-gradle-plugin",
       "status": "approved",
       "owner": "android",

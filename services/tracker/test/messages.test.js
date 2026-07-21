@@ -54,6 +54,51 @@ test("join stores peer in swarm and sends joined response", async () => {
   assert.equal(fetches.length, 1);
 });
 
+test("tracker subscribes on first local join and unsubscribes after the last peer leaves", async () => {
+  const state = createTrackerState();
+  const subscribed = [];
+  const unsubscribed = [];
+  state.segmentSubscriber = {
+    subscribeChannel: async (channelId) => subscribed.push(channelId),
+    unsubscribeChannel: (channelId) => unsubscribed.push(channelId)
+  };
+  const peer = createPeer();
+  const ws = fakeWs(peer);
+  await handlePeerMessage({
+    state,
+    peer,
+    ws,
+    raw: Buffer.from(JSON.stringify({ t: "join", channelId: "demo", caps: {} })),
+    fetchFn: async () => ({ ok: true })
+  });
+  assert.deepEqual(subscribed, ["demo"]);
+  assert.equal(ws.sent[0].t, "joined");
+
+  removePeerFromState(state, peer);
+  assert.deepEqual(unsubscribed, ["demo"]);
+  assert.equal(state.channelSwarms.has("demo"), false);
+});
+
+test("tracker fails a first join closed when durable metadata subscription fails", async () => {
+  const state = createTrackerState();
+  state.segmentSubscriber = {
+    subscribeChannel: async () => { throw new Error("broker unavailable"); },
+    unsubscribeChannel: () => {}
+  };
+  const peer = createPeer();
+  const ws = fakeWs(peer);
+  await handlePeerMessage({
+    state,
+    peer,
+    ws,
+    raw: Buffer.from(JSON.stringify({ t: "join", channelId: "demo", caps: {} })),
+    fetchFn: async () => ({ ok: true })
+  });
+  assert.equal(ws.sent[0].code, "tracker_unavailable");
+  assert.equal(peer.channelId, null);
+  assert.equal(state.swarms.size, 0);
+});
+
 test("join redirects to owning tracker shard before creating swarm state", async () => {
   const state = createTrackerState();
   const peer = createPeer();

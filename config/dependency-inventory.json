@@ -9,7 +9,7 @@
       "source": "services/*/Dockerfile and package.json",
       "pinning": "immutable OCI digests",
       "launchDecision": "allowed for staging",
-      "releaseGate": "Complete the clean signed 13-image staging release and tracker soak; retain Node 22 until uWebSockets.js Node 24 compatibility is proven."
+      "releaseGate": "Complete the clean signed 15-image staging release and tracker soak; retain Node 22 until uWebSockets.js Node 24 compatibility is proven."
     },
     {
       "id": "jose",
@@ -100,6 +100,26 @@
       "pinning": "immutable source commit and base digest rebuilt, scanned, and signed by the release workflow",
       "launchDecision": "allowed for staging candidate",
       "releaseGate": "Pass clean scan, authenticated UDP/TLS relay smoke, capacity measurement, and signed staging publication."
+    },
+    {
+      "id": "nats-jetstream",
+      "area": "messaging",
+      "name": "NATS JetStream server and Node clients",
+      "current": "NATS server 2.12.1; @nats-io/jetstream and @nats-io/transport-node 3.4.0",
+      "source": "infra/nats, packages/segment-bus/package.json, package-lock.json, and .github/workflows/release.yml",
+      "pinning": "exact npm versions and immutable server image digest",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass three-node TLS/quorum, one-node-loss, persistence, latency, scan, SBOM, and credential-scope evidence."
+    },
+    {
+      "id": "nats-exporter",
+      "area": "monitoring",
+      "name": "NATS Prometheus exporter",
+      "current": "natsio/prometheus-nats-exporter 0.17.3",
+      "source": "infra/docker-compose.yml and .github/workflows/release.yml",
+      "pinning": "immutable upstream image digest mirrored by the release workflow",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass clean scan and verify broker health, storage, API-error, and slow-consumer metrics."
     },
     {
       "id": "android-gradle-plugin",

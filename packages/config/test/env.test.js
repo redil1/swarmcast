@@ -12,6 +12,7 @@ import {
   missingRequiredEnvExampleKeys,
   ownedUrlEnv,
   parseSourceAllowedHosts,
+  segmentBusConfigFromEnv,
   sourcePolicyFromEnv,
   validateIceServerUrls,
   validateTrackerShards,
@@ -376,4 +377,48 @@ test("ingest tracker fanout endpoints are normalized and deduplicated", () => {
   ]);
   assert.throws(() => loadIngestConfig({ TRACKER_INTERNAL_URLS: '{}' }), /must be a JSON array/);
   assert.throws(() => loadIngestConfig({ TRACKER_INTERNAL_URLS: '["ftp://tracker.example.tv"]' }), /must use one of/);
+});
+
+test("segment bus configuration validates credentials, TLS, retention, and replicas", () => {
+  const config = segmentBusConfigFromEnv({
+    SEGMENT_BUS_ENABLED: "1",
+    SEGMENT_BUS_SERVERS: '["tls://bus-a.example.tv:4222/","tls://bus-b.example.tv:4222"]',
+    SEGMENT_BUS_USER: "tracker",
+    SEGMENT_BUS_PASSWORD: "tracker-segment-bus-password-0001",
+    SEGMENT_BUS_TLS_REQUIRED: "1",
+    SEGMENT_BUS_MANAGE_STREAM: "0",
+    SEGMENT_BUS_MAX_AGE_SECONDS: "900",
+    SEGMENT_BUS_MAX_MESSAGES_PER_SUBJECT: "180",
+    SEGMENT_BUS_MAX_BYTES: "20000000",
+    SEGMENT_BUS_REPLICAS: "3"
+  });
+  assert.deepEqual(config.servers, ["tls://bus-a.example.tv:4222", "tls://bus-b.example.tv:4222"]);
+  assert.equal(config.enabled, true);
+  assert.equal(config.tlsRequired, true);
+  assert.equal(config.manageStream, false);
+  assert.equal(config.maxAgeMs, 900_000);
+  assert.equal(config.maxMessagesPerSubject, 180);
+  assert.equal(config.maxBytes, 20_000_000);
+  assert.equal(config.replicas, 3);
+  assert.throws(() => segmentBusConfigFromEnv({ SEGMENT_BUS_ENABLED: "1" }), /at least one server/);
+  assert.throws(() => segmentBusConfigFromEnv({
+    SEGMENT_BUS_ENABLED: "1",
+    SEGMENT_BUS_SERVERS: '["nats://bus.example.tv:4222"]',
+    SEGMENT_BUS_TLS_REQUIRED: "1",
+    SEGMENT_BUS_USER: "tracker",
+    SEGMENT_BUS_PASSWORD: "tracker-segment-bus-password-0001"
+  }), /must use tls/);
+  assert.throws(() => segmentBusConfigFromEnv({
+    SEGMENT_BUS_ENABLED: "1",
+    SEGMENT_BUS_SERVERS: '["nats://user:password@bus.example.tv:4222"]',
+    SEGMENT_BUS_USER: "tracker",
+    SEGMENT_BUS_PASSWORD: "tracker-segment-bus-password-0001"
+  }), /must not contain credentials/);
+  assert.throws(() => segmentBusConfigFromEnv({
+    SEGMENT_BUS_ENABLED: "1",
+    SEGMENT_BUS_SERVERS: '["nats://bus.example.tv:4222"]',
+    SEGMENT_BUS_USER: "tracker",
+    SEGMENT_BUS_PASSWORD: "short"
+  }), /32-256/);
+  assert.throws(() => segmentBusConfigFromEnv({}, { requireEnabled: true }), /must be enabled/);
 });

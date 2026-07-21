@@ -1,0 +1,14 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "nats:2.12.1-alpine@sha256:9999999999999999999999999999999999999999999999999999999999999999",
+  "ArtifactType": "container_image",
+  "Synthetic": true,
+  "Results": [
+    {
+      "Target": "nats:2.12.1-alpine",
+      "Class": "os-pkgs",
+      "Type": "alpine",
+      "Vulnerabilities": []
+    }
+  ]
+}

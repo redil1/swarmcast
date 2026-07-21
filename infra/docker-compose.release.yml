@@ -1,4 +1,10 @@
 services:
+  segment-bus:
+    image: ${SWARMCAST_NATS_IMAGE:?set SWARMCAST_NATS_IMAGE}
+
+  segment-bus-exporter:
+    image: ${SWARMCAST_NATS_EXPORTER_IMAGE:?set SWARMCAST_NATS_EXPORTER_IMAGE}
+
   auth:
     image: ${SWARMCAST_AUTH_IMAGE:?set SWARMCAST_AUTH_IMAGE}
 

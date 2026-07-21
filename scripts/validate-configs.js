@@ -894,7 +894,11 @@ for (const check of [
   },
   {
     file: "services/tracker/src/segments.js",
-    required: ["validateSegmentAnnounce", "announceSegmentToState", "sha256", "recipients"]
+    required: ["validateSegmentEnvelope", "validateSegmentAnnounce", "announceSegmentToState", "recipients"]
+  },
+  {
+    file: "packages/segment-bus/src/index.js",
+    required: ["validateSegmentEnvelope", "sha256", "1_073_741_824", "max: 255"]
   },
   {
     file: "services/tracker/test/segments.test.js",
@@ -1419,7 +1423,7 @@ for (const metric of [
   "swarmcast_control_placement_backend_info",
   "Control Plane Storage Backends",
   "Core Service Availability",
-  "up{job=~\\\"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker)|edge-cache-metrics)\\\"}",
+  "up{job=~\\\"(swarmcast-(auth|ingest|tracker|control-plane|retention-worker|segment-bus)|edge-cache-metrics)\\\"}",
   "Active Alerts",
   "ALERTS{alertstate=\\\"firing\\\",alertname=~\\\"Swarmcast.*\\\"}"
 ]) {
@@ -1548,11 +1552,11 @@ for (const required of [
   "Android Delivery-Fleet-only playback evidence passes `npm run android:playback:evidence:validate -- path/to/android-playback-evidence.json` with 30-minute WiFi and cellular soaks, edge cache hit evidence, and crash-free playback; local guard coverage remains `npm run smoke:android-playback-evidence-validation`",
   "Android P2P transfer evidence passes `npm run android:p2p:evidence:validate -- path/to/android-p2p-evidence.json` with WebRTC DataChannel, tracker-signaling relay, verified segment hashes, edge fallback, P2P-disable closure, cellular receive-only/no-upload proof, direct-versus-relay payload attribution, recomputed offload, and reconciled relay egress; local guard coverage remains `npm run smoke:android-p2p-evidence-validation`",
   "Android RLNC decoder decision evidence passes `npm run android:rlnc:decision:validate -- path/to/android-rlnc-decision.json`; local guard coverage remains `npm run smoke:android-rlnc-decision-validation`",
-  "Threat model sign-off evidence passes `npm run threat:model:validate -- path/to/threat-model-review.json` for auth, tracker, control plane, ingest, retention worker, edge, Android P2P, RLNC, release, and dependency supply chain; local guard coverage remains `npm run smoke:threat-model-review-validation`",
+  "Threat model sign-off evidence passes `npm run threat:model:validate -- path/to/threat-model-review.json` for auth, tracker, control plane, ingest, segment metadata bus, retention worker, edge, Android P2P, RLNC, release, and dependency supply chain; local guard coverage remains `npm run smoke:threat-model-review-validation`",
   "retention worker",
   "Dependency review evidence passes `npm run dependency:review:validate -- path/to/dependency-review.json`; evidence must cover npm audit, SBOM, release image refs, image scans, Android debug/release builds, inventory decisions, reviewer roles, and waiver expiry; local guard coverage remains `npm run smoke:dependency-review-validation`",
   "Release artifact evidence includes the `swarmcast-release-manifest` and `swarmcast-sbom` artifacts, plus `npm run smoke:release-manifest-production` output",
-  "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 13 expected service and infrastructure scan report paths",
+  "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 15 expected service and infrastructure scan report paths",
   "Capacity/load ladder evidence passes `npm run capacity:plan:validate -- config/capacity-plan.json` without `--allow-draft` and `npm run load:ladder:validate -- path/to/load-ladder-evidence.json`, including measured direct-P2P offload, measured sustained TLS edge throughput, approved provider traffic terms, relay egress accounting, the self-sustaining sweep, and 1K/10K/100K single-channel cell stages; local guard coverage remains `npm run smoke:capacity-plan-validation` and `npm run smoke:load-ladder-evidence-validation`",
   "Data retention approval evidence passes `npm run retention:approval:validate -- path/to/retention-approval.json`, retention execution evidence passes `npm run retention:execution:evidence:validate -- path/to/retention-execution-evidence.json`, and local guard coverage remains `npm run smoke:retention-approval-validation` plus `npm run smoke:retention-execution-evidence-validation`",
   "Accessibility and UX evidence passes `npm run android:accessibility:validate -- path/to/android-accessibility-evidence.json` for TalkBack, 200% fonts, small screens, player controls, P2P/privacy controls, touch targets, error states, and localization readiness; local guard coverage remains `npm run smoke:android-accessibility-evidence-validation`",
@@ -2709,9 +2713,9 @@ for (const required of [
   "swarmcast-image-sboms-signatures",
   "swarmcast-sbom",
   "docker push",
-  "13 digest-pinned GHCR images",
-  "13 real Trivy JSON reports with no blocked findings",
-  "source SBOM plus 13 CycloneDX image SBOMs"
+  "15 digest-pinned GHCR images",
+  "15 real Trivy JSON reports with no blocked findings",
+  "source SBOM plus 15 CycloneDX image SBOMs"
 ]) {
   if (!releaseWorkflowText.includes(required)) {
     console.error(`.github/workflows/release.yml: missing release workflow text: ${required}`);

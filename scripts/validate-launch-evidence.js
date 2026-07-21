@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 
 const expectedImageScanEvidence = [
+  "var/scans/segment-bus.trivy.json",
+  "var/scans/segment-bus-exporter.trivy.json",
   "var/scans/auth.trivy.json",
   "var/scans/ingest.trivy.json",
   "var/scans/tracker.trivy.json",
