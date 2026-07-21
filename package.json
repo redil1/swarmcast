@@ -46,6 +46,8 @@
     "smoke:tracker-ws-cells": "node scripts/smoke-tracker-ws-cells.js",
     "smoke:tracker-ws-cells-1k": "node scripts/smoke-tracker-ws-cells-1k.js",
     "smoke:tracker-ws-cells-10k": "node scripts/smoke-tracker-ws-cells-1k.js --peers=10000 --cells=10 --cell-max-peers=1100 --max-join-retries=100",
+    "smoke:webrtc-200": "node scripts/smoke-webrtc-tracker-200.js",
+    "smoke:webrtc-hash-rejection": "node scripts/smoke-webrtc-tracker-200.js --expect-hash-mismatch",
     "smoke:turn": "node scripts/smoke-turn.js",
     "smoke:tracker-ws": "node scripts/smoke-tracker-ws.js",
     "smoke:tracker-ws-load": "node scripts/smoke-tracker-ws-load.js",
@@ -146,5 +148,8 @@
     "security:review:validate": "node scripts/validate-security-review.js",
     "test": "node --test \"services/*/test/*.test.js\" \"packages/*/test/*.test.js\"",
     "verify": "npm run check && npm test"
+  },
+  "devDependencies": {
+    "playwright-core": "1.61.1"
   }
 }
