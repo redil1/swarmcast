@@ -85,3 +85,4 @@ jobs:
       - run: npm run smoke:turn
       - run: npm run smoke:webrtc-turn-auth-rejection
       - run: npm run smoke:webrtc-turn-relay
+      - run: npm run smoke:webrtc-turn-relay-20

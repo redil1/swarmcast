@@ -525,6 +525,7 @@ for (const required of [
   "\"smoke:webrtc-200\"",
   "\"smoke:webrtc-hash-rejection\"",
   "\"smoke:webrtc-turn-relay\"",
+  "\"smoke:webrtc-turn-relay-20\"",
   "\"smoke:webrtc-turn-auth-rejection\"",
   "\"verify\""
 ]) {
@@ -587,6 +588,7 @@ for (const required of [
   "`npm run smoke:webrtc-200`",
   "`npm run smoke:webrtc-hash-rejection`",
   "`npm run smoke:webrtc-turn-relay`",
+  "`npm run smoke:webrtc-turn-relay-20`",
   "`npm run smoke:webrtc-turn-auth-rejection`",
   "`uWebSockets.js` v20.51.0",
   "Node 18, 20, 22, or 23",
@@ -596,9 +598,10 @@ for (const required of [
   "`TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws-cells-10k`",
   "`TRACKER_WEBRTC_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:webrtc-200`",
   "`TRACKER_WEBRTC_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:webrtc-turn-relay`",
+  "`TRACKER_WEBRTC_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:webrtc-turn-relay-20`",
   "The 1K and 10K cell preflights are control-plane evidence only",
   "The 200-peer browser preflight is real same-host WebRTC transport evidence",
-  "The forced-relay preflight additionally proves browser-to-owned-coturn transport",
+  "The forced-relay preflights additionally prove browser-to-owned-coturn transport",
   "rejects an invalid JWT",
   "two-client WebRTC signaling relay",
   "connection-limit rejection",
@@ -777,7 +780,7 @@ for (const check of [
   },
   {
     file: "scripts/smoke-webrtc-tracker-200.js",
-    required: ["--force-turn-relay", "--expect-turn-auth-rejection", "PEER_COUNT = HASH_MISMATCH_SELF_TEST || USE_TURN ? 2 : 200", "JOIN_BATCH_SIZE = 25", "MAX_JOIN_ATTEMPTS = 3", "MAX_TOTAL_JOIN_RETRIES = 20", "join acknowledgement timeout", "tracker joins exceeded retry ceiling", "playwright-core", "new RTCPeerConnection", "iceTransportPolicy", "createDataChannel(\"swarmcast-segment\"", "kind: \"offer\"", "kind: \"answer\"", "kind: \"ice\"", "crypto.subtle.digest", "SHA-256 mismatch", "TURN authentication rejected (401)", "swarmcast_tracker_download_p2p_bytes_total", "swarmcast_tracker_upload_bytes_total", "swarmcast_tracker_download_relay_bytes_total", "relay/relay", "verifiedTransfers=", "joinRetries=", "trackerSignaling=pass", "hashVerification=pass", "accounting=pass"]
+    required: ["--force-turn-relay", "--force-turn-relay-20", "--expect-turn-auth-rejection", "TURN_RELAY_20 ? 20", "authSessionCount = USE_TURN ? PEER_COUNT : 1", "distinct viewer auth artifacts", "JOIN_BATCH_SIZE = 25", "MAX_JOIN_ATTEMPTS = 3", "MAX_TOTAL_JOIN_RETRIES = 20", "join acknowledgement timeout", "tracker joins exceeded retry ceiling", "playwright-core", "new RTCPeerConnection", "iceTransportPolicy", "createDataChannel(\"swarmcast-segment\"", "kind: \"offer\"", "kind: \"answer\"", "kind: \"ice\"", "crypto.subtle.digest", "SHA-256 mismatch", "TURN authentication rejected (401)", "swarmcast_tracker_download_p2p_bytes_total", "swarmcast_tracker_upload_bytes_total", "swarmcast_tracker_download_relay_bytes_total", "turn_total_allocations", "turn_total_traffic_peer_sentb", "relay/relay", "verifiedTransfers=", "coturnPeakAllocations=", "joinRetries=", "trackerSignaling=pass", "hashVerification=pass", "accounting=pass"]
   },
   {
     file: "scripts/smoke-tracker-ws.js",
@@ -969,7 +972,7 @@ for (const check of [
   },
   {
     file: "package.json",
-    required: ["playwright-core", "smoke:webrtc-200", "smoke:webrtc-hash-rejection", "smoke:webrtc-turn-relay", "smoke:webrtc-turn-auth-rejection"]
+    required: ["playwright-core", "smoke:webrtc-200", "smoke:webrtc-hash-rejection", "smoke:webrtc-turn-relay", "smoke:webrtc-turn-relay-20", "smoke:webrtc-turn-auth-rejection"]
   }
 ]) {
   const text = readFileSync(check.file, "utf8");
@@ -2690,6 +2693,7 @@ for (const required of [
   "npm run smoke:webrtc-200",
   "npm run smoke:webrtc-turn-auth-rejection",
   "npm run smoke:webrtc-turn-relay",
+  "npm run smoke:webrtc-turn-relay-20",
   "npm audit --audit-level=moderate",
   "android:",
   "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0",
@@ -2722,7 +2726,8 @@ for (const required of [
   "npm run smoke:nginx-edge-cache",
   "npm run smoke:turn",
   "npm run smoke:webrtc-turn-auth-rejection",
-  "npm run smoke:webrtc-turn-relay"
+  "npm run smoke:webrtc-turn-relay",
+  "npm run smoke:webrtc-turn-relay-20"
 ]) {
   if (!ciWorkflowText.includes(required)) {
     console.error(`.github/workflows/ci.yml: missing CI gate text: ${required}`);

@@ -9,15 +9,22 @@ import { chromium } from "playwright-core";
 import { createAuthServer } from "../services/auth/src/index.js";
 
 const mode = process.argv[2] || "";
-const supportedModes = new Set(["", "--expect-hash-mismatch", "--force-turn-relay", "--expect-turn-auth-rejection"]);
+const supportedModes = new Set([
+  "",
+  "--expect-hash-mismatch",
+  "--force-turn-relay",
+  "--force-turn-relay-20",
+  "--expect-turn-auth-rejection"
+]);
 if (process.argv.length > (mode ? 3 : 2) || !supportedModes.has(mode)) {
   throw new Error(`unsupported WebRTC smoke arguments: ${process.argv.slice(2).join(" ")}`);
 }
 const HASH_MISMATCH_SELF_TEST = mode === "--expect-hash-mismatch";
-const FORCE_TURN_RELAY = mode === "--force-turn-relay";
+const TURN_RELAY_20 = mode === "--force-turn-relay-20";
+const FORCE_TURN_RELAY = mode === "--force-turn-relay" || TURN_RELAY_20;
 const TURN_AUTH_REJECTION_SELF_TEST = mode === "--expect-turn-auth-rejection";
 const USE_TURN = FORCE_TURN_RELAY || TURN_AUTH_REJECTION_SELF_TEST;
-const PEER_COUNT = HASH_MISMATCH_SELF_TEST || USE_TURN ? 2 : 200;
+const PEER_COUNT = TURN_RELAY_20 ? 20 : HASH_MISMATCH_SELF_TEST || USE_TURN ? 2 : 200;
 const PAIR_COUNT = PEER_COUNT / 2;
 const PAYLOAD_BYTES = 64 * 1024;
 const RUN_TIMEOUT_MS = 120_000;
@@ -26,7 +33,9 @@ const MAX_JOIN_ATTEMPTS = 3;
 const MAX_TOTAL_JOIN_RETRIES = 20;
 const loadSlug = HASH_MISMATCH_SELF_TEST
   ? "hash-rejection"
-  : FORCE_TURN_RELAY
+  : TURN_RELAY_20
+    ? "turn-relay-20"
+    : FORCE_TURN_RELAY
     ? "turn-relay"
     : TURN_AUTH_REJECTION_SELF_TEST
       ? "turn-auth-rejection"
@@ -94,6 +103,16 @@ function metricValue(text, name) {
   const match = text.match(new RegExp(`^${name} ([0-9.]+)$`, "m"));
   if (!match) throw new Error(`missing metric ${name}`);
   return Number.parseFloat(match[1]);
+}
+
+function metricSum(text, name) {
+  const prefix = `${name}{`;
+  const values = text.split("\n")
+    .filter((line) => line.startsWith(prefix) || line.startsWith(`${name} `))
+    .map((line) => Number.parseFloat(line.slice(line.lastIndexOf(" ") + 1)))
+    .filter(Number.isFinite);
+  if (values.length === 0) throw new Error(`missing metric ${name}`);
+  return values.reduce((total, value) => total + value, 0);
 }
 
 async function tokenFromAuth(baseUrl) {
@@ -269,11 +288,13 @@ let tracker;
 let portReservations;
 let demandCalls = 0;
 let trackerInternalPort;
+let turnMetricsPort;
 
 try {
   portReservations = await reservePorts(USE_TURN ? 5 : 2);
-  const [trackerPort, reservedTrackerInternalPort, turnPort, turnTlsPort, turnMetricsPort] = portReservations.ports;
+  const [trackerPort, reservedTrackerInternalPort, turnPort, turnTlsPort, reservedTurnMetricsPort] = portReservations.ports;
   trackerInternalPort = reservedTrackerInternalPort;
+  turnMetricsPort = reservedTurnMetricsPort;
 
   if (USE_TURN) {
     const relayMinPort = 55_000 + (process.pid % 100) * 20;
@@ -301,13 +322,34 @@ try {
     turnCredentialTtlSeconds: 300
   });
   const authPort = await listen(authServer);
-  const authSession = await tokenFromAuth(`http://127.0.0.1:${authPort}`);
-  const token = authSession.token;
-  const iceServers = (authSession.iceServers || []).filter((server) =>
-    Array.isArray(server.urls) ? server.urls.length > 0 : Boolean(server.urls)
-  );
-  if (USE_TURN && iceServers.length !== 1) throw new Error(`expected one issued TURN server, got ${iceServers.length}`);
-  if (TURN_AUTH_REJECTION_SELF_TEST) iceServers[0].credential = `${iceServers[0].credential}-invalid`;
+  const authSessionCount = USE_TURN ? PEER_COUNT : 1;
+  const authSessions = await Promise.all(Array.from(
+    { length: authSessionCount },
+    () => tokenFromAuth(`http://127.0.0.1:${authPort}`)
+  ));
+  const issuedPeerAuth = authSessions.map((session, index) => {
+    const iceServers = (session.iceServers || []).filter((server) =>
+      Array.isArray(server.urls) ? server.urls.length > 0 : Boolean(server.urls)
+    );
+    if (USE_TURN && iceServers.length !== 1) {
+      throw new Error(`expected one issued TURN server for peer ${index}, got ${iceServers.length}`);
+    }
+    if (TURN_AUTH_REJECTION_SELF_TEST) iceServers[0].credential = `${iceServers[0].credential}-invalid`;
+    return { token: session.token, iceServers };
+  });
+  if (USE_TURN) {
+    const tokens = new Set(issuedPeerAuth.map(({ token }) => token));
+    const usernames = new Set(issuedPeerAuth.map(({ iceServers }) => iceServers[0].username));
+    const credentials = new Set(issuedPeerAuth.map(({ iceServers }) => iceServers[0].credential));
+    if (tokens.size !== PEER_COUNT || usernames.size !== PEER_COUNT || credentials.size !== PEER_COUNT) {
+      throw new Error(
+        `expected ${PEER_COUNT} distinct viewer auth artifacts, got ${tokens.size}/${usernames.size}/${credentials.size}`
+      );
+    }
+  }
+  const peerAuth = USE_TURN
+    ? issuedPeerAuth
+    : Array.from({ length: PEER_COUNT }, () => issuedPeerAuth[0]);
 
   browserPageServer = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url === "/") {
@@ -346,19 +388,19 @@ try {
   const page = await browser.newPage();
   await page.goto(`http://127.0.0.1:${browserPagePort}/`, { waitUntil: "domcontentloaded" });
 
-  const result = await page.evaluate(async ({
+  let browserRunDone = false;
+  const browserRun = page.evaluate(async ({
     channelId,
     expectedHash,
     expectTurnAuthRejection,
     forceTurnRelay,
-    iceServers,
     joinBatchSize,
     maxJoinAttempts,
     maxTotalJoinRetries,
     payloadBase64,
     peerCount,
     runTimeoutMs,
-    token,
+    peerAuth,
     trackerUrl
   }) => {
     const startedAt = performance.now();
@@ -480,7 +522,7 @@ try {
     function createPeerConnection(client, createDataChannel) {
       if (client.pc) return client.pc;
       const pc = new RTCPeerConnection({
-        iceServers,
+        iceServers: client.iceServers,
         iceTransportPolicy: forceTurnRelay || expectTurnAuthRejection ? "relay" : "all"
       });
       client.pc = pc;
@@ -549,7 +591,7 @@ try {
     function connectTracker(client) {
       client.joinAttempts += 1;
       if (client.joinStartedAt === 0) client.joinStartedAt = performance.now();
-      const ws = new WebSocket(`${trackerUrl}?token=${encodeURIComponent(token)}`);
+      const ws = new WebSocket(`${trackerUrl}?token=${encodeURIComponent(client.token)}`);
       client.ws = ws;
       let joinTimer;
       ws.onerror = () => {
@@ -613,6 +655,8 @@ try {
       const transferAck = deferred();
       const client = {
         index,
+        token: peerAuth[index].token,
+        iceServers: peerAuth[index].iceServers,
         ws: null,
         peerId: "",
         partner: null,
@@ -741,16 +785,42 @@ try {
     expectedHash,
     expectTurnAuthRejection: TURN_AUTH_REJECTION_SELF_TEST,
     forceTurnRelay: FORCE_TURN_RELAY,
-    iceServers,
     joinBatchSize: JOIN_BATCH_SIZE,
     maxJoinAttempts: MAX_JOIN_ATTEMPTS,
     maxTotalJoinRetries: MAX_TOTAL_JOIN_RETRIES,
     payloadBase64: payload.toString("base64"),
     peerCount: PEER_COUNT,
     runTimeoutMs: RUN_TIMEOUT_MS,
-    token,
+    peerAuth,
     trackerUrl: `ws://127.0.0.1:${trackerPort}/ws`
+  }).finally(() => {
+    browserRunDone = true;
   });
+  const turnAllocationSampler = FORCE_TURN_RELAY
+    ? (async () => {
+        let peak = 0;
+        do {
+          try {
+            const response = await fetch(`http://127.0.0.1:${turnMetricsPort}/metrics`);
+            if (response.ok) peak = Math.max(peak, metricSum(await response.text(), "turn_total_allocations"));
+          } catch {
+            // The final reconciliation below turns a persistent metrics failure into a hard failure.
+          }
+          if (!browserRunDone) await new Promise((resolve) => setTimeout(resolve, 20));
+        } while (!browserRunDone);
+        return peak;
+      })()
+    : Promise.resolve(0);
+  const [result, peakTurnAllocations] = await Promise.all([browserRun, turnAllocationSampler]);
+
+  if (FORCE_TURN_RELAY && peakTurnAllocations !== PEER_COUNT) {
+    throw new Error(`expected an exact ${PEER_COUNT}-allocation coturn peak, got ${peakTurnAllocations}`);
+  }
+
+  if (FORCE_TURN_RELAY) {
+    await browser.close();
+    browser = null;
+  }
 
   const expectedTransferredBytes = PAIR_COUNT * PAYLOAD_BYTES;
   await waitFor(async () => {
@@ -777,14 +847,48 @@ try {
   }
   if (demandCalls < PEER_COUNT) throw new Error(`expected at least ${PEER_COUNT} demand calls, got ${demandCalls}`);
 
-  const label = FORCE_TURN_RELAY ? "WebRTC TURN relay smoke" : "WebRTC 200-peer smoke";
+  let coturnAccounting = "";
+  if (FORCE_TURN_RELAY) {
+    const turnMetrics = await waitFor(async () => {
+      const response = await fetch(`http://127.0.0.1:${turnMetricsPort}/metrics`);
+      if (!response.ok) return false;
+      const text = await response.text();
+      const allocationCount = metricSum(text, "turn_total_allocations");
+      const clientIngressBytes = metricValue(text, "turn_total_traffic_rcvb");
+      const clientEgressBytes = metricValue(text, "turn_total_traffic_sentb");
+      const peerIngressBytes = metricValue(text, "turn_total_traffic_peer_rcvb");
+      const peerEgressBytes = metricValue(text, "turn_total_traffic_peer_sentb");
+      return allocationCount === 0 &&
+        clientIngressBytes >= expectedTransferredBytes &&
+        clientEgressBytes >= expectedTransferredBytes &&
+        peerIngressBytes >= expectedTransferredBytes &&
+        peerEgressBytes >= expectedTransferredBytes
+        ? text
+        : false;
+    }, { timeoutMs: 15_000, intervalMs: 100 });
+    const coturnIngressBytes = metricValue(turnMetrics, "turn_total_traffic_rcvb") +
+      metricValue(turnMetrics, "turn_total_traffic_peer_rcvb");
+    const coturnEgressBytes = metricValue(turnMetrics, "turn_total_traffic_sentb") +
+      metricValue(turnMetrics, "turn_total_traffic_peer_sentb");
+    if (coturnIngressBytes < expectedTransferredBytes * 2 || coturnEgressBytes < expectedTransferredBytes * 2) {
+      throw new Error("coturn transport-byte counters did not cover both relay legs");
+    }
+    coturnAccounting = ` coturnPeakAllocations=${peakTurnAllocations} coturnAllocations=0 ` +
+      `coturnIngressBytes=${coturnIngressBytes} coturnEgressBytes=${coturnEgressBytes}`;
+  }
+
+  const label = TURN_RELAY_20
+    ? "WebRTC TURN relay 20-peer smoke"
+    : FORCE_TURN_RELAY
+      ? "WebRTC TURN relay smoke"
+      : "WebRTC 200-peer smoke";
   console.log(
     `${label} OK: peers=${result.peers} pairs=${result.pairs} verifiedTransfers=${result.verifiedTransfers} ` +
     `bytesPerTransfer=${result.bytesPerTransfer} sha256=${expectedHash} signalingMessages=${result.signalingMessages} ` +
     `selectedIce=${result.candidatePath}:${result.candidatePathCount} joinRetries=${result.joinRetries} joinP95Ms=${result.joinP95Ms.toFixed(1)} ` +
     `channelOpenP95Ms=${result.channelOpenP95Ms.toFixed(1)} transferP95Ms=${result.transferP95Ms.toFixed(1)} ` +
     `durationMs=${result.durationMs.toFixed(1)} trackerP2pBytes=${expectedP2pBytes} trackerRelayBytes=${expectedRelayBytes} ` +
-    `trackerUploadBytes=${expectedTransferredBytes} ` +
+    `trackerUploadBytes=${expectedTransferredBytes}${coturnAccounting} ` +
     "trackerSignaling=pass dataChannel=pass hashVerification=pass accounting=pass drops=0 capacityRejections=0"
   );
 } catch (error) {
