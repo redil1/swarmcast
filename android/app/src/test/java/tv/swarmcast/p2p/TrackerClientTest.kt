@@ -9,6 +9,7 @@ import okhttp3.WebSocketListener
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
@@ -18,6 +19,24 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class TrackerClientTest {
+    @Test
+    fun rejectsNonPositiveJoinAcknowledgementTimeout() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        try {
+            assertThrows(IllegalArgumentException::class.java) {
+                TrackerClient(
+                    initialWsUrl = "ws://tracker.example.test/ws",
+                    tokenProvider = { "token" },
+                    scope = scope,
+                    joinAckTimeoutMs = 0L
+                )
+            }
+        } finally {
+            scope.cancel()
+        }
+    }
+
     @Test
     fun reportsNetworkClassAndIceTelemetry() {
         val server = MockWebServer()
@@ -107,6 +126,56 @@ class TrackerClientTest {
             assertTrue("tracker did not reconnect", joins.await(8, TimeUnit.SECONDS))
             assertEquals("/ws?token=token-1", server.takeRequest(1, TimeUnit.SECONDS)?.path)
             assertEquals("/ws?token=token-2", server.takeRequest(1, TimeUnit.SECONDS)?.path)
+            assertEquals(2, tokenCalls.get())
+            assertEquals(2, assignmentKeys.size)
+            assertEquals(assignmentKeys[0], assignmentKeys[1])
+        } finally {
+            client.close()
+            scope.cancel()
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun reconnectsWhenJoinIsNotAcknowledgedAndKeepsTheReplacementJoined() {
+        val server = MockWebServer()
+        val joins = CountDownLatch(2)
+        val assignmentKeys = CopyOnWriteArrayList<String>()
+        val connections = AtomicInteger()
+        val listener = object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                if (!text.contains("\"t\":\"join\"")) return
+                Regex("\"assignmentKey\":\"([^\"]+)\"").find(text)?.groupValues?.get(1)?.let(assignmentKeys::add)
+                val connection = connections.incrementAndGet()
+                joins.countDown()
+                if (connection == 2) {
+                    webSocket.send(
+                        """{"t":"joined","peerId":"peer-2","cellId":"cell-a","playlistUrl":"https://edge.example.tv/live/demo/index.m3u8","edgeUrlTemplate":"https://edge.example.tv/live/demo/{seq}.m4s","originUrlTemplate":"https://origin.example.tv/live/demo/{seq}.m4s","swarmMode":"p2p","superPeer":false}"""
+                    )
+                }
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+            }
+        }
+        repeat(3) { server.enqueue(MockResponse().withWebSocketUpgrade(listener)) }
+        server.start()
+
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val tokenCalls = AtomicInteger()
+        val client = TrackerClient(
+            initialWsUrl = server.url("/ws").toString().replaceFirst("http", "ws").removeSuffix("/"),
+            tokenProvider = { "token-${tokenCalls.incrementAndGet()}" },
+            scope = scope,
+            joinAckTimeoutMs = 100L
+        )
+
+        try {
+            client.connect("demo", wifi = true, uploadEnabled = true)
+            assertTrue("tracker did not reconnect after the missing join acknowledgement", joins.await(4, TimeUnit.SECONDS))
+            Thread.sleep(1_500L)
+            assertEquals(2, connections.get())
             assertEquals(2, tokenCalls.get())
             assertEquals(2, assignmentKeys.size)
             assertEquals(assignmentKeys[0], assignmentKeys[1])

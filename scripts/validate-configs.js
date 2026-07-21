@@ -4242,6 +4242,7 @@ for (const required of [
   "npm run smoke:android-playback-evidence-validation",
   "test-fixtures/android/playback-delivery-fleet-complete.synthetic.json",
   "Android P2P transfer evidence must include WebRTC DataChannel, tracker-signaling relay, verified segment hashes, edge fallback, P2P-disable closure, cellular receive-only/no-upload proof, and reconciled ICE attempts/outcomes/selected candidate types for WiFi and cellular",
+  "Tracker joins have a 10-second acknowledgement watchdog",
   "npm run android:p2p:evidence:validate -- path/to/android-p2p-evidence.json",
   "npm run smoke:android-p2p-evidence-validation",
   "test-fixtures/android/p2p-transfer-complete.synthetic.json"
@@ -5015,6 +5016,9 @@ const androidTextChecks = [
       "cellId",
       "MAX_TRACKER_REDIRECTS",
       "MAX_RECONNECT_DELAY_MS",
+      "DEFAULT_JOIN_ACK_TIMEOUT_MS",
+      "armJoinAckWatchdog",
+      "cancelJoinAckWatchdog",
       "scheduleReconnect()",
       "openWebSocket(targetWsUrl",
       "fun requestPeers",

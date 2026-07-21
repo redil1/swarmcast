@@ -63,8 +63,13 @@ class TrackerClient(
     private val tokenProvider: suspend () -> String,
     private val scope: CoroutineScope,
     private val http: OkHttpClient = OkHttpClient.Builder().pingInterval(45, TimeUnit.SECONDS).build(),
-    private val json: Json = Json { ignoreUnknownKeys = true }
+    private val json: Json = Json { ignoreUnknownKeys = true },
+    private val joinAckTimeoutMs: Long = DEFAULT_JOIN_ACK_TIMEOUT_MS
 ) {
+    init {
+        require(joinAckTimeoutMs > 0L) { "join acknowledgement timeout must be positive" }
+    }
+
     val events = MutableSharedFlow<TrackerEvent>(extraBufferCapacity = 256)
     private var ws: WebSocket? = null
     private var activeJoin: JoinRequest? = null
@@ -73,6 +78,7 @@ class TrackerClient(
     private var cellRouteToken: String? = null
     private var reconnectAttempt = 0
     private var reconnectJob: Job? = null
+    private var joinAckJob: Job? = null
     private var connectionGeneration = 0L
     private var closedByUser = true
     private val assignmentKey = UUID.randomUUID().toString()
@@ -89,6 +95,8 @@ class TrackerClient(
         ws = null
         reconnectJob?.cancel()
         reconnectJob = null
+        joinAckJob?.cancel()
+        joinAckJob = null
         activeJoin = JoinRequest(channelId, wifi, uploadEnabled, uplinkKbps, networkClass)
         redirectHops = 0
         reconnectAttempt = 0
@@ -111,16 +119,29 @@ class TrackerClient(
         ws = http.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     if (!isCurrent(generation)) return
-                    webSocket.send(joinMessage(join).toString())
+                    if (!webSocket.send(joinMessage(join).toString())) {
+                        webSocket.cancel()
+                        handleDisconnect(generation)
+                        return
+                    }
+                    armJoinAckWatchdog(generation, webSocket)
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     if (!isCurrent(generation)) return
                     when (val event = runCatching { parseEvent(text) }.getOrNull()) {
-                        is TrackerEvent.Redirect -> redirectTo(event)
+                        is TrackerEvent.Redirect -> {
+                            cancelJoinAckWatchdog()
+                            redirectTo(event)
+                        }
                         is TrackerEvent.Joined -> {
+                            cancelJoinAckWatchdog()
                             reconnectAttempt = 0
                             redirectHops = 0
+                            events.tryEmit(event)
+                        }
+                        is TrackerEvent.Error -> {
+                            cancelJoinAckWatchdog()
                             events.tryEmit(event)
                         }
                         null -> Unit
@@ -146,10 +167,30 @@ class TrackerClient(
 
     private fun handleDisconnect(generation: Long) {
         if (!isCurrent(generation)) return
+        cancelJoinAckWatchdog()
         connectionGeneration += 1
         ws = null
         events.tryEmit(TrackerEvent.Disconnected)
         scheduleReconnect()
+    }
+
+    private fun armJoinAckWatchdog(generation: Long, webSocket: WebSocket) {
+        cancelJoinAckWatchdog()
+        joinAckJob = scope.launch {
+            delay(joinAckTimeoutMs)
+            if (!isCurrent(generation) || ws !== webSocket) return@launch
+            joinAckJob = null
+            connectionGeneration += 1
+            ws = null
+            events.tryEmit(TrackerEvent.Disconnected)
+            webSocket.cancel()
+            scheduleReconnect()
+        }
+    }
+
+    private fun cancelJoinAckWatchdog() {
+        joinAckJob?.cancel()
+        joinAckJob = null
     }
 
     private fun scheduleReconnect() {
@@ -257,6 +298,7 @@ class TrackerClient(
     fun close() {
         closedByUser = true
         activeJoin = null
+        cancelJoinAckWatchdog()
         reconnectJob?.cancel()
         reconnectJob = null
         connectionGeneration += 1
@@ -333,6 +375,7 @@ class TrackerClient(
         private const val BASE_RECONNECT_DELAY_MS = 1_000L
         private const val MAX_RECONNECT_DELAY_MS = 30_000L
         private const val MAX_RECONNECT_EXPONENT = 5
+        private const val DEFAULT_JOIN_ACK_TIMEOUT_MS = 10_000L
         private val NETWORK_CLASSES = setOf("wifi", "cellular", "ethernet", "unknown")
     }
 }

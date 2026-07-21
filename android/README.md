@@ -19,6 +19,7 @@ Current status:
 - Android classifies the selected ICE candidate pair before using a peer link; host/srflx/prflx payloads count as direct P2P while relay or unknown paths count as owned relay delivery, including proportional mixed-RLNC attribution.
 - Auth responses now provide owned STUN and short-lived TURN REST credentials; Android refreshes them before expiry and applies them before creating new WebRTC peer connections.
 - Tracker redirects can carry a signed cell-route token; Android preserves it across joins and reconnects so a full hot-channel cell can spill into the next authorized tracker without trusting a client-selected destination.
+- Tracker joins have a 10-second acknowledgement watchdog; a socket that stays open without `joined`, `redirect`, or `error` is canceled and reconnected through the generation-safe capped backoff path.
 - ICE telemetry reports attempts, outcomes, selected candidate type, and network class so real carrier tests can measure direct versus relayed connectivity.
 - Android stat flushes now report peer timeout, hash-failure, and disconnect deltas to the tracker for operational visibility.
 - Peer link cleanup now closes replaced links, completes pending peer requests, and disposes stale WebRTC objects when links stop.
