@@ -411,6 +411,14 @@ try {
       client.ws.send(JSON.stringify({ t: "signal", to: client.partner.peerId, data }));
     }
 
+    function acknowledgeSender(client) {
+      if (client.acknowledged) return;
+      client.acknowledged = true;
+      client.acknowledgedAt = performance.now();
+      client.ws.send(JSON.stringify({ t: "stats", dl_p2p: 0, dl_edge: 0, dl_relay: 0, ul: transferPayload.byteLength }));
+      client.transferAck.resolve();
+    }
+
     function wireChannel(client, channel) {
       client.channel = channel;
       channel.binaryType = "arraybuffer";
@@ -429,10 +437,7 @@ try {
         try {
           if (typeof event.data === "string") {
             if (event.data !== `ack:${expectedHash}`) throw new Error(`invalid transfer acknowledgement for peer ${client.index}`);
-            client.acknowledged = true;
-            client.acknowledgedAt = performance.now();
-            client.ws.send(JSON.stringify({ t: "stats", dl_p2p: 0, dl_edge: 0, dl_relay: 0, ul: transferPayload.byteLength }));
-            client.transferAck.resolve();
+            acknowledgeSender(client);
             return;
           }
           if (client.index % 2 === 0) throw new Error(`sender peer ${client.index} received unexpected binary payload`);
@@ -457,7 +462,8 @@ try {
               dl_relay: forceTurnRelay ? assembled.byteLength : 0,
               ul: 0
             }));
-            channel.send(`ack:${actualHash}`);
+            if (forceTurnRelay) acknowledgeSender(client.partner);
+            else channel.send(`ack:${actualHash}`);
           }
         } catch (error) {
           fail(error);
