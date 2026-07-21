@@ -10,6 +10,8 @@ import { createIngestServer } from "../services/ingest/src/index.js";
 import { watchSegments } from "../services/ingest/src/segmentWatcher.js";
 
 const internalToken = "ingest-demand-smoke-token";
+const fixtureInit = readFileSync("test-fixtures/media/fmp4/init.mp4");
+const fixtureSegment = readFileSync("test-fixtures/media/fmp4/seg_00000000.m4s");
 
 class SyntheticHlsProcess extends EventEmitter {
   constructor() {
@@ -35,8 +37,8 @@ function syntheticHlsSpawn(_command, args) {
   setTimeout(() => {
     if (proc.killed) return;
     mkdirSync(outDir, { recursive: true });
-    writeFileSync(initPath, Buffer.from("synthetic-init"));
-    writeFileSync(segmentPath, Buffer.from("synthetic-segment-00000000"));
+    writeFileSync(initPath, fixtureInit);
+    writeFileSync(segmentPath, fixtureSegment);
     writeFileSync(playlistPath, [
       "#EXTM3U",
       "#EXT-X-VERSION:7",

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -16,7 +16,7 @@ test("describeSegment returns hash, size, seq, channel, and k", async () => {
   const channelDir = path.join(dir, "demo");
   await import("node:fs/promises").then(({ mkdir }) => mkdir(channelDir, { recursive: true }));
   const fullPath = path.join(channelDir, "seg_00000007.m4s");
-  const bytes = Buffer.from("segment-bytes");
+  const bytes = readFileSync(new URL("../../../test-fixtures/media/fmp4/seg_00000000.m4s", import.meta.url));
   writeFileSync(fullPath, bytes);
 
   const segment = await describeSegment({
@@ -32,6 +32,17 @@ test("describeSegment returns hash, size, seq, channel, and k", async () => {
     size: bytes.length,
     k: 32
   });
+});
+
+test("describeSegment rejects malformed fMP4 before announcement", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "swarmcast-segment-malformed-"));
+  const fullPath = path.join(dir, "seg_00000008.m4s");
+  writeFileSync(fullPath, Buffer.from("not-an-fmp4-fragment"));
+  await assert.rejects(() => describeSegment({
+    fullPath,
+    relativePath: path.join("demo", "seg_00000008.m4s"),
+    rlncK: 32
+  }), /ISO-BMFF|fMP4/);
 });
 
 test("announceSegment posts internal token and segment body", async () => {
