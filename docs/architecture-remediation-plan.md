@@ -87,7 +87,7 @@ Acceptance evidence:
 
 - Deterministic assignment, bounded movement, authenticated capacity spillover, cell-cap exhaustion, redirect, and same-cell signaling tests.
 - Multi-process WebSocket smoke proving one channel spans cells, assigns origin bootstrap in exactly one deterministic cell, assigns edge bootstrap in every secondary cell, spills a full cell, and survives one cell failure through edge fallback/rejoin.
-- Staged ladder at 1K, 10K, and 100K active viewers per channel shape before any extrapolation to 1M.
+- Staged ladder at 1K, 10K, and 100K active viewers per channel shape before any extrapolation to 1M, collected from synchronized independent generators through `docs/distributed-load-ladder.md` and hash-bound mode-`0600` raw probe artifacts.
 - A 1M single-channel claim remains prohibited until the production-equivalent distributed test passes every budget.
 
 ## Phase E: Capacity And Production Proof
@@ -106,7 +106,7 @@ Required ladder:
 2. Physical devices across at least two WiFi networks and two cellular carriers.
 3. One channel with 200 real WebRTC peers.
 4. Fifty channels with 2,000 peers across multiple VMs.
-5. One channel partitioned across multiple tracker cells at 1K, 10K, and 100K peers.
+5. One channel partitioned across multiple tracker cells at 1K, 10K, and 100K peers, with exact peer-range coverage, cross-generator WebRTC transfers, and raw client/server byte reconciliation.
 6. Zipf-distributed catalog load with real DataChannel transfers.
 7. Production-equivalent peak test, chaos, restore, rollback, Alertmanager, and canary drills.
 

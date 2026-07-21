@@ -61,14 +61,14 @@ fun SwarmCastScreen(
     state: CatalogUiState,
     query: String,
     p2pEnabled: Boolean,
+    modifier: Modifier = Modifier,
     p2pToggleEnabled: Boolean = true,
     onQueryChange: (String) -> Unit,
     onP2pEnabledChange: (Boolean) -> Unit,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     onChannelSelected: (Channel) -> Unit,
-    playerHolder: PlayerHolder? = null,
-    modifier: Modifier = Modifier
+    playerHolder: PlayerHolder? = null
 ) {
     Scaffold(
         topBar = {

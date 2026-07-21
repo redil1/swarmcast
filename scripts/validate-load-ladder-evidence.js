@@ -1,5 +1,11 @@
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { validatePerformanceBudgets } from "../packages/config/src/performanceBudgets.js";
+import {
+  LOAD_STAGE_EXPECTATIONS,
+  sha256File,
+  validateLoadProbeBundle
+} from "./load-ladder-contract.js";
 
 const args = process.argv.slice(2);
 const allowSynthetic = args.includes("--allow-synthetic");
@@ -11,15 +17,7 @@ const files = args.filter((arg, index) => {
   return !arg.startsWith("--");
 });
 const budgets = validatePerformanceBudgets(JSON.parse(readFileSync(budgetPath, "utf8")));
-const stageExpectations = new Map([
-  ["1-channel-3-devices", { channels: 1, peers: 3, offload: 0.5 }],
-  ["1-channel-200-peers", { channels: 1, peers: 200, offload: 0.9 }],
-  ["50-channels-2000-peers", { channels: 50, peers: 2000, offload: 0.9 }],
-  ["zipf-catalog", { channels: 50, peers: 2000, offload: 0.9 }],
-  ["1-channel-1000-cell-peers", { channels: 1, peers: 1000, offload: 0.9, minCells: 2 }],
-  ["1-channel-10000-cell-peers", { channels: 1, peers: 10000, offload: 0.9, minCells: 2 }],
-  ["1-channel-100000-cell-peers", { channels: 1, peers: 100000, offload: 0.9, minCells: 5 }]
-]);
+const stageExpectations = LOAD_STAGE_EXPECTATIONS;
 const sensitiveEvidencePatterns = [
   /token=/i,
   /jwt=/i,
@@ -78,7 +76,200 @@ function assertReconciled(name, clientBytes, accessLogBytes, tolerance) {
   if (delta > tolerance) fail(`${name} differs by ${delta.toFixed(4)}, above tolerance ${tolerance}`);
 }
 
-function validateStage(stage) {
+function loadProbeArtifacts(record, evidenceFile) {
+  if (!Array.isArray(record.probeArtifacts) || record.probeArtifacts.length === 0) {
+    fail("probeArtifacts must include raw distributed load probe bundles");
+  }
+  const evidenceDirectory = path.dirname(path.resolve(evidenceFile));
+  const probes = new Map();
+  const artifactPaths = new Set();
+  for (const [index, artifact] of record.probeArtifacts.entries()) {
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+      fail(`probeArtifacts[${index}] must be an object`);
+    }
+    if (Object.keys(artifact).length !== 2 || Object.keys(artifact).some((key) => !["path", "sha256"].includes(key))) {
+      fail(`probeArtifacts[${index}] must contain only path and sha256`);
+    }
+    const relativePath = cleanString(`probeArtifacts[${index}].path`, artifact.path, /^[A-Za-z0-9._/-]+\.json$/);
+    if (path.isAbsolute(relativePath) || relativePath.split("/").includes("..")) {
+      fail(`probeArtifacts[${index}].path must stay within the evidence directory`);
+    }
+    if (artifactPaths.has(relativePath)) fail(`duplicate probe artifact path ${relativePath}`);
+    artifactPaths.add(relativePath);
+    const expectedSha256 = cleanString(`probeArtifacts[${index}].sha256`, artifact.sha256, /^[a-f0-9]{64}$/);
+    const resolved = path.resolve(evidenceDirectory, relativePath);
+    if (resolved !== evidenceDirectory && !resolved.startsWith(`${evidenceDirectory}${path.sep}`)) {
+      fail(`probeArtifacts[${index}].path escapes the evidence directory`);
+    }
+    let bundle;
+    try {
+      const stat = lstatSync(resolved);
+      if (!stat.isFile() || stat.isSymbolicLink()) fail(`probe artifact ${relativePath} must be a regular file`);
+      if (stat.size <= 0 || stat.size > 64 * 1024 * 1024) fail(`probe artifact ${relativePath} has invalid size`);
+      if (!record.synthetic && (stat.mode & 0o777) !== 0o600) {
+        fail(`probe artifact ${relativePath} must use mode 0600`);
+      }
+      const actualSha256 = sha256File(resolved);
+      if (actualSha256 !== expectedSha256) fail(`probe artifact ${relativePath} SHA-256 mismatch`);
+      bundle = validateLoadProbeBundle(JSON.parse(readFileSync(resolved, "utf8")), { allowSynthetic });
+    } catch (error) {
+      fail(`probe artifact ${relativePath} is invalid: ${error.message}`);
+    }
+    for (const probe of bundle.probes) {
+      if (probes.has(probe.probeId)) fail(`duplicate distributed probe ${probe.probeId}`);
+      probes.set(probe.probeId, { ...probe, artifactPath: relativePath });
+    }
+  }
+  return probes;
+}
+
+function validateDistributedStage(stage, id, expected, record, probeStore) {
+  if (!Array.isArray(stage.generatorProbeIds) || stage.generatorProbeIds.length < expected.minGenerators) {
+    fail(`${id}.generatorProbeIds must include at least ${expected.minGenerators} independent generators`);
+  }
+  const probeIds = new Set(stage.generatorProbeIds.map((value, index) => (
+    cleanString(`${id}.generatorProbeIds[${index}]`, value, /^[a-z0-9][a-z0-9._-]*$/)
+  )));
+  if (probeIds.size !== stage.generatorProbeIds.length) fail(`${id}.generatorProbeIds must be unique`);
+  const probes = [...probeIds].map((probeId) => {
+    const probe = probeStore.get(probeId);
+    if (!probe) fail(`${id}.generatorProbeIds references missing probe ${probeId}`);
+    if (probe.usedByStage) fail(`distributed probe ${probeId} is referenced by multiple stages`);
+    probe.usedByStage = id;
+    return probe;
+  });
+  const runId = cleanString(`${id}.runId`, stage.runId, /^[a-z0-9][a-z0-9._-]*$/);
+  const startedAt = parseTime(`${id}.startedAt`, stage.startedAt);
+  const completedAt = parseTime(`${id}.completedAt`, stage.completedAt);
+  if (completedAt <= startedAt) fail(`${id}.completedAt must be after startedAt`);
+  const minimumDuration = record.synthetic ? 1 : expected.minDurationSeconds;
+  if ((completedAt - startedAt) / 1000 < minimumDuration) {
+    fail(`${id} duration must be at least ${minimumDuration} seconds`);
+  }
+  const providers = new Set();
+  const failureDomains = new Set();
+  const egressFingerprints = new Set();
+  const generatorIds = new Set();
+  const targetIds = new Set();
+  const driverHashes = new Set();
+  const driverImages = new Set();
+  const cellIds = new Set();
+  let crossGeneratorEndpoints = 0;
+  let sentTransfers = 0;
+  let receivedTransfers = 0;
+  let direct = 0;
+  let edge = 0;
+  let origin = 0;
+  let relay = 0;
+  let upload = 0;
+  let playbackSamples = 0;
+  let stallEvents = 0;
+  let startupLatencyMsP95 = 0;
+  let bufferMsMin = Number.POSITIVE_INFINITY;
+  const ranges = [];
+  const starts = [];
+  for (const probe of probes) {
+    if (probe.runId !== runId || probe.stageId !== id) fail(`${id} probe ${probe.probeId} run/stage binding mismatch`);
+    if (probe.environment !== record.environment || probe.commit !== record.commit || probe.releaseVersion !== record.releaseVersion) {
+      fail(`${id} probe ${probe.probeId} release binding mismatch`);
+    }
+    if ((probe.synthetic === true) !== (record.synthetic === true)) fail(`${id} probe ${probe.probeId} synthetic flag mismatch`);
+    if (probe.startedAtMs < startedAt - 5_000 || probe.completedAtMs > completedAt + 5_000) {
+      fail(`${id} probe ${probe.probeId} falls outside the stage time window`);
+    }
+    providers.add(probe.generatorProvider);
+    failureDomains.add(probe.generatorFailureDomain);
+    if (egressFingerprints.has(probe.networkEgressFingerprintSha256)) {
+      fail(`${id} generators must have distinct network egress fingerprints`);
+    }
+    egressFingerprints.add(probe.networkEgressFingerprintSha256);
+    if (generatorIds.has(probe.generatorId)) fail(`${id} duplicate generatorId ${probe.generatorId}`);
+    generatorIds.add(probe.generatorId);
+    targetIds.add(probe.targetId);
+    driverHashes.add(probe.driverSha256);
+    driverImages.add(probe.driverImageDigest);
+    probe.trackerCellIds.forEach((cellId) => cellIds.add(cellId));
+    ranges.push({ start: probe.assignedPeerStart, count: probe.assignedPeerCount, probeId: probe.probeId });
+    starts.push(probe.startedAtMs);
+    crossGeneratorEndpoints += probe.crossGeneratorEndpoints;
+    sentTransfers += probe.verifiedSendTransfers;
+    receivedTransfers += probe.verifiedReceiveTransfers;
+    direct += probe.clientP2pBytes;
+    edge += probe.clientEdgeBytes;
+    origin += probe.clientBootstrapOriginBytes;
+    relay += probe.clientRelayBytes;
+    upload += probe.clientUploadBytes;
+    playbackSamples += probe.playbackSamples;
+    stallEvents += probe.stallEvents;
+    startupLatencyMsP95 = Math.max(startupLatencyMsP95, probe.startupLatencyMsP95);
+    bufferMsMin = Math.min(bufferMsMin, probe.bufferMsMin);
+  }
+  if (providers.size < 2) fail(`${id} probes must span at least two generator providers`);
+  if (failureDomains.size < 2) fail(`${id} probes must span at least two generator failure domains`);
+  if (targetIds.size !== 1) fail(`${id} probes must target one staging deployment`);
+  if (driverHashes.size !== 1 || driverImages.size !== 1) fail(`${id} probes must use one immutable load-driver build`);
+  if (Math.max(...starts) - Math.min(...starts) > 5_000) fail(`${id} generator starts differ by more than five seconds`);
+  const sortedRanges = ranges.sort((left, right) => left.start - right.start);
+  let nextPeer = 0;
+  for (const range of sortedRanges) {
+    if (range.start !== nextPeer) fail(`${id} generator peer ranges have a gap or overlap at ${nextPeer}`);
+    nextPeer += range.count;
+  }
+  if (nextPeer !== stage.peerCount) fail(`${id} generator peer ranges do not cover peerCount`);
+  const requiredCrossHostEndpoints = Math.max(2, Math.ceil(stage.peerCount * 0.1));
+  if (crossGeneratorEndpoints < requiredCrossHostEndpoints) {
+    fail(`${id} cross-generator endpoints must be at least ${requiredCrossHostEndpoints}`);
+  }
+  for (const probe of probes) {
+    for (const remoteId of probe.remoteGeneratorIds) {
+      if (!generatorIds.has(remoteId)) fail(`${id} probe ${probe.probeId} references generator outside the stage`);
+    }
+  }
+  const graph = new Map([...generatorIds].map((generatorId) => [generatorId, new Set()]));
+  for (const probe of probes) {
+    for (const remoteId of probe.remoteGeneratorIds) {
+      graph.get(probe.generatorId).add(remoteId);
+      graph.get(remoteId).add(probe.generatorId);
+    }
+  }
+  const visited = new Set();
+  const queue = [probes[0].generatorId];
+  while (queue.length > 0) {
+    const generatorId = queue.shift();
+    if (visited.has(generatorId)) continue;
+    visited.add(generatorId);
+    graph.get(generatorId).forEach((remoteId) => queue.push(remoteId));
+  }
+  if (visited.size !== generatorIds.size) fail(`${id} cross-generator transfer graph is disconnected`);
+  if (sentTransfers !== receivedTransfers || receivedTransfers < Math.floor(stage.peerCount / 2)) {
+    fail(`${id} verified send/receive transfers do not reconcile to at least one transfer per peer pair`);
+  }
+  const clientUploadBytes = integerField(`${id}.clientUploadBytes`, stage.clientUploadBytes, { min: 1 });
+  for (const [name, measured, reported] of [
+    ["clientP2pBytes", direct, stage.clientP2pBytes],
+    ["clientEdgeBytes", edge, stage.clientEdgeBytes],
+    ["clientBootstrapOriginBytes", origin, stage.clientBootstrapOriginBytes],
+    ["clientRelayBytes", relay, stage.clientRelayBytes],
+    ["clientUploadBytes", upload, clientUploadBytes]
+  ]) {
+    if (measured !== reported) fail(`${id}.${name} does not equal the raw generator probe total`);
+  }
+  const rawStallRate = stallEvents / playbackSamples;
+  if (Math.abs(rawStallRate - stage.stallRate) > 0.000001) {
+    fail(`${id}.stallRate does not equal the raw generator probe total`);
+  }
+  if (startupLatencyMsP95 !== stage.startupLatencyMsP95) {
+    fail(`${id}.startupLatencyMsP95 must equal the conservative maximum raw probe p95`);
+  }
+  if (bufferMsMin !== stage.bufferMsMin) {
+    fail(`${id}.bufferMsMin must equal the minimum raw probe buffer`);
+  }
+  if (expected.minCells && cellIds.size !== stage.trackerCellCount) {
+    fail(`${id} raw probes observed ${cellIds.size} tracker cells instead of ${stage.trackerCellCount}`);
+  }
+}
+
+function validateStage(stage, record, probeStore) {
   const id = cleanString("stage.id", stage.id, /^[a-z0-9-]+$/);
   const expected = stageExpectations.get(id);
   if (!expected) fail(`unexpected load ladder stage ${id}`);
@@ -162,6 +353,7 @@ function validateStage(stage) {
       if (!joinedEvidence.includes(marker)) fail(`${id}.evidence must include ${marker}`);
     }
   }
+  if (expected.distributed) validateDistributedStage(stage, id, expected, record, probeStore);
   return id;
 }
 
@@ -254,15 +446,19 @@ function validateRecord(record, file) {
   const completedAt = parseTime("completedAt", record.completedAt);
   if (completedAt <= startedAt) fail("completedAt must be after startedAt");
   if (record.synthetic && !allowSynthetic) fail("synthetic load ladder evidence requires --allow-synthetic");
+  const probeStore = loadProbeArtifacts(record, file);
   if (!Array.isArray(record.stages)) fail("stages must be an array");
   const seen = new Set();
   for (const stage of record.stages) {
-    const id = validateStage(stage);
+    const id = validateStage(stage, record, probeStore);
     if (seen.has(id)) fail(`duplicate load ladder stage ${id}`);
     seen.add(id);
   }
   for (const id of stageExpectations.keys()) {
     if (!seen.has(id)) fail(`missing required load ladder stage ${id}`);
+  }
+  for (const probe of probeStore.values()) {
+    if (!probe.usedByStage) fail(`distributed probe ${probe.probeId} is not referenced by a stage`);
   }
   const flatten = validateSelfSustainingSweep(record.selfSustainingSweep);
   return `${file}: Load ladder evidence OK: stages=${seen.size}, maxPeers=${Math.max(...record.stages.map((stage) => stage.peerCount))}, selfSustainingFlatten=${flatten.toFixed(2)}`;

@@ -215,6 +215,10 @@ const requiredGates = [
       "selfSustainingSweep",
       "webrtc-datachannel",
       "tracker-signaling-relay",
+      "raw-probe-artifacts-sha256",
+      "independent-generator-providers",
+      "exact-peer-range-coverage",
+      "cross-generator-webrtc",
       "single-channel-cell-ladder-1k",
       "single-channel-cell-ladder-10k",
       "single-channel-cell-ladder-100k"
