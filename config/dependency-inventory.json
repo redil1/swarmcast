@@ -122,6 +122,16 @@
       "releaseGate": "Pass clean scan and verify broker health, storage, API-error, and slow-consumer metrics."
     },
     {
+      "id": "playwright-core",
+      "area": "testing",
+      "name": "Playwright Core",
+      "current": "1.61.1",
+      "source": "package.json, package-lock.json, and scripts/smoke-webrtc-tracker-200.js",
+      "pinning": "exact npm development dependency without bundled browser download",
+      "launchDecision": "allowed for staging validation",
+      "releaseGate": "Keep it test-only, audit the exact lockfile, and require the real 200-peer tracker-signaled WebRTC DataChannel preflight in protected CI."
+    },
+    {
       "id": "android-gradle-plugin",
       "area": "android",
       "name": "Android Gradle Plugin",

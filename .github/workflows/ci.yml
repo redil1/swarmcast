@@ -21,6 +21,8 @@ jobs:
       - run: npm run verify
       - run: npm run smoke:tracker-ws-cells
       - run: npm run smoke:tracker-ws-cells-1k
+      - run: npm run smoke:webrtc-hash-rejection
+      - run: npm run smoke:webrtc-200
       - run: npm audit --audit-level=moderate
 
   android:

@@ -143,6 +143,13 @@
       "evidence": ["nats-exporter infra/monitoring/prometheus.yml", "nats-exporter infra/monitoring/grafana/dashboards/swarmcast-overview.json"]
     },
     {
+      "id": "playwright-core",
+      "status": "approved",
+      "owner": "quality-engineering",
+      "decision": "Approve exact Playwright Core 1.61.1 as a test-only driver for the installed Chrome channel.",
+      "evidence": ["playwright-core npm run smoke:webrtc-200", "playwright-core package-lock.json"]
+    },
+    {
       "id": "android-gradle-plugin",
       "status": "approved",
       "owner": "android",

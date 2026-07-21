@@ -522,6 +522,8 @@ for (const required of [
   "\"smoke:tracker-ws\"",
   "\"smoke:tracker-ws-cells-1k\"",
   "\"smoke:tracker-ws-cells-10k\"",
+  "\"smoke:webrtc-200\"",
+  "\"smoke:webrtc-hash-rejection\"",
   "\"verify\""
 ]) {
   if (!packageText.includes(required)) {
@@ -580,13 +582,17 @@ for (const required of [
   "`npm run smoke:tracker-ws-cells`",
   "`npm run smoke:tracker-ws-cells-1k`",
   "`npm run smoke:tracker-ws-cells-10k`",
+  "`npm run smoke:webrtc-200`",
+  "`npm run smoke:webrtc-hash-rejection`",
   "`uWebSockets.js` v20.51.0",
   "Node 18, 20, 22, or 23",
   "`TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws`",
   "Use the same `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local` prefix for `npm run smoke:tracker-ws-load`, `npm run smoke:tracker-ws-multichannel`, and `npm run smoke:tracker-ws-restart`",
   "`TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws-cells-1k`",
   "`TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws-cells-10k`",
+  "`TRACKER_WEBRTC_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:webrtc-200`",
   "The 1K and 10K cell preflights are control-plane evidence only",
+  "The 200-peer browser preflight is real same-host WebRTC transport evidence",
   "rejects an invalid JWT",
   "two-client WebRTC signaling relay",
   "connection-limit rejection",
@@ -762,6 +768,10 @@ for (const check of [
   {
     file: "scripts/smoke-tracker-ws-cells-1k.js",
     required: ["positiveOption(\"peers\", 1000", "positiveOption(\"cells\", 4", "PEER_COUNT === 1000 && CELL_COUNT === 4 ? 300", "positiveOption(\"join-batch-size\", 25", "JOIN_ACK_TIMEOUT_MS", "MAX_JOIN_ATTEMPTS", "MAX_TOTAL_JOIN_RETRIES", "TRACKER_CELL_LOAD_DOCKER_IMAGE", "reservePorts", "assignmentsByCell", "selectTrackerCell", "closeWebSocket", "connection attempts", "announceAndMeasure", "proveSignalingIsolation", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_rejections_total", "RECOVERY_P95_BUDGET_MS", "joinRetries=", "closeCode=1012", "crossCellSignal=blocked", "tracker cell ${LOAD_LABEL} WebSocket load OK"]
+  },
+  {
+    file: "scripts/smoke-webrtc-tracker-200.js",
+    required: ["PEER_COUNT = HASH_MISMATCH_SELF_TEST ? 2 : 200", "playwright-core", "new RTCPeerConnection", "createDataChannel(\"swarmcast-segment\"", "kind: \"offer\"", "kind: \"answer\"", "kind: \"ice\"", "crypto.subtle.digest", "SHA-256 mismatch", "swarmcast_tracker_download_p2p_bytes_total", "swarmcast_tracker_upload_bytes_total", "swarmcast_tracker_download_relay_bytes_total", "selectedIce=host/host", "verifiedTransfers=", "trackerSignaling=pass", "hashVerification=pass", "accounting=pass"]
   },
   {
     file: "scripts/smoke-tracker-ws.js",
@@ -950,6 +960,10 @@ for (const check of [
   {
     file: "package.json",
     required: ["smoke:tracker-ws-cells-10k"]
+  },
+  {
+    file: "package.json",
+    required: ["playwright-core", "smoke:webrtc-200", "smoke:webrtc-hash-rejection"]
   }
 ]) {
   const text = readFileSync(check.file, "utf8");
@@ -2666,6 +2680,8 @@ for (const required of [
   "node-version: 22",
   "npm ci --ignore-scripts",
   "npm run verify",
+  "npm run smoke:webrtc-hash-rejection",
+  "npm run smoke:webrtc-200",
   "npm audit --audit-level=moderate",
   "android:",
   "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0",
@@ -3905,6 +3921,7 @@ for (const required of [
   "Prometheus",
   "Alertmanager",
   "Grafana",
+  "Playwright Core",
   "Android Gradle Plugin",
   "AndroidX Media3",
   "OkHttp",
@@ -3944,6 +3961,7 @@ for (const id of [
   "alertmanager",
   "grafana",
   "node-exporter",
+  "playwright-core",
   "android-gradle-plugin",
   "kotlin",
   "media3",

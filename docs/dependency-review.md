@@ -21,6 +21,7 @@ This review records the production dependency posture for SwarmCast. It does not
 | Messaging | NATS JetStream | Server `2.12.1` and Node clients `3.4.0`, exact and digest-pinned | Staging candidate | Local three-node TLS/quorum, one-node-loss, persistence, bcrypt, rotation, latency, and credential-scope proof passes; complete clean scan/SBOM and repeat across three staging failure domains at projected peak rate. |
 | Monitoring | NATS Prometheus exporter | `0.17.3`, digest-pinned | Staging candidate | Pass clean scan and verify broker health, storage, API-error, and slow-consumer metrics. |
 | Networking | coturn | `4.7.0` commit `678996a`, minimal digest-pinned Alpine 3.23 build | Staging candidate | Pass clean scan, authenticated UDP/TLS relay smoke, external carrier tests, measured relay capacity, and signed staging publication. |
+| Testing | Playwright Core | `1.61.1`, exact and test-only | Staging validation | Drive the installed Chrome channel for the protected 200-peer tracker-signaled WebRTC preflight; do not include it in runtime images. |
 | Android | Android Gradle Plugin | `8.7.3` | Staging only | Local wrapper-based debug/release assembly passes; review AGP 9.x before production. |
 | Android | Kotlin Gradle plugins | `2.0.21` | Staging only | Local wrapper-based debug/release assembly passes; review Kotlin 2.4 migration before production. |
 | Android | AndroidX Media3 | `1.6.0` | Blocked | Run playback soak on real devices and evaluate current stable Media3. |
@@ -39,6 +40,7 @@ This review records the production dependency posture for SwarmCast. It does not
 - Alertmanager: the production candidate rebuilds exact release commit `2c8da51e03f3dbbed24f9711ca2d76aab4eef9c5` with fixed Go and `x/crypto` versions.
 - Grafana: the production candidate rebuilds exact release commit `b309c9bb3b81a748c3a75289236a27309ed2566a` with fixed Go; the unused Tempo backend is excluded from the binary instead of waiving its findings.
 - coturn: the production candidate builds exact `4.7.0` commit `678996a52954ddc7a44afd9f72f5b5c647e41083` on immutable Alpine 3.23, excludes unused database backends, and uses short-lived coturn REST credentials; real carrier reachability and sustained relay capacity remain unapproved.
+- Playwright Core: npm reports `1.61.1`; the exact development dependency drives an already-installed Chrome browser and does not download or ship a browser in production artifacts.
 - AndroidX Media3: Maven listings show stable releases newer than this repo's `1.6.0`.
 - OkHttp: official docs show OkHttp 5.x artifacts available while this repo uses `4.12.0`.
 - Stream WebRTC Android: Maven listings show `1.3.10` newer than this repo's `1.3.8`.
@@ -89,3 +91,4 @@ npm run image:scan:bundle:validate -- --allow-synthetic --manifest test-fixtures
 - https://developer.android.com/google/play/integrity/standard
 - https://github.com/Backblaze/JavaReedSolomon
 - https://github.com/coturn/coturn/releases
+- https://playwright.dev/
