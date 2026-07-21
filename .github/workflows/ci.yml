@@ -20,6 +20,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run verify
       - run: npm run smoke:tracker-ws-cells
+      - run: npm run smoke:tracker-ws-cells-1k
       - run: npm audit --audit-level=moderate
 
   android:

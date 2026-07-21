@@ -25,11 +25,15 @@ The load ladder must move from deterministic local smokes to VM/WebRTC tests bef
 - `npm run smoke:tracker-ws-multichannel`: opens 200 real WebSocket clients across 5 channels and verifies per-channel demand size, aggregate `rho`, rolling offload, and P2P peer-list activation.
 - `npm run smoke:tracker-ws-restart`: starts auth, fake ingest, and tracker, connects an active WebSocket swarm, stops the tracker, confirms sockets close, restarts the tracker on the same ports, and verifies clients can rejoin with Delivery Fleet playlist URLs, demand calls, `rho >= 0.90`, rolling offload, and P2P peer-list activation.
 - `npm run smoke:tracker-ws-cells`: starts two tracker processes, proves one channel is split into two process-owned cells, fans one segment announcement to both cells, kills one cell, verifies the client retains its owned-edge fallback, and verifies stable cell rejoin after restart.
+- `npm run smoke:tracker-ws-cells-1k`: opens exactly 1,000 real WebSocket clients for one channel across four process-owned cells, reconciles exact per-cell counts against a 300-peer ceiling, verifies all-client segment fanout, proves same-cell signaling and blocks cross-cell signaling, requires zero message/backpressure drops and capacity spillovers/rejections, then restarts one 250-client cell and requires owned-edge fallback, close code `1012`, complete rejoin, and recovery p95 within 30 seconds.
 - `npm run smoke:load-ladder-evidence-validation`: proves the load-ladder evidence gate rejects missing stages, low offload, high stall rate, high tracker CPU, firing alerts, sensitive evidence references, invalid single-channel cell accounting, incomplete cell fanout, cell failure without edge fallback, tracker backpressure drops, and synthetic evidence without an explicit flag.
 
 `smoke:tracker-ws` requires a Node version supported by `uWebSockets.js` v20.51.0: Node 18, 20, 22, or 23. The CI and service Docker runtime use Node 22.
 On a local Node 24 shell, build the tracker image and run `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws` to execute the smoke through Docker.
 Use the same `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local` prefix for `npm run smoke:tracker-ws-load`, `npm run smoke:tracker-ws-multichannel`, and `npm run smoke:tracker-ws-restart`.
+Run the 1K cell preflight on Node 24 with `TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws-cells-1k`; CI runs the four tracker processes directly on Node 22.
+
+The 1K cell preflight is control-plane evidence only. It does not generate WebRTC DataChannel traffic, measure direct-P2P offload, emulate carrier NAT, reconcile delivery egress, or replace the required non-synthetic VM/WebRTC `1-channel-1000-cell-peers` staging record.
 
 ## Required Staging Ladder
 
