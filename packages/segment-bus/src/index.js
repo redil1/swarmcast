@@ -54,7 +54,10 @@ function connectionOptions(config, name) {
     reconnectTimeWait: 1_000,
     reconnectJitter: 250,
     reconnectJitterTLS: 250,
-    tls: config.tlsRequired ? {} : null
+    tls: config.tlsRequired ? {
+      caFile: config.tlsCaFile,
+      ...(config.tlsServerName ? { servername: config.tlsServerName } : {})
+    } : null
   };
 }
 
@@ -154,7 +157,7 @@ export async function createSegmentPublisher(config, {
       },
       async close() {
         connected = false;
-        if (!nc.isClosed() && !nc.isDraining()) await nc.drain();
+        if (!nc.isClosed()) await nc.close();
         await statusTask;
       }
     };
@@ -287,7 +290,7 @@ export async function createSegmentSubscriber(config, {
         connected = false;
         for (const entry of channels.values()) entry.subscription.unsubscribe();
         channels.clear();
-        if (!nc.isClosed() && !nc.isDraining()) await nc.drain();
+        if (!nc.isClosed()) await nc.close();
         await statusTask;
       }
     };

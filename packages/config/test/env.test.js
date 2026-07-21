@@ -386,6 +386,7 @@ test("segment bus configuration validates credentials, TLS, retention, and repli
     SEGMENT_BUS_USER: "tracker",
     SEGMENT_BUS_PASSWORD: "tracker-segment-bus-password-0001",
     SEGMENT_BUS_TLS_REQUIRED: "1",
+    SEGMENT_BUS_TLS_CA_FILE: "/run/secrets/nats/ca.crt",
     SEGMENT_BUS_MANAGE_STREAM: "0",
     SEGMENT_BUS_MAX_AGE_SECONDS: "900",
     SEGMENT_BUS_MAX_MESSAGES_PER_SUBJECT: "180",
@@ -395,6 +396,7 @@ test("segment bus configuration validates credentials, TLS, retention, and repli
   assert.deepEqual(config.servers, ["tls://bus-a.example.tv:4222", "tls://bus-b.example.tv:4222"]);
   assert.equal(config.enabled, true);
   assert.equal(config.tlsRequired, true);
+  assert.equal(config.tlsCaFile, "/run/secrets/nats/ca.crt");
   assert.equal(config.manageStream, false);
   assert.equal(config.maxAgeMs, 900_000);
   assert.equal(config.maxMessagesPerSubject, 180);
@@ -405,9 +407,26 @@ test("segment bus configuration validates credentials, TLS, retention, and repli
     SEGMENT_BUS_ENABLED: "1",
     SEGMENT_BUS_SERVERS: '["nats://bus.example.tv:4222"]',
     SEGMENT_BUS_TLS_REQUIRED: "1",
+    SEGMENT_BUS_TLS_CA_FILE: "/run/secrets/nats/ca.crt",
     SEGMENT_BUS_USER: "tracker",
     SEGMENT_BUS_PASSWORD: "tracker-segment-bus-password-0001"
   }), /must use tls/);
+  assert.throws(() => segmentBusConfigFromEnv({
+    SEGMENT_BUS_ENABLED: "1",
+    SEGMENT_BUS_SERVERS: '["tls://bus.example.tv:4222"]',
+    SEGMENT_BUS_TLS_REQUIRED: "1",
+    SEGMENT_BUS_TLS_CA_FILE: "relative/ca.crt",
+    SEGMENT_BUS_USER: "tracker",
+    SEGMENT_BUS_PASSWORD: "tracker-segment-bus-password-0001"
+  }), /absolute path/);
+  assert.throws(() => segmentBusConfigFromEnv({
+    SEGMENT_BUS_ENABLED: "1",
+    SEGMENT_BUS_SERVERS: '["tls://127.0.0.1:4222"]',
+    SEGMENT_BUS_TLS_REQUIRED: "1",
+    SEGMENT_BUS_TLS_CA_FILE: "/run/secrets/nats/ca.crt",
+    SEGMENT_BUS_USER: "tracker",
+    SEGMENT_BUS_PASSWORD: "tracker-segment-bus-password-0001"
+  }), /DNS hostname/);
   assert.throws(() => segmentBusConfigFromEnv({
     SEGMENT_BUS_ENABLED: "1",
     SEGMENT_BUS_SERVERS: '["nats://user:password@bus.example.tv:4222"]',

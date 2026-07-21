@@ -19,11 +19,12 @@
 
 ## Segment Metadata Bus
 
-- Ingest and tracker credentials are distinct, stored in the production secret manager, and rotated independently.
+- Ingest and tracker credentials are distinct, stored in the production secret manager, and rotated independently. Brokers receive only NATS-CLI-generated cost-11 bcrypt hashes; clear credentials remain in separate client secret scopes.
 - Production ingest may only publish channel metadata. Stream creation/update uses a separate deployment identity; trackers may read the named stream and subscribe to channel subjects but cannot publish segment metadata.
 - Production uses three hostname-verified TLS endpoints, mutually authenticated broker routes, file-backed storage on local SSD, and three stream replicas.
 - Segment payloads are schema-bounded and hash-validated; duplicate and out-of-order sequences are suppressed per channel.
 - Readiness fails during disconnect, while Android retains owned edge fallback and never accepts media without matching hash metadata.
+- The local three-node smoke proves hostname failure, bcrypt recognition, role-denial paths, leader loss, quorum publishing, rolling rotation, and disk recovery. Production still requires the same proof across real failure domains at projected peak rate.
 
 ## Source URL Protection
 

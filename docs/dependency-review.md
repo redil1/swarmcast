@@ -18,7 +18,7 @@ This review records the production dependency posture for SwarmCast. It does not
 | Monitoring | Alertmanager | `v0.33.1` source rebuild with Go `1.26.5` and `x/crypto v0.53.0` | Staging candidate | Pass clean scan and receiver fire-drill. |
 | Monitoring | Grafana | `13.1.0` source rebuild with Go `1.26.5`; unused Tempo backend excluded | Staging candidate | Pass clean scan and dashboard/health smokes. |
 | Monitoring | node_exporter | `v1.12.0-distroless`, digest-pinned | Staging candidate | Pass clean scan and edge metrics scrape. |
-| Messaging | NATS JetStream | Server `2.12.1` and Node clients `3.4.0`, exact and digest-pinned | Staging candidate | Pass three-node TLS/quorum, one-node-loss, persistence, latency, scan, SBOM, and credential-scope evidence. |
+| Messaging | NATS JetStream | Server `2.12.1` and Node clients `3.4.0`, exact and digest-pinned | Staging candidate | Local three-node TLS/quorum, one-node-loss, persistence, bcrypt, rotation, latency, and credential-scope proof passes; complete clean scan/SBOM and repeat across three staging failure domains at projected peak rate. |
 | Monitoring | NATS Prometheus exporter | `0.17.3`, digest-pinned | Staging candidate | Pass clean scan and verify broker health, storage, API-error, and slow-consumer metrics. |
 | Networking | coturn | `4.7.0` commit `678996a`, minimal digest-pinned Alpine 3.23 build | Staging candidate | Pass clean scan, authenticated UDP/TLS relay smoke, external carrier tests, measured relay capacity, and signed staging publication. |
 | Android | Android Gradle Plugin | `8.7.3` | Staging only | Local wrapper-based debug/release assembly passes; review AGP 9.x before production. |

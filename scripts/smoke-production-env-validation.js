@@ -155,6 +155,11 @@ expectFailure(
   /SEGMENT_BUS_TLS_REQUIRED must be 1/
 );
 expectFailure(
+  "segment bus without an owned CA",
+  writeVariant("segment-bus-no-ca", removeLine("SEGMENT_BUS_TLS_CA_FILE")),
+  /SEGMENT_BUS_TLS_CA_FILE is required/
+);
+expectFailure(
   "segment bus with one endpoint",
   writeVariant("segment-bus-one-server", replaceLine("SEGMENT_BUS_SERVERS", '["tls://segment-bus-a.swarmcast.tv:4222"]')),
   /at least three cluster endpoints/
@@ -169,5 +174,15 @@ expectFailure(
   writeVariant("segment-bus-manage-stream", replaceLine("SEGMENT_BUS_MANAGE_STREAM", "1")),
   /SEGMENT_BUS_MANAGE_STREAM must be 0/
 );
+expectFailure(
+  "segment bus missing broker password hash",
+  writeVariant("segment-bus-missing-password-hash", removeLine("NATS_INGEST_PASSWORD_HASH")),
+  /NATS_INGEST_PASSWORD_HASH is required/
+);
+expectFailure(
+  "segment bus plaintext broker credential",
+  writeVariant("segment-bus-plaintext-password", replaceLine("NATS_TRACKER_PASSWORD_HASH", "plaintext-password")),
+  /must be a JSON-quoted bcrypt config value/
+);
 
-console.log("production env validation smoke OK: pass=1 failures=20");
+console.log("production env validation smoke OK: pass=1 failures=23");
