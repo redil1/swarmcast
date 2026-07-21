@@ -148,21 +148,28 @@ class SegmentScheduler(
 
     private suspend fun fetchSegmentOnce(seq: Int, fileName: String, urgencyMs: Long): ByteArray {
         val meta = checkNotNull(manifest[seq]) { "segment metadata is unavailable for $seq" }
-        val designatedBootstrap = meta.seedTier && superPeer && originTemplate.isNotBlank()
+        val bootstrap = when {
+            meta.seedTier && superPeer && originTemplate.isNotBlank() ->
+                originTemplate to downloadedFromBootstrapOriginCounter
+            meta.edgeSeedTier && superPeer && edgeTemplate.isNotBlank() ->
+                edgeTemplate to downloadedFromEdgeCounter
+            else -> null
+        }
+        val designatedBootstrap = bootstrap != null
         val peerBudgetMs = if (designatedBootstrap) min(urgencyMs, SEED_PEER_WAIT_MS) else urgencyMs
 
         if (!designatedBootstrap || hasPeerSupply(seq)) {
             tryPeerPaths(seq, peerBudgetMs, waitForSupply = !designatedBootstrap)?.let { return it }
         }
 
-        if (designatedBootstrap) {
+        if (bootstrap != null) {
             val bootstrapBytes = try {
                 fetchOwnedSegment(
-                    template = originTemplate,
+                    template = bootstrap.first,
                     fileName = fileName,
                     meta = meta,
-                    timeoutMs = (urgencyMs - peerBudgetMs).coerceAtLeast(MIN_ORIGIN_TIMEOUT_MS),
-                    counter = downloadedFromBootstrapOriginCounter
+                    timeoutMs = (urgencyMs - peerBudgetMs).coerceAtLeast(MIN_BOOTSTRAP_TIMEOUT_MS),
+                    counter = bootstrap.second
                 )
             } catch (error: CancellationException) {
                 throw error
@@ -371,7 +378,7 @@ class SegmentScheduler(
         private const val MAX_PEER_ATTEMPTS = 4
         private const val MIN_PEER_TIMEOUT_MS = 250L
         private const val SEED_PEER_WAIT_MS = 250L
-        private const val MIN_ORIGIN_TIMEOUT_MS = 750L
+        private const val MIN_BOOTSTRAP_TIMEOUT_MS = 750L
         private const val MIN_EDGE_TIMEOUT_MS = 2_000L
         private const val MIN_HTTP_TIMEOUT_MS = 250L
         private const val PEER_SUPPLY_POLL_MS = 50L

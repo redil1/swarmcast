@@ -140,6 +140,12 @@
       "backpressureDrops": 0,
       "cellCapacityRejections": 0,
       "sameCellSignalViolations": 0,
+      "segmentAnnouncements": 100,
+      "segmentCodingRank": 24,
+      "originBootstrapCellCount": 1,
+      "originSeedAssignments": 200,
+      "edgeBootstrapCellCount": 1,
+      "edgeSeedAssignments": 200,
       "cellFailureEdgeFallback": true,
       "cellFailureRejoin": true,
       "cellFailureRecoveryMsP95": 5000,
@@ -163,7 +169,7 @@
       "edgeEgressMbps": 400,
       "originEgressMbps": 40,
       "alertState": "clear",
-      "evidence": ["load-ladder/1-channel-1000-cell-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled tracker-cells segment-fanout-all-cells cell-failure-edge-fallback cell-rejoin same-cell-signaling synthetic-pass"]
+      "evidence": ["load-ladder/1-channel-1000-cell-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled tracker-cells segment-fanout-all-cells global-origin-bootstrap edge-bootstrap-secondary-cells cell-failure-edge-fallback cell-rejoin same-cell-signaling synthetic-pass"]
     },
     {
       "id": "1-channel-10000-cell-peers",
@@ -183,6 +189,12 @@
       "backpressureDrops": 0,
       "cellCapacityRejections": 0,
       "sameCellSignalViolations": 0,
+      "segmentAnnouncements": 100,
+      "segmentCodingRank": 24,
+      "originBootstrapCellCount": 1,
+      "originSeedAssignments": 200,
+      "edgeBootstrapCellCount": 1,
+      "edgeSeedAssignments": 200,
       "cellFailureEdgeFallback": true,
       "cellFailureRejoin": true,
       "cellFailureRecoveryMsP95": 7000,
@@ -206,7 +218,7 @@
       "edgeEgressMbps": 4000,
       "originEgressMbps": 400,
       "alertState": "clear",
-      "evidence": ["load-ladder/1-channel-10000-cell-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled tracker-cells segment-fanout-all-cells cell-failure-edge-fallback cell-rejoin same-cell-signaling synthetic-pass"]
+      "evidence": ["load-ladder/1-channel-10000-cell-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled tracker-cells segment-fanout-all-cells global-origin-bootstrap edge-bootstrap-secondary-cells cell-failure-edge-fallback cell-rejoin same-cell-signaling synthetic-pass"]
     },
     {
       "id": "1-channel-100000-cell-peers",
@@ -226,6 +238,12 @@
       "backpressureDrops": 0,
       "cellCapacityRejections": 0,
       "sameCellSignalViolations": 0,
+      "segmentAnnouncements": 100,
+      "segmentCodingRank": 24,
+      "originBootstrapCellCount": 1,
+      "originSeedAssignments": 200,
+      "edgeBootstrapCellCount": 4,
+      "edgeSeedAssignments": 800,
       "cellFailureEdgeFallback": true,
       "cellFailureRejoin": true,
       "cellFailureRecoveryMsP95": 10000,
@@ -249,7 +267,7 @@
       "edgeEgressMbps": 40000,
       "originEgressMbps": 4000,
       "alertState": "clear",
-      "evidence": ["load-ladder/1-channel-100000-cell-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled tracker-cells segment-fanout-all-cells cell-failure-edge-fallback cell-rejoin same-cell-signaling synthetic-pass"]
+      "evidence": ["load-ladder/1-channel-100000-cell-peers.synthetic.json", "webrtc-datachannel tracker-signaling-relay edge-access-reconciled tracker-cells segment-fanout-all-cells global-origin-bootstrap edge-bootstrap-secondary-cells cell-failure-edge-fallback cell-rejoin same-cell-signaling synthetic-pass"]
     },
     {
       "id": "zipf-catalog",

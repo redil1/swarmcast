@@ -15,6 +15,7 @@ test("announceSegment includes k and marks eligible seed tier", () => {
   assert.equal(messages.length, 2);
   assert.equal(messages[0].msg.k, 32);
   assert.equal(messages.some((entry) => entry.msg.seedTier), true);
+  assert.equal(messages.every((entry) => entry.msg.edgeSeedTier === false), true);
 });
 
 test("announceSegment bounds seed tier to super-peer eligible helpers", () => {
@@ -73,4 +74,41 @@ test("announceSegment rotates seed tier helpers across segments", () => {
   assert.equal(first.length, 2);
   assert.equal(second.length, 2);
   assert.notDeepEqual(first, second);
+});
+
+test("announceSegment assigns mutually exclusive edge helpers outside the origin cell", () => {
+  const swarm = new Swarm("ch1", "cell-b");
+  for (let i = 0; i < 4; i += 1) {
+    swarm.addPeer({
+      id: `wifi-${i}`,
+      transport: "wifi",
+      uploadEnabled: true,
+      uplinkKbps: 30_000,
+      superPeer: true
+    });
+  }
+
+  const messages = [];
+  const result = swarm.announceSegment(
+    { seq: 14, sha256: "abc", size: 1000, k: 24 },
+    (peer, msg) => messages.push({ peer, msg }),
+    { bootstrapSource: "edge" }
+  );
+
+  assert.equal(result.originSeedAssignments, 0);
+  assert.equal(result.edgeSeedAssignments, 2);
+  assert.equal(messages.filter((entry) => entry.msg.edgeSeedTier).length, 2);
+  assert.equal(messages.every((entry) => !(entry.msg.seedTier && entry.msg.edgeSeedTier)), true);
+});
+
+test("announceSegment rejects an unknown bootstrap source", () => {
+  const swarm = new Swarm("ch1");
+  assert.throws(
+    () => swarm.announceSegment(
+      { seq: 15, sha256: "abc", size: 1000, k: 24 },
+      () => {},
+      { bootstrapSource: "unowned" }
+    ),
+    /bootstrapSource/
+  );
 });

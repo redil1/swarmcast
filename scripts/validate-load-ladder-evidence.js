@@ -139,10 +139,26 @@ function validateStage(stage) {
     integerField(`${id}.backpressureDrops`, stage.backpressureDrops, { min: 0, max: 0 });
     integerField(`${id}.cellCapacityRejections`, stage.cellCapacityRejections, { min: 0, max: 0 });
     integerField(`${id}.sameCellSignalViolations`, stage.sameCellSignalViolations, { min: 0, max: 0 });
+    const segmentAnnouncements = integerField(`${id}.segmentAnnouncements`, stage.segmentAnnouncements, { min: 1 });
+    const segmentCodingRank = integerField(`${id}.segmentCodingRank`, stage.segmentCodingRank, { min: 1, max: 255 });
+    const helpersPerCell = Math.max(2, Math.ceil(segmentCodingRank / 12));
+    integerField(`${id}.originBootstrapCellCount`, stage.originBootstrapCellCount, { min: 1, max: 1 });
+    integerField(`${id}.originSeedAssignments`, stage.originSeedAssignments, {
+      min: segmentAnnouncements,
+      max: segmentAnnouncements * helpersPerCell
+    });
+    integerField(`${id}.edgeBootstrapCellCount`, stage.edgeBootstrapCellCount, {
+      min: trackerCellCount - 1,
+      max: trackerCellCount - 1
+    });
+    integerField(`${id}.edgeSeedAssignments`, stage.edgeSeedAssignments, {
+      min: segmentAnnouncements * (trackerCellCount - 1),
+      max: segmentAnnouncements * (trackerCellCount - 1) * helpersPerCell
+    });
     if (stage.cellFailureEdgeFallback !== true) fail(`${id}.cellFailureEdgeFallback must be true`);
     if (stage.cellFailureRejoin !== true) fail(`${id}.cellFailureRejoin must be true`);
     numberField(`${id}.cellFailureRecoveryMsP95`, stage.cellFailureRecoveryMsP95, { min: 0, max: 30000 });
-    for (const marker of ["tracker-cells", "segment-fanout-all-cells", "cell-failure-edge-fallback", "cell-rejoin", "same-cell-signaling"]) {
+    for (const marker of ["tracker-cells", "segment-fanout-all-cells", "global-origin-bootstrap", "edge-bootstrap-secondary-cells", "cell-failure-edge-fallback", "cell-rejoin", "same-cell-signaling"]) {
       if (!joinedEvidence.includes(marker)) fail(`${id}.evidence must include ${marker}`);
     }
   }

@@ -4,9 +4,12 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okhttp3.mockwebserver.MockResponse
@@ -22,6 +25,59 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class TrackerClientTest {
+    @Test
+    fun parsesLegacyAndEdgeBootstrapSegmentCapabilities() {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                if (!text.contains("\"t\":\"join\"")) return
+                webSocket.send(
+                    """{"t":"joined","peerId":"peer-1","playlistUrl":"https://edge.example.tv/live/demo/index.m3u8","edgeUrlTemplate":"https://edge.example.tv/live/demo/{seq}.m4s","originUrlTemplate":"https://origin.example.tv/live/demo/{seq}.m4s","swarmMode":"p2p","superPeer":true}"""
+                )
+                webSocket.send(
+                    """{"t":"segment","seq":1,"sha256":"${"a".repeat(64)}","size":4096,"k":24,"seedTier":false}"""
+                )
+                webSocket.send(
+                    """{"t":"segment","seq":2,"sha256":"${"b".repeat(64)}","size":4096,"k":24,"seedTier":false,"edgeSeedTier":true}"""
+                )
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+            }
+        }))
+        server.start()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val client = TrackerClient(
+            initialWsUrl = server.url("/ws").toString().replaceFirst("http", "ws").removeSuffix("/"),
+            tokenProvider = { "token" },
+            scope = scope
+        )
+        val received = CopyOnWriteArrayList<TrackerEvent.Segment>()
+        val segments = CountDownLatch(2)
+        val collector = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            client.events.collect { event ->
+                if (event is TrackerEvent.Segment) {
+                    received.add(event)
+                    segments.countDown()
+                }
+            }
+        }
+
+        try {
+            client.connect("demo", wifi = true, uploadEnabled = true)
+            assertTrue(segments.await(3, TimeUnit.SECONDS))
+            assertEquals(false, received[0].edgeSeedTier)
+            assertEquals(true, received[1].edgeSeedTier)
+            assertTrue(received.none { it.seedTier && it.edgeSeedTier })
+        } finally {
+            collector.cancel()
+            client.close()
+            scope.cancel()
+            server.shutdown()
+        }
+    }
+
     @Test
     fun rejectsNonPositiveJoinAcknowledgementTimeout() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

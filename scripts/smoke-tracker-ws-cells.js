@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createAuthServer } from "../services/auth/src/index.js";
 import { announceSegment } from "../services/ingest/src/segmentWatcher.js";
-import { selectTrackerCell } from "../services/tracker/src/sharding.js";
+import { selectOriginBootstrapCell, selectTrackerCell } from "../services/tracker/src/sharding.js";
 
 const CHANNEL_ID = "single-channel-cells";
 const INTERNAL_TOKEN = "tracker-cell-smoke-internal";
@@ -164,6 +164,38 @@ function closeClient(client) {
   ]).finally(() => client.ws.close());
 }
 
+function metricValue(text, name) {
+  const match = text.match(new RegExp(`^${name} ([0-9]+)$`, "m"));
+  if (!match) throw new Error(`missing metric ${name}`);
+  return Number.parseInt(match[1], 10);
+}
+
+function assertBootstrapCapabilities(connectedClients, seq, shards) {
+  const originCellId = selectOriginBootstrapCell(CHANNEL_ID, shards);
+  for (const client of connectedClients.slice(0, shards.length)) {
+    const message = client.messages.find((entry) => entry.t === "segment" && entry.seq === seq);
+    if (!message) throw new Error(`client in ${client.joined.cellId} missed segment ${seq}`);
+    const shouldUseOrigin = client.joined.cellId === originCellId;
+    if (message.seedTier !== shouldUseOrigin || message.edgeSeedTier !== !shouldUseOrigin) {
+      throw new Error(`invalid bootstrap capability for ${client.joined.cellId} on segment ${seq}`);
+    }
+    if (message.seedTier && message.edgeSeedTier) {
+      throw new Error(`client in ${client.joined.cellId} received conflicting bootstrap capabilities`);
+    }
+  }
+  return originCellId;
+}
+
+async function bootstrapAssignmentTotals(shards) {
+  const metrics = await Promise.all(shards.map(async (shard) => (
+    await (await fetch(`${shard.internalUrl}/metrics`)).text()
+  )));
+  return {
+    origin: metrics.reduce((sum, value) => sum + metricValue(value, "swarmcast_tracker_origin_seed_assignments_total"), 0),
+    edge: metrics.reduce((sum, value) => sum + metricValue(value, "swarmcast_tracker_edge_seed_assignments_total"), 0)
+  };
+}
+
 const tempDir = mkdtempSync(join(tmpdir(), "swarmcast-tracker-cells-"));
 let authServer;
 let ingestServer;
@@ -203,6 +235,11 @@ try {
     segment: { channelId: CHANNEL_ID, seq: 1, sha256: "a".repeat(64), size: 4096, k: 24 }
   });
   await waitFor(() => clients.every((client) => client.messages.some((message) => message.t === "segment" && message.seq === 1)));
+  const originCellId = assertBootstrapCapabilities(clients, 1, shards);
+  const firstAssignments = await bootstrapAssignmentTotals(shards);
+  if (firstAssignments.origin !== 1 || firstAssignments.edge !== 1) {
+    throw new Error(`unexpected first bootstrap totals: ${JSON.stringify(firstAssignments)}`);
+  }
 
   const failedShard = shards[1];
   const failedClient = clients[1];
@@ -229,6 +266,15 @@ try {
     segment: { channelId: CHANNEL_ID, seq: 2, sha256: "b".repeat(64), size: 4096, k: 24 }
   });
   await waitFor(() => clients.every((client) => client.messages.some((message) => message.t === "segment" && message.seq === 2)));
+  assertBootstrapCapabilities(clients, 2, shards);
+  const secondAssignments = await bootstrapAssignmentTotals(shards);
+  const restartedOriginCell = failedShard.id === originCellId;
+  const expectedSecondAssignments = restartedOriginCell
+    ? { origin: 1, edge: 2 }
+    : { origin: 2, edge: 1 };
+  if (secondAssignments.origin !== expectedSecondAssignments.origin || secondAssignments.edge !== expectedSecondAssignments.edge) {
+    throw new Error(`unexpected post-restart bootstrap totals: ${JSON.stringify(secondAssignments)}`);
+  }
 
   const primaryShard = shards[0];
   const primaryAssignment = assignmentFor(primaryShard.id, shards);
@@ -252,7 +298,7 @@ try {
     throw new Error("tracker spillover metric was not incremented");
   }
 
-  console.log(`tracker cell WebSocket smoke OK: channel=${CHANNEL_ID} cells=2 peers=6 fanout=2 cellFailure=edge-fallback rejoin=pass capacitySpillover=pass`);
+  console.log(`tracker cell WebSocket smoke OK: channel=${CHANNEL_ID} cells=2 peers=6 fanout=2 originBootstrapCell=${originCellId} originBootstrap=1 edgeBootstrap=1 cellFailure=edge-fallback rejoin=pass capacitySpillover=pass`);
 } finally {
   await Promise.all(clients.map(closeClient));
   await Promise.all([...running.values()].map(stopTracker));

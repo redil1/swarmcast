@@ -77,6 +77,8 @@ export function formatPrometheusMetrics(stats) {
     line("swarmcast_tracker_wifi_fraction", stats.wifiFraction, "Fraction of peers on WiFi"),
     line("swarmcast_tracker_super_peer_fraction", stats.superPeerFraction, "Fraction of peers promoted to super-peer"),
     line("swarmcast_tracker_segment_payload_encodes_total", stats.segmentPayloadsEncoded || 0, "Pre-encoded segment payload variants", "counter"),
+    line("swarmcast_tracker_origin_seed_assignments_total", stats.originSeedAssignments || 0, "Peers assigned direct-origin bootstrap capability", "counter"),
+    line("swarmcast_tracker_edge_seed_assignments_total", stats.edgeSeedAssignments || 0, "Peers assigned owned-edge bootstrap capability", "counter"),
     line("swarmcast_tracker_messages_dropped_total", stats.messagesDropped || 0, "Tracker messages dropped before delivery", "counter"),
     line("swarmcast_tracker_backpressure_drops_total", stats.backpressureDrops || 0, "Tracker messages dropped by the backpressure budget", "counter"),
     line("swarmcast_tracker_cell_capacity_spillovers_total", stats.cellCapacitySpillovers || 0, "Tracker joins redirected from a full swarm cell", "counter"),

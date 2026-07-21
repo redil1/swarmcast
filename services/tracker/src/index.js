@@ -16,6 +16,7 @@ import { announceSegmentToState } from "./segments.js";
 import {
   createTrackerCellRouteToken,
   routeTrackerJoin,
+  selectOriginBootstrapCell,
   selectTrackerSpillover
 } from "./sharding.js";
 import {
@@ -37,6 +38,8 @@ export function createTrackerState() {
     stats: createTrackerStats(),
     delivery: {
       segmentPayloadsEncoded: 0,
+      originSeedAssignments: 0,
+      edgeSeedAssignments: 0,
       messagesDropped: 0,
       backpressureDrops: 0,
       cellCapacitySpillovers: 0,
@@ -506,7 +509,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       clientName: `swarmcast-tracker-${runtimeConfig.trackerShardId || process.env.HOSTNAME || "local"}`
     }, {
       onSegment: async (segment, { replayed }) => {
-        const result = announceSegmentToState({ state, segment, send });
+        const result = announceSegmentToState({
+          state,
+          segment,
+          send,
+          originBootstrapCellId: selectOriginBootstrapCell(segment.channelId, runtimeConfig.trackerShards)
+        });
         if (!result.ok) {
           logger.warn("segment_bus_announce_rejected", {
             channel_id: segment.channelId,
@@ -521,6 +529,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           segment_seq: result.segment.seq,
           cells: result.cells,
           recipients: result.recipients,
+          origin_seed_assignments: result.originSeedAssignments,
+          edge_seed_assignments: result.edgeSeedAssignments,
           replayed
         }, "durable segment metadata announced to local cells");
       },
@@ -624,7 +634,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         if (!last) return;
         try {
           const segment = JSON.parse(body.toString("utf8"));
-          const result = announceSegmentToState({ state, segment, send });
+          const result = announceSegmentToState({
+            state,
+            segment,
+            send,
+            originBootstrapCellId: selectOriginBootstrapCell(segment.channelId, runtimeConfig.trackerShards)
+          });
           if (!result.ok) {
             logger.warn("segment_announce_rejected", {
               error_class: "bad_request",
@@ -640,7 +655,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
               ? swarmKey(result.segment.channelId, swarmsForChannel(state, result.segment.channelId)[0]?.cellId)
               : result.segment.channelId,
             cells: result.cells,
-            recipients: result.recipients
+            recipients: result.recipients,
+            origin_seed_assignments: result.originSeedAssignments,
+            edge_seed_assignments: result.edgeSeedAssignments
           }, "segment announced to swarm");
           res.cork(() => res.end("ok"));
         } catch {
