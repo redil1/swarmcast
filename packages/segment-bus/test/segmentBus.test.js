@@ -19,14 +19,15 @@ const segment = Object.freeze({
 });
 
 test("production publisher does not require stream management permission", async () => {
-  let drained = false;
+  let closed = false;
   let publishedSubject = null;
+  let connectOptions;
   const connection = {
     isClosed: () => false,
     isDraining: () => false,
     status: async function* status() {},
-    drain: async () => {
-      drained = true;
+    close: async () => {
+      closed = true;
     }
   };
   const publisher = await createSegmentPublisher({
@@ -34,11 +35,15 @@ test("production publisher does not require stream management permission", async
     user: "ingest",
     password: "ingest-segment-bus-password-0001",
     tlsRequired: true,
+    tlsCaFile: "/run/secrets/nats/ca.crt",
     connectTimeoutMs: 1000,
     publishTimeoutMs: 1000,
     manageStream: false
   }, {
-    connectFn: async () => connection,
+    connectFn: async (options) => {
+      connectOptions = options;
+      return connection;
+    },
     managerFn: async () => {
       throw new Error("runtime publisher must not request JetStream management");
     },
@@ -52,9 +57,10 @@ test("production publisher does not require stream management permission", async
 
   await publisher.publish(segment);
   assert.equal(publishedSubject, segmentSubject(segment.channelId));
+  assert.deepEqual(connectOptions.tls, { caFile: "/run/secrets/nats/ca.crt" });
   assert.equal(publisher.stats.published, 1);
   await publisher.close();
-  assert.equal(drained, true);
+  assert.equal(closed, true);
 });
 
 test("segment envelopes normalize immutable metadata", () => {

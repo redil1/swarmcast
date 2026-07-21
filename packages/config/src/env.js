@@ -1,4 +1,5 @@
 import { loadFeatureFlags } from "./flags.js";
+import { isIP } from "node:net";
 
 export const REQUIRED_ENV_VARS = Object.freeze([
   "INTERNAL_TOKEN",
@@ -58,6 +59,7 @@ export const ENV_DEFAULTS = Object.freeze({
   SEGMENT_BUS_ENABLED: false,
   SEGMENT_BUS_SERVERS: [],
   SEGMENT_BUS_TLS_REQUIRED: false,
+  SEGMENT_BUS_TLS_CA_FILE: "",
   SEGMENT_BUS_MANAGE_STREAM: true,
   SEGMENT_BUS_CONNECT_TIMEOUT_MS: 5_000,
   SEGMENT_BUS_PUBLISH_TIMEOUT_MS: 2_000,
@@ -208,6 +210,7 @@ export function segmentBusConfigFromEnv(env = process.env, { requireEnabled = fa
     throw new ConfigError("SEGMENT_BUS_ENABLED must be enabled", { key: "SEGMENT_BUS_ENABLED" });
   }
   const tlsRequired = boolEnv(env, "SEGMENT_BUS_TLS_REQUIRED", ENV_DEFAULTS.SEGMENT_BUS_TLS_REQUIRED);
+  const tlsCaFile = stringEnv(env, "SEGMENT_BUS_TLS_CA_FILE", ENV_DEFAULTS.SEGMENT_BUS_TLS_CA_FILE).trim();
   const input = jsonEnv(env, "SEGMENT_BUS_SERVERS", ENV_DEFAULTS.SEGMENT_BUS_SERVERS);
   if (!Array.isArray(input)) throw new ConfigError("SEGMENT_BUS_SERVERS must be a JSON array", { key: "SEGMENT_BUS_SERVERS" });
   const servers = [...new Set(input.map((value, index) => {
@@ -216,9 +219,13 @@ export function segmentBusConfigFromEnv(env = process.env, { requireEnabled = fa
     const parsed = new URL(normalized);
     if (parsed.username || parsed.password) throw new ConfigError(`${key} must not contain credentials`, { key });
     if (tlsRequired && parsed.protocol !== "tls:") throw new ConfigError(`${key} must use tls when SEGMENT_BUS_TLS_REQUIRED is enabled`, { key });
+    if (tlsRequired && isIP(parsed.hostname)) throw new ConfigError(`${key} must use a DNS hostname for TLS verification`, { key });
     return normalized;
   }))];
   if (enabled && servers.length === 0) throw new ConfigError("SEGMENT_BUS_SERVERS requires at least one server", { key: "SEGMENT_BUS_SERVERS" });
+  if (enabled && tlsRequired && !tlsCaFile.startsWith("/")) {
+    throw new ConfigError("SEGMENT_BUS_TLS_CA_FILE must be an absolute path when TLS is required", { key: "SEGMENT_BUS_TLS_CA_FILE" });
+  }
 
   const user = enabled ? requiredEnv(env, "SEGMENT_BUS_USER").trim() : stringEnv(env, "SEGMENT_BUS_USER").trim();
   if (enabled && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(user)) {
@@ -235,6 +242,7 @@ export function segmentBusConfigFromEnv(env = process.env, { requireEnabled = fa
     user,
     password,
     tlsRequired,
+    tlsCaFile,
     manageStream: boolEnv(env, "SEGMENT_BUS_MANAGE_STREAM", ENV_DEFAULTS.SEGMENT_BUS_MANAGE_STREAM),
     connectTimeoutMs: intEnv(env, "SEGMENT_BUS_CONNECT_TIMEOUT_MS", ENV_DEFAULTS.SEGMENT_BUS_CONNECT_TIMEOUT_MS, { min: 500, max: 60_000 }),
     publishTimeoutMs: intEnv(env, "SEGMENT_BUS_PUBLISH_TIMEOUT_MS", ENV_DEFAULTS.SEGMENT_BUS_PUBLISH_TIMEOUT_MS, { min: 250, max: 30_000 }),
