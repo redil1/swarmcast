@@ -1,7 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
 import net from "node:net";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   createSegmentPublisher,
@@ -41,8 +39,8 @@ async function waitFor(fn, timeoutMs = 15_000) {
   throw lastError || new Error("timed out");
 }
 
-const tempDir = mkdtempSync(path.join(tmpdir(), "swarmcast-segment-bus-"));
 const containerName = `swarmcast-segment-bus-smoke-${process.pid}`;
+const volumeName = `${containerName}-data`;
 const clientPort = await freePort();
 const monitorPort = await freePort();
 const configPath = path.resolve("infra/nats/nats-server.conf");
@@ -60,7 +58,7 @@ function startBroker() {
     "-e", "NATS_TRACKER_USER=tracker",
     "-e", `NATS_TRACKER_PASSWORD=${TRACKER_PASSWORD}`,
     "-v", `${configPath}:/etc/nats/nats-server.conf:ro`,
-    "-v", `${tempDir}:/data`,
+    "-v", `${volumeName}:/data`,
     IMAGE,
     "-c", "/etc/nats/nats-server.conf"
   ]);
@@ -95,6 +93,7 @@ const segment = (channelId, seq, digest = "a") => ({
 });
 
 try {
+  docker(["volume", "create", volumeName]);
   startBroker();
   await waitFor(async () => (await fetch(`http://127.0.0.1:${monitorPort}/healthz?js-enabled-only=true`)).ok);
   publisher = await createSegmentPublisher(busConfig("ingest"));
@@ -146,5 +145,5 @@ try {
   await subscriber?.close().catch(() => {});
   await publisher?.close().catch(() => {});
   stopBroker();
-  rmSync(tempDir, { recursive: true, force: true });
+  spawnSync("docker", ["volume", "rm", "-f", volumeName], { encoding: "utf8" });
 }
