@@ -9,6 +9,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import tv.swarmcast.data.AuthRepository
 import tv.swarmcast.data.NetworkPolicy
+import tv.swarmcast.data.NetworkPolicySnapshot
 import tv.swarmcast.data.p2pPermissions
 import tv.swarmcast.p2p.PeerConnectionManager
 import tv.swarmcast.p2p.IceServerConfig
@@ -45,7 +46,7 @@ class PlaybackSessionCoordinator(
                     uploadBudget = uploadBudget,
                     scope = scope,
                     directP2p = directP2p,
-                    uploadAllowed = { uploadAllowed },
+                    uploadAllowed = ::refreshUploadPolicy,
                     codedPacketProvider = scheduler::codedPacket,
                     onClosed = { closePeer() },
                     onUploaded = { _, bytes -> scheduler.recordUploaded(bytes) }
@@ -59,8 +60,10 @@ class PlaybackSessionCoordinator(
     private var eventsJob: Job? = null
     private var statsJob: Job? = null
     private var token: String = ""
+    @Volatile
     private var p2pEnabled = true
     private var p2pDownloadAllowed = false
+    @Volatile
     private var uploadAllowed = false
     private var swarmMode = "edge-only"
     private var peerRefreshJob: Job? = null
@@ -78,9 +81,7 @@ class PlaybackSessionCoordinator(
             IceServerConfig(it.urls, it.username, it.credential)
         })
         val networkSnapshot = networkPolicy.snapshot()
-        val permissions = p2pPermissions(p2pEnabled, networkSnapshot)
-        p2pDownloadAllowed = permissions.downloadAllowed
-        uploadAllowed = permissions.uploadAllowed
+        applyNetworkPolicy(networkSnapshot)
 
         eventsJob = scope.launch {
             tracker.events.collect { handleTrackerEvent(it) }
@@ -115,9 +116,7 @@ class PlaybackSessionCoordinator(
     fun setP2pEnabled(enabled: Boolean) {
         p2pEnabled = enabled
         val snapshot = networkPolicy.snapshot()
-        val permissions = p2pPermissions(enabled, snapshot)
-        p2pDownloadAllowed = permissions.downloadAllowed
-        uploadAllowed = permissions.uploadAllowed
+        applyNetworkPolicy(snapshot)
         if (!p2pDownloadAllowed) {
             peerRefreshJob?.cancel()
             peerManager.closeAll()
@@ -195,6 +194,26 @@ class PlaybackSessionCoordinator(
 
     private fun connectPeer(peer: PeerInfo) {
         if (peer.id.isNotBlank()) peerManager.connectTo(peer)
+    }
+
+    private fun applyNetworkPolicy(snapshot: NetworkPolicySnapshot) {
+        val permissions = p2pPermissions(p2pEnabled, snapshot)
+        p2pDownloadAllowed = permissions.downloadAllowed
+        configureUploadPolicy(snapshot, permissions.uploadAllowed)
+    }
+
+    private fun refreshUploadPolicy(): Boolean {
+        val snapshot = networkPolicy.snapshot()
+        val allowed = p2pPermissions(p2pEnabled, snapshot).uploadAllowed
+        return configureUploadPolicy(snapshot, allowed)
+    }
+
+    private fun configureUploadPolicy(snapshot: NetworkPolicySnapshot, allowed: Boolean): Boolean {
+        uploadAllowed = uploadBudget.configureForUplink(
+            uplinkKbps = snapshot.uplinkKbps,
+            uploadEnabled = allowed
+        ) > 0L
+        return uploadAllowed
     }
 
     private fun applyIceServers(configs: List<IceServerConfig>) {
