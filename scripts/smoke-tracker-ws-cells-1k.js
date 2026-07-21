@@ -9,22 +9,46 @@ import { createAuthServer } from "../services/auth/src/index.js";
 import { announceSegment } from "../services/ingest/src/segmentWatcher.js";
 import { selectTrackerCell } from "../services/tracker/src/sharding.js";
 
-const CHANNEL_ID = "single-channel-cells-1k";
-const INTERNAL_TOKEN = "tracker-cell-1k-internal";
-const APP_API_KEY = "tracker-cell-1k-app-key";
-const PEER_COUNT = 1000;
-const CELL_COUNT = 4;
+const supportedOptions = new Set(["peers", "cells", "cell-max-peers", "join-batch-size", "max-join-retries"]);
+const rawOptions = new Map();
+for (const arg of process.argv.slice(2)) {
+  const match = arg.match(/^--([a-z-]+)=(\d+)$/);
+  if (!match || !supportedOptions.has(match[1]) || rawOptions.has(match[1])) {
+    throw new Error(`invalid or duplicate tracker cell load option: ${arg}`);
+  }
+  rawOptions.set(match[1], Number.parseInt(match[2], 10));
+}
+
+function positiveOption(name, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const value = rawOptions.get(name) ?? fallback;
+  if (!Number.isSafeInteger(value) || value < min || value > max) {
+    throw new Error(`--${name} must be an integer between ${min} and ${max}`);
+  }
+  return value;
+}
+
+const PEER_COUNT = positiveOption("peers", 1000, { min: 2 });
+const CELL_COUNT = positiveOption("cells", 4, { min: 2, max: 26 });
 const PEERS_PER_CELL = PEER_COUNT / CELL_COUNT;
-const CELL_MAX_PEERS = 300;
-const JOIN_BATCH_SIZE = 25;
+const CELL_MAX_PEERS = positiveOption(
+  "cell-max-peers",
+  PEER_COUNT === 1000 && CELL_COUNT === 4 ? 300 : Math.ceil(PEERS_PER_CELL * 1.1)
+);
+const JOIN_BATCH_SIZE = positiveOption("join-batch-size", 25, { max: 100 });
 const JOIN_ACK_TIMEOUT_MS = 1000;
 const MAX_JOIN_ATTEMPTS = 3;
-const MAX_TOTAL_JOIN_RETRIES = 10;
+const MAX_TOTAL_JOIN_RETRIES = positiveOption("max-join-retries", Math.max(10, Math.ceil(PEER_COUNT / 100)));
 const RECOVERY_P95_BUDGET_MS = 30_000;
+const LOAD_LABEL = PEER_COUNT % 1000 === 0 ? `${PEER_COUNT / 1000}K` : String(PEER_COUNT);
+const loadSlug = PEER_COUNT % 1000 === 0 ? `${PEER_COUNT / 1000}k` : `${PEER_COUNT}-peer`;
+const CHANNEL_ID = `single-channel-cells-${loadSlug}`;
+const INTERNAL_TOKEN = `tracker-cell-${loadSlug}-internal`;
+const APP_API_KEY = `tracker-cell-${loadSlug}-app-key`;
 const dockerImage = process.env.TRACKER_CELL_LOAD_DOCKER_IMAGE || "";
 const runId = `${process.pid}-${Date.now()}`;
 
 if (!Number.isInteger(PEERS_PER_CELL)) throw new Error("peer count must divide evenly across cells");
+if (CELL_MAX_PEERS < PEERS_PER_CELL) throw new Error("cell max peers must be at least the exact peers-per-cell target");
 
 function uWebSocketsSupportsCurrentNode() {
   const major = Number.parseInt(process.versions.node.split(".")[0], 10);
@@ -32,7 +56,7 @@ function uWebSocketsSupportsCurrentNode() {
 }
 
 if (!dockerImage && !uWebSocketsSupportsCurrentNode()) {
-  throw new Error(`tracker cell 1K WebSocket load cannot run: uWebSockets.js v20.51.0 does not support Node ${process.versions.node}; set TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local`);
+  throw new Error(`tracker cell ${LOAD_LABEL} WebSocket load cannot run: uWebSockets.js v20.51.0 does not support Node ${process.versions.node}; set TRACKER_CELL_LOAD_DOCKER_IMAGE=swarmcast-tracker:local`);
 }
 
 function listen(server, port = 0) {
@@ -121,7 +145,7 @@ function trackerEnvironment({ shard, shards, authPort, ingestPort }) {
 
 function spawnTracker({ shard, shards, authPort, ingestPort }) {
   const env = trackerEnvironment({ shard, shards, authPort, ingestPort });
-  const containerName = `swarmcast-tracker-cell-1k-${shard.id}-${runId}`;
+  const containerName = `swarmcast-tracker-cell-${loadSlug}-${shard.id}-${runId}`;
   const child = dockerImage
     ? spawn("docker", [
         "run",
@@ -190,7 +214,8 @@ function forceRemoveTracker(tracker) {
 
 function assignmentsByCell(shards) {
   const assignments = new Map(shards.map((shard) => [shard.id, []]));
-  for (let index = 0; index < 1_000_000; index += 1) {
+  const searchLimit = Math.max(1_000_000, PEER_COUNT * CELL_COUNT * 2);
+  for (let index = 0; index < searchLimit; index += 1) {
     const assignmentKey = `load-viewer-${index}`;
     const selected = selectTrackerCell({ channelId: CHANNEL_ID, assignmentKey, shards }).shard;
     const values = assignments.get(selected.id);
@@ -376,7 +401,7 @@ async function proveSignalingIsolation(clientsByShard, shards) {
   }
 }
 
-const tempDir = mkdtempSync(join(tmpdir(), "swarmcast-tracker-cells-1k-"));
+const tempDir = mkdtempSync(join(tmpdir(), `swarmcast-tracker-cells-${loadSlug}-`));
 let authServer;
 let ingestServer;
 let portReservations;
@@ -499,7 +524,7 @@ try {
   const joinP95 = percentile(allClients.slice(0, PEER_COUNT).map((client) => client.joinLatencyMs), 0.95);
 
   console.log(
-    `tracker cell 1K WebSocket load OK: channel=${CHANNEL_ID} peers=${PEER_COUNT} cells=${CELL_COUNT} ` +
+    `tracker cell ${LOAD_LABEL} WebSocket load OK: channel=${CHANNEL_ID} peers=${PEER_COUNT} cells=${CELL_COUNT} ` +
     `cellMaxPeers=${CELL_MAX_PEERS} initialCellPeerCounts=${initialCounts.join(",")} finalCellPeerCounts=${finalCounts.join(",")} ` +
     `joinP95Ms=${joinP95.toFixed(1)} fanout1P95Ms=${firstFanout.p95.toFixed(1)} fanout1MaxMs=${firstFanout.max.toFixed(1)} ` +
     `fanout2P95Ms=${secondFanout.p95.toFixed(1)} fanout2MaxMs=${secondFanout.max.toFixed(1)} ` +
