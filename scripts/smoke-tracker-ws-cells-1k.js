@@ -209,55 +209,58 @@ function waitForOpen(ws, shardId) {
 
 async function connectClient({ shard, assignmentKey, token, recoveryStartedAt = null }) {
   const openedAt = performance.now();
-  const ws = new WebSocket(`${shard.wsUrl}?token=${encodeURIComponent(token)}`);
-  const messages = [];
-  const segmentTimes = new Map();
-  ws.addEventListener("error", () => {});
-  ws.addEventListener("message", (event) => {
-    const message = JSON.parse(event.data);
-    messages.push(message);
-    if (message.t === "segment") segmentTimes.set(message.seq, performance.now());
-  });
-  await waitForOpen(ws, shard.id);
   const joinPayload = JSON.stringify({
     t: "join",
     channelId: CHANNEL_ID,
     assignmentKey,
     caps: { transport: "wifi", upload: true, uplinkKbps: 20_000 }
   });
-  let joined;
-  let joinAttempts = 0;
-  while (!joined && joinAttempts < MAX_JOIN_ATTEMPTS) {
-    joinAttempts += 1;
-    ws.send(joinPayload);
+  let lastError;
+
+  for (let joinAttempt = 1; joinAttempt <= MAX_JOIN_ATTEMPTS; joinAttempt += 1) {
+    const ws = new WebSocket(`${shard.wsUrl}?token=${encodeURIComponent(token)}`);
+    const messages = [];
+    const segmentTimes = new Map();
+    ws.addEventListener("error", () => {});
+    ws.addEventListener("message", (event) => {
+      const message = JSON.parse(event.data);
+      messages.push(message);
+      if (message.t === "segment") segmentTimes.set(message.seq, performance.now());
+    });
     try {
-      joined = await waitFor(() => messages.find((message) => message.t === "joined"), {
-        timeoutMs: JOIN_ACK_TIMEOUT_MS,
-        intervalMs: 10
-      });
-    } catch {
-      if (ws.readyState !== WebSocket.OPEN) {
-        throw new Error(`WebSocket closed before join acknowledgement for ${shard.id}`);
+      await waitForOpen(ws, shard.id);
+      ws.send(joinPayload);
+      const joined = await Promise.race([
+        waitFor(() => messages.find((message) => message.t === "joined"), {
+          timeoutMs: JOIN_ACK_TIMEOUT_MS,
+          intervalMs: 10
+        }),
+        new Promise((_, reject) => ws.addEventListener("close", (event) => {
+          reject(new Error(`WebSocket closed before join acknowledgement for ${shard.id}: ${event.code}`));
+        }, { once: true }))
+      ]);
+      if (joined.cellId !== shard.id) throw new Error(`expected ${shard.id}, got ${joined.cellId}`);
+      if (!joined.edgeUrlTemplate.startsWith("https://edge.example.tv/")) {
+        throw new Error(`${shard.id} did not return an owned edge fallback template`);
       }
+      const joinedAt = performance.now();
+      return {
+        assignmentKey,
+        joined,
+        messages,
+        segmentTimes,
+        shardId: shard.id,
+        ws,
+        joinRetries: joinAttempt - 1,
+        joinLatencyMs: joinedAt - openedAt,
+        recoveryLatencyMs: recoveryStartedAt === null ? null : joinedAt - recoveryStartedAt
+      };
+    } catch (error) {
+      lastError = error;
+      await closeWebSocket(ws);
     }
   }
-  if (!joined) throw new Error(`join acknowledgement failed after ${MAX_JOIN_ATTEMPTS} attempts for ${shard.id}`);
-  if (joined.cellId !== shard.id) throw new Error(`expected ${shard.id}, got ${joined.cellId}`);
-  if (!joined.edgeUrlTemplate.startsWith("https://edge.example.tv/")) {
-    throw new Error(`${shard.id} did not return an owned edge fallback template`);
-  }
-  const joinedAt = performance.now();
-  return {
-    assignmentKey,
-    joined,
-    messages,
-    segmentTimes,
-    shardId: shard.id,
-    ws,
-    joinRetries: joinAttempts - 1,
-    joinLatencyMs: joinedAt - openedAt,
-    recoveryLatencyMs: recoveryStartedAt === null ? null : joinedAt - recoveryStartedAt
-  };
+  throw new Error(`join failed after ${MAX_JOIN_ATTEMPTS} connection attempts for ${shard.id}: ${lastError?.message || "unknown error"}`);
 }
 
 async function connectCellClients({ shard, assignments, token, recoveryStartedAt = null }) {
@@ -278,11 +281,20 @@ function closeEvent(ws) {
   });
 }
 
+async function closeWebSocket(ws) {
+  if (!ws || ws.readyState === WebSocket.CLOSED) return;
+  const closed = closeEvent(ws);
+  try {
+    ws.close(1000, "connection retry");
+  } catch {
+    return;
+  }
+  await Promise.race([closed, new Promise((resolve) => setTimeout(resolve, 1000))]);
+}
+
 async function closeClient(client) {
   if (!client || client.ws.readyState === WebSocket.CLOSED) return;
-  const closed = closeEvent(client.ws);
-  client.ws.close(1000, "test complete");
-  await Promise.race([closed, new Promise((resolve) => setTimeout(resolve, 1000))]);
+  await closeWebSocket(client.ws);
 }
 
 async function metricsFor(shard) {

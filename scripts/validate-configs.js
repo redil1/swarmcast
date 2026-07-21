@@ -758,7 +758,7 @@ for (const check of [
   },
   {
     file: "scripts/smoke-tracker-ws-cells-1k.js",
-    required: ["PEER_COUNT = 1000", "CELL_COUNT = 4", "CELL_MAX_PEERS = 300", "JOIN_BATCH_SIZE = 25", "JOIN_ACK_TIMEOUT_MS", "MAX_JOIN_ATTEMPTS", "MAX_TOTAL_JOIN_RETRIES", "TRACKER_CELL_LOAD_DOCKER_IMAGE", "reservePorts", "assignmentsByCell", "selectTrackerCell", "announceAndMeasure", "proveSignalingIsolation", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_rejections_total", "RECOVERY_P95_BUDGET_MS", "joinRetries=", "closeCode=1012", "crossCellSignal=blocked", "tracker cell 1K WebSocket load OK"]
+    required: ["PEER_COUNT = 1000", "CELL_COUNT = 4", "CELL_MAX_PEERS = 300", "JOIN_BATCH_SIZE = 25", "JOIN_ACK_TIMEOUT_MS", "MAX_JOIN_ATTEMPTS", "MAX_TOTAL_JOIN_RETRIES", "TRACKER_CELL_LOAD_DOCKER_IMAGE", "reservePorts", "assignmentsByCell", "selectTrackerCell", "closeWebSocket", "connection attempts", "announceAndMeasure", "proveSignalingIsolation", "swarmcast_tracker_backpressure_drops_total", "swarmcast_tracker_cell_capacity_rejections_total", "RECOVERY_P95_BUDGET_MS", "joinRetries=", "closeCode=1012", "crossCellSignal=blocked", "tracker cell 1K WebSocket load OK"]
   },
   {
     file: "scripts/smoke-tracker-ws.js",
