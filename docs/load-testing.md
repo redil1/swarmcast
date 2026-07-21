@@ -34,6 +34,8 @@ The load ladder must move from deterministic local smokes to VM/WebRTC tests bef
 - `npm run smoke:webrtc-turn-relay-20`: obtains a distinct JWT and short-lived TURN username/credential for every one of 20 browser viewers, opens 10 simultaneous relay-only DataChannel pairs against a coturn instance configured for exactly 20 total allocations and 20 relay ports, requires an exact observed peak of 20 active allocations followed by zero leaked allocations, verifies all 10 payloads and selected `relay/relay` paths, reconciles 655,360 tracker relay/upload payload bytes, and requires coturn's finished-session ingress and egress counters to cover both transport legs. This is a same-host quota-boundary preflight, not a TURN fleet capacity benchmark.
 - `npm run smoke:webrtc-turn-auth-rejection`: mutates the issued coturn credential, forces relay-only ICE, requires Chrome to report TURN authentication rejection, and requires zero direct, relay, and upload accounting.
 - `npm run smoke:load-ladder-evidence-validation`: proves the load-ladder evidence gate rejects missing stages, low offload, high stall rate, high tracker CPU, firing alerts, sensitive evidence references, invalid single-channel cell accounting, incomplete cell fanout, cell failure without edge fallback, tracker backpressure drops, and synthetic evidence without an explicit flag.
+- `npm run smoke:turn-capacity-probe`: uses a synthetic client and metrics endpoint to prove the staging probe issues unique credentials, runs warm-up and sustained phases, samples an exact concurrent-allocation peak, parses loss and latency, drains allocations to zero, writes mode `0600` evidence, and never records credentials. Its test mode is always marked synthetic.
+- `npm run smoke:turn-capacity-evidence-validation`: proves final TURN capacity evidence rejects single-host or single-generator runs, unsynchronized probes, missing UDP/TLS profiles, insufficient allocation or bandwidth headroom, counter mismatch, impossible throughput, packet loss, resource pressure, allocation leaks, missing provider reconciliation, sensitive references, and synthetic evidence without an explicit flag.
 
 `smoke:tracker-ws` requires a Node version supported by `uWebSockets.js` v20.51.0: Node 18, 20, 22, or 23. The CI and service Docker runtime use Node 22.
 On a local Node 24 shell, build the tracker image and run `TRACKER_WS_DOCKER_IMAGE=swarmcast-tracker:local npm run smoke:tracker-ws` to execute the smoke through Docker.
@@ -44,6 +46,53 @@ Run the browser WebRTC preflights on Node 24 with `TRACKER_WEBRTC_DOCKER_IMAGE=s
 
 The 1K and 10K cell preflights are control-plane evidence only. They do not generate WebRTC DataChannel traffic, measure direct-P2P offload, emulate carrier NAT, reconcile delivery egress, or replace the required non-synthetic VM/WebRTC `1-channel-1000-cell-peers` and `1-channel-10000-cell-peers` staging records.
 The 200-peer browser preflight is real same-host WebRTC transport evidence, but its WiFi/cellular classes are tracker policy inputs and all selected ICE candidates are host/host. The forced-relay preflights additionally prove browser-to-owned-coturn transport, per-viewer credential issuance, credential enforcement, relay selection, local Prometheus reachability, quota-boundary concurrency, exact tracker payload accounting, and coturn transport-byte coverage. Coturn counters include protocol traffic and are not expected to equal tracker application-payload counters. These tests do not emulate carrier NAT, represent independent devices or networks, measure TURN fleet capacity, reconcile external provider billing egress, or replace the required multi-host staging and physical-device records.
+
+## TURN Capacity Ladder
+
+Run `turnutils_peer` on two independent public load-generator hosts in separate providers and failure domains. Each generator must use the other generator's public echo address, an exact-version `turnutils_uclient`, a monitoring tunnel to one TURN host, and the same future `--start-at` timestamp. The shared secret is injected through `TURN_SHARED_SECRET`; never place it in command arguments, output, evidence, or shell history.
+
+For a 1,300-allocation host profile, run 650 allocations from each generator at the same time. This example produces a nominal host-wide relay transport rate near 780 Mbps before protocol variation:
+
+```bash
+npm run turn:capacity:probe -- \
+  --acknowledge-staging-load \
+  --run-id turn-a-udp-load-a \
+  --commit "$RELEASE_COMMIT" \
+  --release-version "$RELEASE_VERSION" \
+  --start-at "$TURN_PROFILE_START_AT" \
+  --server turn-a.staging.example \
+  --port 3478 \
+  --transport udp \
+  --peer-address "$LOAD_B_PUBLIC_IP" \
+  --peer-port 3480 \
+  --metrics-url http://127.0.0.1:19641/metrics \
+  --load-generator-host-id load-a \
+  --load-generator-failure-domain provider-a-eu \
+  --load-generator-provider provider-a \
+  --load-generator-region eu-west \
+  --allocations 650 \
+  --expected-host-allocations 1300 \
+  --message-bytes 1200 \
+  --interval-ms 32 \
+  --warmup-seconds 60 \
+  --phase-gap-seconds 30 \
+  --sustained-seconds 300 \
+  --output evidence/turn/turn-a-udp-load-a.raw.json
+```
+
+Repeat simultaneously from `load-b`. Both probes take idle counter baselines before the shared warm-up start and before the shared sustained start after the drain gap. Then repeat the pair against TLS port 5349 with `--transport tls --ca-file /path/to/ca.pem`. Execute both transports on at least two TURN hosts in separate failure domains. Do not overlap UDP and TLS profiles unless the approval explicitly covers a combined profile.
+
+Join the raw records with coturn Prometheus deltas, host NIC counters, provider ingress/egress exports, CPU, memory, restart/OOM/quota records, image digest, traffic-terms approval, and operations/performance/security approvals. The final record must include exactly one synchronized raw probe per generator in every host/transport profile and preserve at least 30% headroom. Validate it without a synthetic allowance:
+
+```bash
+npm run turn:capacity:evidence:validate -- path/to/turn-capacity-evidence.json
+```
+
+The committed fixture is schema coverage only:
+
+```bash
+npm run turn:capacity:evidence:validate -- --allow-synthetic test-fixtures/load/turn-capacity-complete.synthetic.json
+```
 
 ## Required Staging Ladder
 
