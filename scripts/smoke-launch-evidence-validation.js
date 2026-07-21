@@ -239,6 +239,24 @@ expectFailure(
   /production-secrets evidence must mention redaction-proof/
 );
 expectFailure(
+  "missing segment bus capacity validator",
+  writeVariant("missing-segment-bus-capacity-validator", (record) => {
+    const segmentBus = gate(record, "segment-metadata-bus");
+    segmentBus.evidence = segmentBus.evidence.filter((evidence) => !evidence.includes("segment-bus:capacity:evidence:validate"));
+    return record;
+  }),
+  /segment-metadata-bus evidence must mention segment-bus:capacity:evidence:validate/
+);
+expectFailure(
+  "missing segment bus raw artifact binding",
+  writeVariant("missing-segment-bus-raw-artifact-binding", (record) => {
+    const segmentBus = gate(record, "segment-metadata-bus");
+    segmentBus.evidence = segmentBus.evidence.filter((evidence) => !evidence.includes("raw-probe-artifact-sha256"));
+    return record;
+  }),
+  /segment-metadata-bus evidence must mention raw-probe-artifact-sha256/
+);
+expectFailure(
   "missing self sustaining sweep launch evidence",
   writeVariant("missing-self-sustaining-sweep", (record) => {
     const capacityLoadLadder = gate(record, "capacity-load-ladder");
@@ -473,4 +491,4 @@ expectFailure(
   /production-smokes evidence reference looks like it may contain sensitive stream or token material/
 );
 
-console.log("launch evidence validation smoke OK: pass=1 failures=45");
+console.log("launch evidence validation smoke OK: pass=1 failures=47");

@@ -99,6 +99,7 @@ Deliverables:
 - Treat TURN/relay traffic as owned delivery egress, not P2P offload.
 - Bind Android peer-delivery counters to the selected ICE path so relay or unclassified DataChannel bytes cannot inflate direct-P2P `rho`.
 - Size edge, tracker, ingest, and monitoring fleets from measured p95/p99 load with node-loss and regional headroom.
+- Prove the segment metadata bus at projected active-channel publication rate plus 30% headroom across exactly three real failure domains and at least two providers, including live leader loss, full-cluster persistent replay, credential rotation, resource budgets, and monitoring reconciliation through `docs/segment-bus-capacity.md`.
 
 Required ladder:
 
@@ -108,6 +109,7 @@ Required ladder:
 4. Fifty channels with 2,000 peers across multiple VMs.
 5. One channel partitioned across multiple tracker cells at 1K, 10K, and 100K peers, with exact peer-range coverage, cross-generator WebRTC transfers, and raw client/server byte reconciliation.
 6. Zipf-distributed catalog load with real DataChannel transfers.
-7. Production-equivalent peak test, chaos, restore, rollback, Alertmanager, and canary drills.
+7. Segment metadata bus projected-peak soak across three real failure domains with leader loss and full-cluster persistent replay.
+8. Production-equivalent peak test, chaos, restore, rollback, Alertmanager, and canary drills.
 
 Launch remains blocked until legal, privacy, security, dependency, RLNC, retention, host, secret, device, load, and owner approvals contain real non-synthetic evidence.

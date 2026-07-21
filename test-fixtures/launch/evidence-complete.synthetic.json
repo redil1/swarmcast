@@ -305,6 +305,27 @@
       ]
     },
     {
+      "id": "segment-metadata-bus",
+      "owner": "platform",
+      "status": "complete",
+      "evidence": [
+        "segment-bus:capacity:evidence:validate synthetic-pass",
+        "three-failure-domain-cluster synthetic-pass",
+        "projected-peak-sustained synthetic-pass",
+        "publish-delivery-reconciled synthetic-pass",
+        "leader-loss-quorum synthetic-pass",
+        "persistent-latest-replay synthetic-pass",
+        "credential-rotation synthetic-pass",
+        "subject-permission-denial synthetic-pass",
+        "hostname-verified-tls synthetic-pass",
+        "mutual-route-tls synthetic-pass",
+        "storage-recovery synthetic-pass",
+        "monitoring-reconciled synthetic-pass",
+        "raw-probe-artifact-sha256 synthetic-pass",
+        "independent-reviewers synthetic-pass"
+      ]
+    },
+    {
       "id": "capacity-load-ladder",
       "owner": "platform",
       "status": "complete",

@@ -20,7 +20,15 @@ test("validatePerformanceBudgets rejects missing or invalid values", () => {
     androidStartupLatencyMsP95: 5000,
     androidStallRateMax: 0.01,
     androidBufferMsMin: 10000,
-    edgeCacheHitRatioMin: 2
+    edgeCacheHitRatioMin: 2,
+    segmentBusPublishAckMsP99: 100,
+    segmentBusDeliveryMsP99: 250,
+    segmentBusLeaderElectionMsMax: 10000,
+    segmentBusPublishRecoveryMsMax: 15000,
+    segmentBusDiskWriteMsP95: 20,
+    segmentBusCpuPctP95Max: 70,
+    segmentBusMemoryPctP95Max: 80,
+    segmentBusStoragePctMax: 70
   }), /edgeCacheHitRatioMin/);
   assert.throws(() => validatePerformanceBudgets({
     trackerCpuMsPerMessageP95: 2,
@@ -31,6 +39,18 @@ test("validatePerformanceBudgets rejects missing or invalid values", () => {
     androidStartupLatencyMsP95: 5000,
     androidStallRateMax: 2,
     androidBufferMsMin: 10000,
-    edgeCacheHitRatioMin: 0.8
+    edgeCacheHitRatioMin: 0.8,
+    segmentBusPublishAckMsP99: 100,
+    segmentBusDeliveryMsP99: 250,
+    segmentBusLeaderElectionMsMax: 10000,
+    segmentBusPublishRecoveryMsMax: 15000,
+    segmentBusDiskWriteMsP95: 20,
+    segmentBusCpuPctP95Max: 70,
+    segmentBusMemoryPctP95Max: 80,
+    segmentBusStoragePctMax: 70
   }), /androidStallRateMax/);
+  assert.throws(() => validatePerformanceBudgets({
+    ...JSON.parse(readFileSync(new URL("../../../config/performance-budgets.json", import.meta.url), "utf8")),
+    segmentBusCpuPctP95Max: 101
+  }), /segmentBusCpuPctP95Max/);
 });

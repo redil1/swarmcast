@@ -95,6 +95,28 @@ The committed fixture is schema coverage only:
 npm run turn:capacity:evidence:validate -- --allow-synthetic test-fixtures/load/turn-capacity-complete.synthetic.json
 ```
 
+## Segment Metadata Bus Capacity
+
+Run the procedure in `docs/segment-bus-capacity.md` against exactly three staging brokers in three real failure domains and at least two providers. The synchronized driver must sustain `segmentBusTargetMessagesPerSecond` for at least 15 minutes, preserve exact publication and subscriber delivery counts, stay within p99 latency and host resource budgets, continue without loss through active-leader failure, recover three replicas, replay the exact latest sequence and hash after a full-cluster restart, rotate both runtime credentials, and reconcile every monitoring and storage sample.
+
+Collect immutable raw evidence with:
+
+```bash
+npm run segment-bus:capacity:probe -- \
+  --acknowledge-staging-disruption \
+  --manifest path/to/segment-bus-capacity-manifest.json \
+  --driver path/to/segment-bus-capacity-driver \
+  --output path/to/segment-bus-capacity-raw.json
+```
+
+After distinct platform, performance, and security review, validate the hash-bound final record with:
+
+```bash
+npm run segment-bus:capacity:evidence:validate -- path/to/segment-bus-capacity-evidence.json
+```
+
+`npm run smoke:segment-bus-capacity-probe` and `npm run smoke:segment-bus-capacity-evidence-validation` are contract tests only. Their synthetic output cannot satisfy launch readiness.
+
 ## Required Staging Ladder
 
 Distributed VM stages are collected through `docs/distributed-load-ladder.md` and `npm run load:ladder:probe`. Every final stage is bound to the exact mode-`0600` raw probe files by relative path and SHA-256.

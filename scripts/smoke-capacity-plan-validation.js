@@ -26,6 +26,8 @@ function markMeasured(plan) {
   plan.superPeerSweepEvidence = "evidence/load/real-vm-super-peer-sweep.json";
   plan.edgeNodeCapacityMeasurementStatus = "measured";
   plan.edgeNodeCapacityEvidence = "evidence/capacity/edge-tls-throughput.json";
+  plan.segmentBusCapacityMeasurementStatus = "measured";
+  plan.segmentBusCapacityEvidence = "evidence/capacity/segment-bus-capacity.json";
   plan.providerTrafficTermsApproved = true;
   plan.providerTrafficTermsEvidence = "evidence/capacity/provider-traffic-approval.md";
   plan.plannedEdgeNodes = 17;
@@ -140,6 +142,33 @@ expectFailure(
   /edgeNodeCapacityMeasurementStatus must be measured before launch/
 );
 expectFailure(
+  "segment bus target below derived peak plus headroom",
+  writeVariant("segment-bus-target-low", (plan) => {
+    plan.segmentBusTargetMessagesPerSecond = 324;
+    return plan;
+  }),
+  /segmentBusTargetMessagesPerSecond 324 is below required 325/,
+  { allowDraft: true }
+);
+expectFailure(
+  "unmeasured segment bus capacity rejected at launch",
+  writeVariant("segment-bus-unmeasured", (plan) => {
+    markMeasured(plan);
+    plan.segmentBusCapacityMeasurementStatus = "pending";
+    return plan;
+  }),
+  /segmentBusCapacityMeasurementStatus must be measured before launch/
+);
+expectFailure(
+  "pending segment bus evidence rejected at launch",
+  writeVariant("segment-bus-evidence-pending", (plan) => {
+    markMeasured(plan);
+    plan.segmentBusCapacityEvidence = "capacity/segment-bus-capacity.pending.json";
+    return plan;
+  }),
+  /segmentBusCapacityEvidence must reference non-synthetic completed evidence/
+);
+expectFailure(
   "synthetic offload evidence rejected at launch",
   writeVariant("offload-evidence-synthetic", (plan) => {
     markMeasured(plan);
@@ -194,4 +223,4 @@ expectFailure(
   { allowDraft: true }
 );
 
-console.log("capacity plan validation smoke OK: pass=2 failures=15");
+console.log("capacity plan validation smoke OK: pass=2 failures=18");

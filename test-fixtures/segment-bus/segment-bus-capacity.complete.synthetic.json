@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "evidenceId": "segment-bus-capacity-synthetic-20260721",
+  "environment": "staging",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "releaseVersion": "v0.1.0-synthetic",
+  "clusterId": "segment-bus-staging-a",
+  "rawProbeArtifact": {
+    "path": "segment-bus-capacity-raw.complete.synthetic.json",
+    "sha256": "533a6b6778ca14b16084a15a016f4990b16584105499b6311519aaa8af385c65"
+  },
+  "reviewers": [
+    {
+      "role": "platform",
+      "reviewerId": "platform-reviewer",
+      "status": "approved",
+      "reviewedAt": "2026-07-21T00:01:00.000Z"
+    },
+    {
+      "role": "performance",
+      "reviewerId": "performance-reviewer",
+      "status": "approved",
+      "reviewedAt": "2026-07-21T00:02:00.000Z"
+    },
+    {
+      "role": "security",
+      "reviewerId": "security-reviewer",
+      "status": "approved",
+      "reviewedAt": "2026-07-21T00:03:00.000Z"
+    }
+  ],
+  "evidenceMarkers": [
+    "three-failure-domain-cluster",
+    "projected-peak-sustained",
+    "publish-delivery-reconciled",
+    "leader-loss-quorum",
+    "persistent-latest-replay",
+    "credential-rotation",
+    "subject-permission-denial",
+    "hostname-verified-tls",
+    "mutual-route-tls",
+    "storage-recovery",
+    "monitoring-reconciled",
+    "raw-probe-artifact-sha256",
+    "independent-reviewers"
+  ]
+}
