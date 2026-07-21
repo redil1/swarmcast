@@ -777,7 +777,7 @@ for (const check of [
   },
   {
     file: "scripts/smoke-webrtc-tracker-200.js",
-    required: ["--force-turn-relay", "--expect-turn-auth-rejection", "PEER_COUNT = HASH_MISMATCH_SELF_TEST || USE_TURN ? 2 : 200", "playwright-core", "new RTCPeerConnection", "iceTransportPolicy", "createDataChannel(\"swarmcast-segment\"", "kind: \"offer\"", "kind: \"answer\"", "kind: \"ice\"", "crypto.subtle.digest", "SHA-256 mismatch", "TURN authentication rejected (401)", "swarmcast_tracker_download_p2p_bytes_total", "swarmcast_tracker_upload_bytes_total", "swarmcast_tracker_download_relay_bytes_total", "relay/relay", "verifiedTransfers=", "trackerSignaling=pass", "hashVerification=pass", "accounting=pass"]
+    required: ["--force-turn-relay", "--expect-turn-auth-rejection", "PEER_COUNT = HASH_MISMATCH_SELF_TEST || USE_TURN ? 2 : 200", "JOIN_BATCH_SIZE = 25", "MAX_JOIN_ATTEMPTS = 3", "MAX_TOTAL_JOIN_RETRIES = 20", "join acknowledgement timeout", "tracker joins exceeded retry ceiling", "playwright-core", "new RTCPeerConnection", "iceTransportPolicy", "createDataChannel(\"swarmcast-segment\"", "kind: \"offer\"", "kind: \"answer\"", "kind: \"ice\"", "crypto.subtle.digest", "SHA-256 mismatch", "TURN authentication rejected (401)", "swarmcast_tracker_download_p2p_bytes_total", "swarmcast_tracker_upload_bytes_total", "swarmcast_tracker_download_relay_bytes_total", "relay/relay", "verifiedTransfers=", "joinRetries=", "trackerSignaling=pass", "hashVerification=pass", "accounting=pass"]
   },
   {
     file: "scripts/smoke-tracker-ws.js",

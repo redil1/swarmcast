@@ -21,6 +21,9 @@ const PEER_COUNT = HASH_MISMATCH_SELF_TEST || USE_TURN ? 2 : 200;
 const PAIR_COUNT = PEER_COUNT / 2;
 const PAYLOAD_BYTES = 64 * 1024;
 const RUN_TIMEOUT_MS = 120_000;
+const JOIN_BATCH_SIZE = 25;
+const MAX_JOIN_ATTEMPTS = 3;
+const MAX_TOTAL_JOIN_RETRIES = 20;
 const loadSlug = HASH_MISMATCH_SELF_TEST
   ? "hash-rejection"
   : FORCE_TURN_RELAY
@@ -349,6 +352,9 @@ try {
     expectTurnAuthRejection,
     forceTurnRelay,
     iceServers,
+    joinBatchSize,
+    maxJoinAttempts,
+    maxTotalJoinRetries,
     payloadBase64,
     peerCount,
     runTimeoutMs,
@@ -540,6 +546,67 @@ try {
       throw new Error(`peer ${client.index} received unknown signal kind`);
     }
 
+    function connectTracker(client) {
+      client.joinAttempts += 1;
+      if (client.joinStartedAt === 0) client.joinStartedAt = performance.now();
+      const ws = new WebSocket(`${trackerUrl}?token=${encodeURIComponent(token)}`);
+      client.ws = ws;
+      let joinTimer;
+      ws.onerror = () => {
+        if (client.ws === ws && client.peerId) fail(new Error(`tracker WebSocket error for peer ${client.index}`));
+      };
+      ws.onclose = (event) => {
+        clearTimeout(joinTimer);
+        if (closing || client.ws !== ws) return;
+        if (client.peerId) {
+          fail(new Error(`tracker WebSocket closed for joined peer ${client.index}: ${event.code}`));
+          return;
+        }
+        if (client.joinAttempts >= maxJoinAttempts) {
+          fail(new Error(`tracker join failed for peer ${client.index} after ${client.joinAttempts} attempts: ${event.code}`));
+          return;
+        }
+        setTimeout(() => {
+          if (!closing && !client.peerId && client.ws === ws) connectTracker(client);
+        }, 25 * client.joinAttempts);
+      };
+      ws.onopen = () => {
+        if (client.ws !== ws) return;
+        ws.send(JSON.stringify({
+          t: "join",
+          channelId,
+          assignmentKey: `webrtc-viewer-${client.index}`,
+          caps: {
+            transport: client.index % 2 === 0 ? "wifi" : "cellular",
+            upload: client.index % 2 === 0,
+            uplinkKbps: client.index % 2 === 0 ? 20_000 : 0
+          }
+        }));
+        joinTimer = setTimeout(() => {
+          if (!closing && !client.peerId && client.ws === ws) ws.close(4000, "join acknowledgement timeout");
+        }, 5_000);
+      };
+      ws.onmessage = (event) => {
+        if (client.ws !== ws) return;
+        try {
+          const message = JSON.parse(event.data);
+          if (message.t === "joined") {
+            clearTimeout(joinTimer);
+            client.peerId = message.peerId;
+            client.joinedAt = performance.now();
+            byPeerId.set(message.peerId, client);
+            client.joined.resolve();
+          } else if (message.t === "signal") {
+            void handleSignal(client, message).catch(fail);
+          } else if (message.t === "error") {
+            fail(new Error(`tracker rejected peer ${client.index}: ${message.code || "unknown"}`));
+          }
+        } catch (error) {
+          fail(error);
+        }
+      };
+    }
+
     for (let index = 0; index < peerCount; index += 1) {
       const joined = deferred();
       const channelOpen = deferred();
@@ -559,7 +626,8 @@ try {
         receivedBytes: 0,
         signalSent: 0,
         signalReceived: 0,
-        joinStartedAt: performance.now(),
+        joinAttempts: 0,
+        joinStartedAt: 0,
         joinedAt: 0,
         offerStartedAt: 0,
         channelOpenedAt: 0,
@@ -568,43 +636,18 @@ try {
         transferVerified: false,
         acknowledged: false
       };
-      const ws = new WebSocket(`${trackerUrl}?token=${encodeURIComponent(token)}`);
-      client.ws = ws;
-      ws.onerror = () => fail(new Error(`tracker WebSocket error for peer ${index}`));
-      ws.onclose = (event) => {
-        if (!closing) fail(new Error(`tracker WebSocket closed for peer ${index}: ${event.code}`));
-      };
-      ws.onopen = () => ws.send(JSON.stringify({
-        t: "join",
-        channelId,
-        assignmentKey: `webrtc-viewer-${index}`,
-        caps: {
-          transport: index % 2 === 0 ? "wifi" : "cellular",
-          upload: index % 2 === 0,
-          uplinkKbps: index % 2 === 0 ? 20_000 : 0
-        }
-      }));
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message.t === "joined") {
-            client.peerId = message.peerId;
-            client.joinedAt = performance.now();
-            byPeerId.set(message.peerId, client);
-            joined.resolve();
-          } else if (message.t === "signal") {
-            void handleSignal(client, message).catch(fail);
-          } else if (message.t === "error") {
-            fail(new Error(`tracker rejected peer ${index}: ${message.code || "unknown"}`));
-          }
-        } catch (error) {
-          fail(error);
-        }
-      };
       clients.push(client);
     }
 
-    await withFailure(Promise.all(clients.map((client) => client.joined.promise)));
+    for (let offset = 0; offset < clients.length; offset += joinBatchSize) {
+      const batch = clients.slice(offset, offset + joinBatchSize);
+      batch.forEach(connectTracker);
+      await withFailure(Promise.all(batch.map((client) => client.joined.promise)));
+    }
+    const joinRetries = clients.reduce((total, client) => total + client.joinAttempts - 1, 0);
+    if (joinRetries > maxTotalJoinRetries) {
+      throw new Error(`tracker joins exceeded retry ceiling: ${joinRetries}/${maxTotalJoinRetries}`);
+    }
     if (byPeerId.size !== peerCount) throw new Error(`expected ${peerCount} unique tracker peer IDs, got ${byPeerId.size}`);
     for (let index = 0; index < peerCount; index += 2) {
       clients[index].partner = clients[index + 1];
@@ -685,6 +728,7 @@ try {
       verifiedTransfers: pairCount,
       bytesPerTransfer: transferPayload.byteLength,
       signalingMessages,
+      joinRetries,
       candidatePath: expectedCandidatePath,
       candidatePathCount: candidateTypes.length,
       joinP95Ms,
@@ -698,6 +742,9 @@ try {
     expectTurnAuthRejection: TURN_AUTH_REJECTION_SELF_TEST,
     forceTurnRelay: FORCE_TURN_RELAY,
     iceServers,
+    joinBatchSize: JOIN_BATCH_SIZE,
+    maxJoinAttempts: MAX_JOIN_ATTEMPTS,
+    maxTotalJoinRetries: MAX_TOTAL_JOIN_RETRIES,
     payloadBase64: payload.toString("base64"),
     peerCount: PEER_COUNT,
     runTimeoutMs: RUN_TIMEOUT_MS,
@@ -734,7 +781,7 @@ try {
   console.log(
     `${label} OK: peers=${result.peers} pairs=${result.pairs} verifiedTransfers=${result.verifiedTransfers} ` +
     `bytesPerTransfer=${result.bytesPerTransfer} sha256=${expectedHash} signalingMessages=${result.signalingMessages} ` +
-    `selectedIce=${result.candidatePath}:${result.candidatePathCount} joinP95Ms=${result.joinP95Ms.toFixed(1)} ` +
+    `selectedIce=${result.candidatePath}:${result.candidatePathCount} joinRetries=${result.joinRetries} joinP95Ms=${result.joinP95Ms.toFixed(1)} ` +
     `channelOpenP95Ms=${result.channelOpenP95Ms.toFixed(1)} transferP95Ms=${result.transferP95Ms.toFixed(1)} ` +
     `durationMs=${result.durationMs.toFixed(1)} trackerP2pBytes=${expectedP2pBytes} trackerRelayBytes=${expectedRelayBytes} ` +
     `trackerUploadBytes=${expectedTransferredBytes} ` +
