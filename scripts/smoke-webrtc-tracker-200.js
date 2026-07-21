@@ -1,6 +1,6 @@
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync } from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import { tmpdir } from "node:os";
@@ -8,20 +8,37 @@ import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { createAuthServer } from "../services/auth/src/index.js";
 
-const HASH_MISMATCH_SELF_TEST = process.argv.length === 3 && process.argv[2] === "--expect-hash-mismatch";
-if (process.argv.length > (HASH_MISMATCH_SELF_TEST ? 3 : 2)) {
+const mode = process.argv[2] || "";
+const supportedModes = new Set(["", "--expect-hash-mismatch", "--force-turn-relay", "--expect-turn-auth-rejection"]);
+if (process.argv.length > (mode ? 3 : 2) || !supportedModes.has(mode)) {
   throw new Error(`unsupported WebRTC smoke arguments: ${process.argv.slice(2).join(" ")}`);
 }
-const PEER_COUNT = HASH_MISMATCH_SELF_TEST ? 2 : 200;
+const HASH_MISMATCH_SELF_TEST = mode === "--expect-hash-mismatch";
+const FORCE_TURN_RELAY = mode === "--force-turn-relay";
+const TURN_AUTH_REJECTION_SELF_TEST = mode === "--expect-turn-auth-rejection";
+const USE_TURN = FORCE_TURN_RELAY || TURN_AUTH_REJECTION_SELF_TEST;
+const PEER_COUNT = HASH_MISMATCH_SELF_TEST || USE_TURN ? 2 : 200;
 const PAIR_COUNT = PEER_COUNT / 2;
 const PAYLOAD_BYTES = 64 * 1024;
 const RUN_TIMEOUT_MS = 120_000;
-const loadSlug = HASH_MISMATCH_SELF_TEST ? "hash-rejection" : "200";
+const JOIN_BATCH_SIZE = 25;
+const MAX_JOIN_ATTEMPTS = 3;
+const MAX_TOTAL_JOIN_RETRIES = 20;
+const loadSlug = HASH_MISMATCH_SELF_TEST
+  ? "hash-rejection"
+  : FORCE_TURN_RELAY
+    ? "turn-relay"
+    : TURN_AUTH_REJECTION_SELF_TEST
+      ? "turn-auth-rejection"
+      : "200";
 const CHANNEL_ID = `webrtc-headless-${loadSlug}`;
 const INTERNAL_TOKEN = `webrtc-headless-${loadSlug}-internal`;
 const APP_API_KEY = `webrtc-headless-${loadSlug}-app-key`;
 const dockerImage = process.env.TRACKER_WEBRTC_DOCKER_IMAGE || "";
 const containerName = `swarmcast-tracker-webrtc-200-${process.pid}-${Date.now()}`;
+const turnImage = process.env.TURN_WEBRTC_DOCKER_IMAGE || "swarmcast-turn:local";
+const turnContainerName = `swarmcast-turn-webrtc-${process.pid}-${Date.now()}`;
+const TURN_SHARED_SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 function uWebSocketsSupportsCurrentNode() {
   const major = Number.parseInt(process.versions.node.split(".")[0], 10);
@@ -85,7 +102,89 @@ async function tokenFromAuth(baseUrl) {
     headers: { "x-app-key": APP_API_KEY }
   });
   if (!response.ok) throw new Error(`auth token request failed: ${response.status}`);
-  return (await response.json()).token;
+  return response.json();
+}
+
+function run(command, args, { timeoutMs = 15_000 } = {}) {
+  try {
+    return execFileSync(command, args, { encoding: "utf8", stdio: "pipe", timeout: timeoutMs });
+  } catch (error) {
+    const detail = `${error.stdout || ""}${error.stderr || ""}`.replaceAll(TURN_SHARED_SECRET, "[redacted]").trim();
+    const timedOut = error.code === "ETIMEDOUT" ? ` after ${timeoutMs}ms` : "";
+    throw new Error(`${command} failed${timedOut}${detail ? `: ${detail}` : ""}`);
+  }
+}
+
+function dockerAvailable() {
+  return spawnSync("docker", ["info"], { stdio: "ignore" }).status === 0;
+}
+
+async function startTurn({ turnPort, turnTlsPort, turnMetricsPort, relayMinPort, relayMaxPort, certDirectory }) {
+  if (!dockerAvailable()) throw new Error("forced TURN WebRTC smoke requires Docker");
+  if (spawnSync("docker", ["image", "inspect", turnImage], { stdio: "ignore" }).status !== 0) {
+    run("docker", ["build", "--pull", "-f", "infra/turn/Dockerfile", "-t", turnImage, "."], {
+      timeoutMs: 300_000
+    });
+  }
+
+  const cert = join(certDirectory, "fullchain.pem");
+  const key = join(certDirectory, "privkey.pem");
+  run("openssl", [
+    "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+    "-subj", "/CN=localhost", "-keyout", key, "-out", cert
+  ]);
+  chmodSync(certDirectory, 0o755);
+  chmodSync(cert, 0o644);
+  chmodSync(key, 0o644);
+
+  run("docker", [
+    "run", "-d", "--name", turnContainerName,
+    "--read-only",
+    "--tmpfs", "/run:size=1m,mode=0700,uid=65534,gid=65534",
+    "--tmpfs", "/tmp:size=16m,mode=1777",
+    "--cap-drop=ALL", "--cap-add=NET_BIND_SERVICE",
+    "-p", `127.0.0.1:${turnPort}:${turnPort}/udp`,
+    "-p", `127.0.0.1:${turnMetricsPort}:${turnMetricsPort}/tcp`,
+    "-p", `127.0.0.1:${relayMinPort}-${relayMaxPort}:${relayMinPort}-${relayMaxPort}/udp`,
+    "-e", "TURN_REALM=turn.webrtc.local",
+    "-e", `TURN_SHARED_SECRET=${TURN_SHARED_SECRET}`,
+    "-e", `TURN_LISTENING_PORT=${turnPort}`,
+    "-e", `TURN_TLS_LISTENING_PORT=${turnTlsPort}`,
+    "-e", `TURN_MIN_PORT=${relayMinPort}`,
+    "-e", `TURN_MAX_PORT=${relayMaxPort}`,
+    "-e", "TURN_USER_QUOTA=4",
+    "-e", "TURN_TOTAL_QUOTA=20",
+    "-e", "TURN_MAX_BPS=1250000",
+    "-e", "TURN_BPS_CAPACITY=100000000",
+    "-e", `TURN_PROMETHEUS_PORT=${turnMetricsPort}`,
+    "-e", "TURN_ALLOW_PRIVATE_PEERS=1",
+    "-e", "TURN_EXTERNAL_IP=127.0.0.1",
+    "-v", `${join(process.cwd(), "infra/turn/render-config.sh")}:/etc/swarmcast/render-config.sh:ro`,
+    "-v", `${certDirectory}:/certs:ro`,
+    "--entrypoint", "/bin/sh",
+    turnImage,
+    "/etc/swarmcast/render-config.sh"
+  ], { timeoutMs: 60_000 });
+
+  await waitFor(async () => {
+    const state = run("docker", ["inspect", "--format", "{{.State.Running}}", turnContainerName]).trim();
+    if (state !== "true") throw new Error(`coturn exited before readiness: ${run("docker", ["logs", turnContainerName])}`);
+    const probe = spawnSync("docker", [
+      "exec", turnContainerName, "turnutils_stunclient", "-p", String(turnPort), "127.0.0.1"
+    ], { stdio: "ignore", timeout: 3_000 });
+    return probe.status === 0;
+  }, { timeoutMs: 15_000, intervalMs: 250 });
+  const metricsResponse = await fetch(`http://127.0.0.1:${turnMetricsPort}/metrics`, {
+    signal: AbortSignal.timeout(5_000)
+  });
+  const metricsText = await metricsResponse.text();
+  if (!metricsResponse.ok || !metricsText.includes("# HELP") || !metricsText.includes("turn_")) {
+    throw new Error("coturn Prometheus endpoint did not return TURN metrics");
+  }
+}
+
+function stopTurn() {
+  spawnSync("docker", ["rm", "-f", turnContainerName], { stdio: "ignore", timeout: 10_000 });
 }
 
 function spawnTracker({ trackerPort, trackerInternalPort, authPort, ingestPort }) {
@@ -162,6 +261,7 @@ for (let index = 0; index < payload.length; index += 1) payload[index] = (index 
 const expectedHash = createHash("sha256").update(payload).digest("hex");
 if (HASH_MISMATCH_SELF_TEST) payload[payload.length - 1] ^= 0xff;
 const tempDir = mkdtempSync(join(tmpdir(), "swarmcast-webrtc-200-"));
+const turnCertDir = USE_TURN ? mkdtempSync(join(tempDir, "turn-certs-")) : null;
 let authServer;
 let browserPageServer;
 let browser;
@@ -171,16 +271,43 @@ let demandCalls = 0;
 let trackerInternalPort;
 
 try {
-  portReservations = await reservePorts(2);
-  const [trackerPort, reservedTrackerInternalPort] = portReservations.ports;
+  portReservations = await reservePorts(USE_TURN ? 5 : 2);
+  const [trackerPort, reservedTrackerInternalPort, turnPort, turnTlsPort, turnMetricsPort] = portReservations.ports;
   trackerInternalPort = reservedTrackerInternalPort;
+
+  if (USE_TURN) {
+    const relayMinPort = 55_000 + (process.pid % 100) * 20;
+    const relayMaxPort = relayMinPort + 19;
+    await portReservations.release(turnPort);
+    await portReservations.release(turnTlsPort);
+    await portReservations.release(turnMetricsPort);
+    await startTurn({
+      turnPort,
+      turnTlsPort,
+      turnMetricsPort,
+      relayMinPort,
+      relayMaxPort,
+      certDirectory: turnCertDir
+    });
+  }
 
   authServer = await createAuthServer({
     keyPath: join(tempDir, "auth.pem"),
-    appApiKey: APP_API_KEY
+    appApiKey: APP_API_KEY,
+    stunUrls: [],
+    turnEnabled: USE_TURN,
+    turnUrls: USE_TURN ? [`turn:127.0.0.1:${turnPort}?transport=udp`] : [],
+    turnSharedSecret: USE_TURN ? TURN_SHARED_SECRET : "",
+    turnCredentialTtlSeconds: 300
   });
   const authPort = await listen(authServer);
-  const token = await tokenFromAuth(`http://127.0.0.1:${authPort}`);
+  const authSession = await tokenFromAuth(`http://127.0.0.1:${authPort}`);
+  const token = authSession.token;
+  const iceServers = (authSession.iceServers || []).filter((server) =>
+    Array.isArray(server.urls) ? server.urls.length > 0 : Boolean(server.urls)
+  );
+  if (USE_TURN && iceServers.length !== 1) throw new Error(`expected one issued TURN server, got ${iceServers.length}`);
+  if (TURN_AUTH_REJECTION_SELF_TEST) iceServers[0].credential = `${iceServers[0].credential}-invalid`;
 
   browserPageServer = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url === "/") {
@@ -219,7 +346,21 @@ try {
   const page = await browser.newPage();
   await page.goto(`http://127.0.0.1:${browserPagePort}/`, { waitUntil: "domcontentloaded" });
 
-  const result = await page.evaluate(async ({ channelId, expectedHash, payloadBase64, peerCount, runTimeoutMs, token, trackerUrl }) => {
+  const result = await page.evaluate(async ({
+    channelId,
+    expectedHash,
+    expectTurnAuthRejection,
+    forceTurnRelay,
+    iceServers,
+    joinBatchSize,
+    maxJoinAttempts,
+    maxTotalJoinRetries,
+    payloadBase64,
+    peerCount,
+    runTimeoutMs,
+    token,
+    trackerUrl
+  }) => {
     const startedAt = performance.now();
     const payloadText = atob(payloadBase64);
     const transferPayload = Uint8Array.from(payloadText, (character) => character.charCodeAt(0));
@@ -229,7 +370,7 @@ try {
     let runFailureReject;
     const runFailure = new Promise((_, reject) => { runFailureReject = reject; });
     const runTimeout = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`200-peer WebRTC run exceeded ${runTimeoutMs} ms`)), runTimeoutMs);
+      setTimeout(() => reject(new Error(`WebRTC run exceeded ${runTimeoutMs} ms`)), runTimeoutMs);
     });
     let closing = false;
 
@@ -276,6 +417,14 @@ try {
       client.ws.send(JSON.stringify({ t: "signal", to: client.partner.peerId, data }));
     }
 
+    function acknowledgeSender(client) {
+      if (client.acknowledged) return;
+      client.acknowledged = true;
+      client.acknowledgedAt = performance.now();
+      client.ws.send(JSON.stringify({ t: "stats", dl_p2p: 0, dl_edge: 0, dl_relay: 0, ul: transferPayload.byteLength }));
+      client.transferAck.resolve();
+    }
+
     function wireChannel(client, channel) {
       client.channel = channel;
       channel.binaryType = "arraybuffer";
@@ -294,10 +443,7 @@ try {
         try {
           if (typeof event.data === "string") {
             if (event.data !== `ack:${expectedHash}`) throw new Error(`invalid transfer acknowledgement for peer ${client.index}`);
-            client.acknowledged = true;
-            client.acknowledgedAt = performance.now();
-            client.ws.send(JSON.stringify({ t: "stats", dl_p2p: 0, dl_edge: 0, dl_relay: 0, ul: transferPayload.byteLength }));
-            client.transferAck.resolve();
+            acknowledgeSender(client);
             return;
           }
           if (client.index % 2 === 0) throw new Error(`sender peer ${client.index} received unexpected binary payload`);
@@ -315,8 +461,15 @@ try {
             const actualHash = await sha256(assembled);
             if (actualHash !== expectedHash) throw new Error(`SHA-256 mismatch for peer ${client.index}`);
             client.transferVerified = true;
-            client.ws.send(JSON.stringify({ t: "stats", dl_p2p: assembled.byteLength, dl_edge: 0, dl_relay: 0, ul: 0 }));
-            channel.send(`ack:${actualHash}`);
+            client.ws.send(JSON.stringify({
+              t: "stats",
+              dl_p2p: forceTurnRelay ? 0 : assembled.byteLength,
+              dl_edge: 0,
+              dl_relay: forceTurnRelay ? assembled.byteLength : 0,
+              ul: 0
+            }));
+            if (forceTurnRelay) acknowledgeSender(client.partner);
+            else channel.send(`ack:${actualHash}`);
           }
         } catch (error) {
           fail(error);
@@ -326,7 +479,10 @@ try {
 
     function createPeerConnection(client, createDataChannel) {
       if (client.pc) return client.pc;
-      const pc = new RTCPeerConnection({ iceServers: [] });
+      const pc = new RTCPeerConnection({
+        iceServers,
+        iceTransportPolicy: forceTurnRelay || expectTurnAuthRejection ? "relay" : "all"
+      });
       client.pc = pc;
       pc.onicecandidate = (event) => {
         if (!event.candidate) return;
@@ -340,6 +496,13 @@ try {
       pc.onconnectionstatechange = () => {
         if (["failed", "closed"].includes(pc.connectionState) && !closing) {
           fail(new Error(`peer connection ${client.index} entered ${pc.connectionState}`));
+        }
+      };
+      pc.onicecandidateerror = (event) => {
+        if (expectTurnAuthRejection && event.errorCode === 401) {
+          fail(new Error("TURN authentication rejected (401)"));
+        } else if (!expectTurnAuthRejection) {
+          fail(new Error(`ICE candidate error ${event.errorCode}: ${event.errorText || "unknown"}`));
         }
       };
       pc.ondatachannel = (event) => wireChannel(client, event.channel);
@@ -383,6 +546,67 @@ try {
       throw new Error(`peer ${client.index} received unknown signal kind`);
     }
 
+    function connectTracker(client) {
+      client.joinAttempts += 1;
+      if (client.joinStartedAt === 0) client.joinStartedAt = performance.now();
+      const ws = new WebSocket(`${trackerUrl}?token=${encodeURIComponent(token)}`);
+      client.ws = ws;
+      let joinTimer;
+      ws.onerror = () => {
+        if (client.ws === ws && client.peerId) fail(new Error(`tracker WebSocket error for peer ${client.index}`));
+      };
+      ws.onclose = (event) => {
+        clearTimeout(joinTimer);
+        if (closing || client.ws !== ws) return;
+        if (client.peerId) {
+          fail(new Error(`tracker WebSocket closed for joined peer ${client.index}: ${event.code}`));
+          return;
+        }
+        if (client.joinAttempts >= maxJoinAttempts) {
+          fail(new Error(`tracker join failed for peer ${client.index} after ${client.joinAttempts} attempts: ${event.code}`));
+          return;
+        }
+        setTimeout(() => {
+          if (!closing && !client.peerId && client.ws === ws) connectTracker(client);
+        }, 25 * client.joinAttempts);
+      };
+      ws.onopen = () => {
+        if (client.ws !== ws) return;
+        ws.send(JSON.stringify({
+          t: "join",
+          channelId,
+          assignmentKey: `webrtc-viewer-${client.index}`,
+          caps: {
+            transport: client.index % 2 === 0 ? "wifi" : "cellular",
+            upload: client.index % 2 === 0,
+            uplinkKbps: client.index % 2 === 0 ? 20_000 : 0
+          }
+        }));
+        joinTimer = setTimeout(() => {
+          if (!closing && !client.peerId && client.ws === ws) ws.close(4000, "join acknowledgement timeout");
+        }, 5_000);
+      };
+      ws.onmessage = (event) => {
+        if (client.ws !== ws) return;
+        try {
+          const message = JSON.parse(event.data);
+          if (message.t === "joined") {
+            clearTimeout(joinTimer);
+            client.peerId = message.peerId;
+            client.joinedAt = performance.now();
+            byPeerId.set(message.peerId, client);
+            client.joined.resolve();
+          } else if (message.t === "signal") {
+            void handleSignal(client, message).catch(fail);
+          } else if (message.t === "error") {
+            fail(new Error(`tracker rejected peer ${client.index}: ${message.code || "unknown"}`));
+          }
+        } catch (error) {
+          fail(error);
+        }
+      };
+    }
+
     for (let index = 0; index < peerCount; index += 1) {
       const joined = deferred();
       const channelOpen = deferred();
@@ -402,7 +626,8 @@ try {
         receivedBytes: 0,
         signalSent: 0,
         signalReceived: 0,
-        joinStartedAt: performance.now(),
+        joinAttempts: 0,
+        joinStartedAt: 0,
         joinedAt: 0,
         offerStartedAt: 0,
         channelOpenedAt: 0,
@@ -411,43 +636,18 @@ try {
         transferVerified: false,
         acknowledged: false
       };
-      const ws = new WebSocket(`${trackerUrl}?token=${encodeURIComponent(token)}`);
-      client.ws = ws;
-      ws.onerror = () => fail(new Error(`tracker WebSocket error for peer ${index}`));
-      ws.onclose = (event) => {
-        if (!closing) fail(new Error(`tracker WebSocket closed for peer ${index}: ${event.code}`));
-      };
-      ws.onopen = () => ws.send(JSON.stringify({
-        t: "join",
-        channelId,
-        assignmentKey: `webrtc-viewer-${index}`,
-        caps: {
-          transport: index % 2 === 0 ? "wifi" : "cellular",
-          upload: index % 2 === 0,
-          uplinkKbps: index % 2 === 0 ? 20_000 : 0
-        }
-      }));
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message.t === "joined") {
-            client.peerId = message.peerId;
-            client.joinedAt = performance.now();
-            byPeerId.set(message.peerId, client);
-            joined.resolve();
-          } else if (message.t === "signal") {
-            void handleSignal(client, message).catch(fail);
-          } else if (message.t === "error") {
-            fail(new Error(`tracker rejected peer ${index}: ${message.code || "unknown"}`));
-          }
-        } catch (error) {
-          fail(error);
-        }
-      };
       clients.push(client);
     }
 
-    await withFailure(Promise.all(clients.map((client) => client.joined.promise)));
+    for (let offset = 0; offset < clients.length; offset += joinBatchSize) {
+      const batch = clients.slice(offset, offset + joinBatchSize);
+      batch.forEach(connectTracker);
+      await withFailure(Promise.all(batch.map((client) => client.joined.promise)));
+    }
+    const joinRetries = clients.reduce((total, client) => total + client.joinAttempts - 1, 0);
+    if (joinRetries > maxTotalJoinRetries) {
+      throw new Error(`tracker joins exceeded retry ceiling: ${joinRetries}/${maxTotalJoinRetries}`);
+    }
     if (byPeerId.size !== peerCount) throw new Error(`expected ${peerCount} unique tracker peer IDs, got ${byPeerId.size}`);
     for (let index = 0; index < peerCount; index += 2) {
       clients[index].partner = clients[index + 1];
@@ -496,8 +696,9 @@ try {
     const candidateTypes = await withFailure(Promise.all(
       clients.filter((client) => client.index % 2 === 0).map((client) => selectedCandidateTypes(client.pc))
     ));
-    if (candidateTypes.some((value) => value !== "host/host")) {
-      throw new Error(`same-host smoke selected unexpected ICE paths: ${[...new Set(candidateTypes)].join(",")}`);
+    const expectedCandidatePath = forceTurnRelay ? "relay/relay" : "host/host";
+    if (candidateTypes.some((value) => value !== expectedCandidatePath)) {
+      throw new Error(`WebRTC smoke selected unexpected ICE paths: ${[...new Set(candidateTypes)].join(",")}`);
     }
 
     const joinP95Ms = percentile(clients.map((client) => client.joinedAt - client.joinStartedAt), 0.95);
@@ -527,7 +728,9 @@ try {
       verifiedTransfers: pairCount,
       bytesPerTransfer: transferPayload.byteLength,
       signalingMessages,
-      candidateTypes: { "host/host": candidateTypes.length },
+      joinRetries,
+      candidatePath: expectedCandidatePath,
+      candidatePathCount: candidateTypes.length,
       joinP95Ms,
       channelOpenP95Ms,
       transferP95Ms,
@@ -536,6 +739,12 @@ try {
   }, {
     channelId: CHANNEL_ID,
     expectedHash,
+    expectTurnAuthRejection: TURN_AUTH_REJECTION_SELF_TEST,
+    forceTurnRelay: FORCE_TURN_RELAY,
+    iceServers,
+    joinBatchSize: JOIN_BATCH_SIZE,
+    maxJoinAttempts: MAX_JOIN_ATTEMPTS,
+    maxTotalJoinRetries: MAX_TOTAL_JOIN_RETRIES,
     payloadBase64: payload.toString("base64"),
     peerCount: PEER_COUNT,
     runTimeoutMs: RUN_TIMEOUT_MS,
@@ -548,38 +757,50 @@ try {
     const response = await fetch(`http://127.0.0.1:${trackerInternalPort}/metrics`);
     if (!response.ok) return false;
     const text = await response.text();
-    return metricValue(text, "swarmcast_tracker_download_p2p_bytes_total") === expectedTransferredBytes &&
+    return metricValue(text, FORCE_TURN_RELAY
+      ? "swarmcast_tracker_download_relay_bytes_total"
+      : "swarmcast_tracker_download_p2p_bytes_total") === expectedTransferredBytes &&
       metricValue(text, "swarmcast_tracker_upload_bytes_total") === expectedTransferredBytes;
   }, { timeoutMs: 10_000 });
   const metrics = await (await fetch(`http://127.0.0.1:${trackerInternalPort}/metrics`)).text();
-  if (metricValue(metrics, "swarmcast_tracker_download_edge_bytes_total") !== 0 ||
-      metricValue(metrics, "swarmcast_tracker_download_relay_bytes_total") !== 0 ||
-      metricValue(metrics, "swarmcast_tracker_offload_ratio") !== 1 ||
+  const expectedP2pBytes = FORCE_TURN_RELAY ? 0 : expectedTransferredBytes;
+  const expectedRelayBytes = FORCE_TURN_RELAY ? expectedTransferredBytes : 0;
+  const expectedOffloadRatio = FORCE_TURN_RELAY ? 0 : 1;
+  if (metricValue(metrics, "swarmcast_tracker_download_p2p_bytes_total") !== expectedP2pBytes ||
+      metricValue(metrics, "swarmcast_tracker_download_edge_bytes_total") !== 0 ||
+      metricValue(metrics, "swarmcast_tracker_download_relay_bytes_total") !== expectedRelayBytes ||
+      metricValue(metrics, "swarmcast_tracker_offload_ratio") !== expectedOffloadRatio ||
       metricValue(metrics, "swarmcast_tracker_messages_dropped_total") !== 0 ||
       metricValue(metrics, "swarmcast_tracker_backpressure_drops_total") !== 0 ||
       metricValue(metrics, "swarmcast_tracker_cell_capacity_rejections_total") !== 0) {
-    throw new Error("tracker metrics did not reconcile the direct WebRTC transfer cleanly");
+    throw new Error("tracker metrics did not reconcile the WebRTC transfer cleanly");
   }
   if (demandCalls < PEER_COUNT) throw new Error(`expected at least ${PEER_COUNT} demand calls, got ${demandCalls}`);
 
+  const label = FORCE_TURN_RELAY ? "WebRTC TURN relay smoke" : "WebRTC 200-peer smoke";
   console.log(
-    `WebRTC 200-peer smoke OK: peers=${result.peers} pairs=${result.pairs} verifiedTransfers=${result.verifiedTransfers} ` +
+    `${label} OK: peers=${result.peers} pairs=${result.pairs} verifiedTransfers=${result.verifiedTransfers} ` +
     `bytesPerTransfer=${result.bytesPerTransfer} sha256=${expectedHash} signalingMessages=${result.signalingMessages} ` +
-    `selectedIce=host/host:${result.candidateTypes["host/host"]} joinP95Ms=${result.joinP95Ms.toFixed(1)} ` +
+    `selectedIce=${result.candidatePath}:${result.candidatePathCount} joinRetries=${result.joinRetries} joinP95Ms=${result.joinP95Ms.toFixed(1)} ` +
     `channelOpenP95Ms=${result.channelOpenP95Ms.toFixed(1)} transferP95Ms=${result.transferP95Ms.toFixed(1)} ` +
-    `durationMs=${result.durationMs.toFixed(1)} trackerP2pBytes=${expectedTransferredBytes} trackerUploadBytes=${expectedTransferredBytes} ` +
+    `durationMs=${result.durationMs.toFixed(1)} trackerP2pBytes=${expectedP2pBytes} trackerRelayBytes=${expectedRelayBytes} ` +
+    `trackerUploadBytes=${expectedTransferredBytes} ` +
     "trackerSignaling=pass dataChannel=pass hashVerification=pass accounting=pass drops=0 capacityRejections=0"
   );
 } catch (error) {
   const message = error instanceof Error ? error.stack || error.message : String(error);
-  if (HASH_MISMATCH_SELF_TEST && message.includes("SHA-256 mismatch")) {
+  if ((HASH_MISMATCH_SELF_TEST && message.includes("SHA-256 mismatch")) ||
+      (TURN_AUTH_REJECTION_SELF_TEST && message.includes("TURN authentication rejected (401)"))) {
     try {
       const metrics = await (await fetch(`http://127.0.0.1:${trackerInternalPort}/metrics`)).text();
       if (metricValue(metrics, "swarmcast_tracker_download_p2p_bytes_total") !== 0 ||
+          metricValue(metrics, "swarmcast_tracker_download_relay_bytes_total") !== 0 ||
           metricValue(metrics, "swarmcast_tracker_upload_bytes_total") !== 0) {
-        throw new Error("tampered transfer changed tracker byte accounting");
+        throw new Error("rejected transfer changed tracker byte accounting");
       }
-      console.log("WebRTC hash rejection smoke OK: tampered DataChannel payload rejected with zero download/upload accounting");
+      console.log(TURN_AUTH_REJECTION_SELF_TEST
+        ? "WebRTC TURN auth rejection smoke OK: invalid credentials rejected with zero direct/relay/upload accounting"
+        : "WebRTC hash rejection smoke OK: tampered DataChannel payload rejected with zero direct/relay/upload accounting");
     } catch (accountingError) {
       console.error(accountingError instanceof Error ? accountingError.stack || accountingError.message : String(accountingError));
       process.exitCode = 1;
@@ -602,5 +823,6 @@ try {
   if (portReservations) await portReservations.close();
   if (authServer) await closeServer(authServer);
   if (browserPageServer) await closeServer(browserPageServer);
+  if (USE_TURN) stopTurn();
   rmSync(tempDir, { recursive: true, force: true });
 }

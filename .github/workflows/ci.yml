@@ -83,3 +83,5 @@ jobs:
       - run: npm run smoke:nginx-origin-playback
       - run: npm run smoke:nginx-edge-cache
       - run: npm run smoke:turn
+      - run: npm run smoke:webrtc-turn-auth-rejection
+      - run: npm run smoke:webrtc-turn-relay
