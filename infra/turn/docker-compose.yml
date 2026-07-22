@@ -6,6 +6,8 @@ services:
     environment:
       TURN_REALM: ${TURN_REALM}
       TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP}
+      TURN_LISTENING_IP: ${TURN_LISTENING_IP:-}
+      TURN_RELAY_IP: ${TURN_RELAY_IP:-}
       TURN_SHARED_SECRET: ${TURN_SHARED_SECRET}
       TURN_PREVIOUS_SHARED_SECRET: ${TURN_PREVIOUS_SHARED_SECRET:-}
       TURN_LISTENING_PORT: ${TURN_LISTENING_PORT:-3478}
@@ -17,6 +19,7 @@ services:
       TURN_MAX_BPS: ${TURN_MAX_BPS:-1250000}
       TURN_BPS_CAPACITY: ${TURN_BPS_CAPACITY:-100000000}
       TURN_PROMETHEUS_PORT: ${TURN_PROMETHEUS_PORT:-9641}
+      TURN_PROMETHEUS_ADDRESS: ${TURN_PROMETHEUS_ADDRESS:-0.0.0.0}
     entrypoint: ["/bin/sh", "/etc/swarmcast/render-config.sh"]
     volumes:
       - ./render-config.sh:/etc/swarmcast/render-config.sh:ro

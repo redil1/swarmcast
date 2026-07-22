@@ -9,6 +9,7 @@ import {
   writeFileSync
 } from "node:fs";
 import path from "node:path";
+import { isIP } from "node:net";
 import { fileURLToPath } from "node:url";
 
 const REQUIRED_KEYS = Object.freeze([
@@ -22,7 +23,12 @@ const REQUIRED_KEYS = Object.freeze([
   "INGEST_NODES",
   "STAGING_M3U_FILE",
   "SOURCE_ALLOWED_HOSTS",
-  "SOURCE_ALLOW_PRIVATE_NETWORKS"
+  "SOURCE_ALLOW_PRIVATE_NETWORKS",
+  "TURN_ENABLED",
+  "TURN_URLS",
+  "TURN_SHARED_SECRET",
+  "TURN_REALM",
+  "TURN_EXTERNAL_IP"
 ]);
 
 function safeCatalogPath(catalogPath) {
@@ -80,10 +86,52 @@ function randomPassword() {
   return randomBytes(32).toString("base64url");
 }
 
-export function stagingEnvValues({ publicSuffix, catalogPath }) {
+function turnExternalIp(publicSuffix, explicitIp = "") {
+  const suffixIp = publicSuffix.endsWith(".sslip.io")
+    ? publicSuffix.slice(0, -".sslip.io".length)
+    : "";
+  const value = String(explicitIp || suffixIp).trim();
+  if (isIP(value) !== 4) {
+    throw new Error("TURN external IP must be an explicit public IPv4 address for non-sslip staging");
+  }
+  return value;
+}
+
+function stagingTurnValues({ suffix, externalIp, sharedSecret = randomHex() }) {
+  const realm = `origin.${suffix}`;
+  return {
+    ICE_SERVER_ALLOWED_HOSTS: `stun.l.google.com,stun.cloudflare.com,${realm}`,
+    TURN_ENABLED: "1",
+    TURN_URLS: JSON.stringify([
+      `turn:${realm}:3478?transport=udp`,
+      `turn:${realm}:3478?transport=tcp`,
+      `turns:${realm}:5349?transport=tcp`
+    ]),
+    TURN_SHARED_SECRET: sharedSecret,
+    TURN_CREDENTIAL_TTL_SECONDS: "3600",
+    TURN_REALM: realm,
+    TURN_EXTERNAL_IP: externalIp,
+    TURN_LISTENING_IP: externalIp,
+    TURN_RELAY_IP: externalIp,
+    TURN_LISTENING_PORT: "3478",
+    TURN_TLS_LISTENING_PORT: "5349",
+    TURN_MIN_PORT: "55000",
+    TURN_MAX_PORT: "55999",
+    TURN_USER_QUOTA: "12",
+    TURN_TOTAL_QUOTA: "1000",
+    TURN_MAX_BPS: "1250000",
+    TURN_BPS_CAPACITY: "100000000",
+    TURN_PROMETHEUS_PORT: "9641",
+    TURN_PROMETHEUS_ADDRESS: "127.0.0.1",
+    TURN_ALLOW_PRIVATE_PEERS: "0"
+  };
+}
+
+export function stagingEnvValues({ publicSuffix, catalogPath, turnExternalIp: explicitTurnIp = "" }) {
   const suffix = normalizeSuffix(publicSuffix);
   const catalog = inspectCatalog(catalogPath);
   const originBase = `https://origin.${suffix}`;
+  const externalIp = turnExternalIp(suffix, explicitTurnIp);
 
   return {
     INTERNAL_TOKEN: randomHex(),
@@ -99,10 +147,8 @@ export function stagingEnvValues({ publicSuffix, catalogPath }) {
     STAGING_M3U_FILE: catalog.catalogPath,
     SOURCE_ALLOWED_HOSTS: catalog.hosts.join(","),
     SOURCE_ALLOW_PRIVATE_NETWORKS: "0",
-    ICE_SERVER_ALLOWED_HOSTS: "stun.l.google.com,stun.cloudflare.com",
     ICE_STUN_URLS: JSON.stringify(["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"]),
-    TURN_ENABLED: "0",
-    TURN_URLS: "[]",
+    ...stagingTurnValues({ suffix, externalIp }),
     AUTH_PLAY_INTEGRITY_ENABLED: "0",
     SEGMENT_BUS_ENABLED: "1",
     SEGMENT_BUS_SERVERS: JSON.stringify(["nats://segment-bus:4222"]),
@@ -158,7 +204,7 @@ export function parseEnv(text) {
   return values;
 }
 
-export function validateStagingEnv({ publicSuffix, catalogPath, envPath }) {
+export function validateStagingEnv({ publicSuffix, catalogPath, envPath, turnExternalIp: explicitTurnIp = "" }) {
   const suffix = normalizeSuffix(publicSuffix);
   const catalog = inspectCatalog(catalogPath);
   const resolvedEnv = path.resolve(envPath);
@@ -186,6 +232,17 @@ export function validateStagingEnv({ publicSuffix, catalogPath, envPath }) {
   if (values.TRACKER_BASE && values.TRACKER_BASE !== `wss://tracker.${suffix}/ws`) {
     throw new Error("tracker base does not match public suffix");
   }
+  const expectedTurn = stagingTurnValues({
+    suffix,
+    externalIp: turnExternalIp(suffix, explicitTurnIp || values.TURN_EXTERNAL_IP),
+    sharedSecret: values.TURN_SHARED_SECRET
+  });
+  if (!/^[a-f0-9]{64}$/.test(values.TURN_SHARED_SECRET)) {
+    throw new Error("TURN_SHARED_SECRET must be 64 lowercase hex characters");
+  }
+  for (const [key, expected] of Object.entries(expectedTurn)) {
+    if (values[key] !== expected) throw new Error(`${key} does not match single-host TURN staging`);
+  }
   const nodes = JSON.parse(values.INGEST_NODES);
   if (nodes.length !== 1 || nodes[0].baseUrl !== values.ORIGIN_BASE || nodes[0].ingestUrl !== "http://ingest:7001") {
     throw new Error("single-host ingest placement is invalid");
@@ -194,21 +251,65 @@ export function validateStagingEnv({ publicSuffix, catalogPath, envPath }) {
   return { envPath: resolvedEnv, entries: catalog.entries, sourceHosts: catalog.hosts.length };
 }
 
-export function renderStagingEnv({ publicSuffix, catalogPath, outputPath, force = false }) {
-  const values = stagingEnvValues({ publicSuffix, catalogPath });
+export function renderStagingEnv({
+  publicSuffix,
+  catalogPath,
+  outputPath,
+  force = false,
+  turnExternalIp: explicitTurnIp = ""
+}) {
+  const values = stagingEnvValues({ publicSuffix, catalogPath, turnExternalIp: explicitTurnIp });
   writeSecureAtomic(outputPath, serializeEnv(values), { force });
-  return validateStagingEnv({ publicSuffix, catalogPath, envPath: outputPath });
+  return validateStagingEnv({
+    publicSuffix,
+    catalogPath,
+    envPath: outputPath,
+    turnExternalIp: explicitTurnIp
+  });
+}
+
+export function enableStagingTurn({ publicSuffix, catalogPath, outputPath, turnExternalIp: explicitTurnIp = "" }) {
+  const suffix = normalizeSuffix(publicSuffix);
+  const resolvedEnv = path.resolve(outputPath);
+  const stat = lstatSync(resolvedEnv);
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("staging env must be a regular non-symlink file");
+  if ((stat.mode & 0o077) !== 0) throw new Error("staging env permissions must be 0600");
+  const values = parseEnv(readFileSync(resolvedEnv, "utf8"));
+  const sharedSecret = /^[a-f0-9]{64}$/.test(values.TURN_SHARED_SECRET || "")
+    ? values.TURN_SHARED_SECRET
+    : randomHex();
+  Object.assign(values, stagingTurnValues({
+    suffix,
+    externalIp: turnExternalIp(suffix, explicitTurnIp || values.TURN_EXTERNAL_IP),
+    sharedSecret
+  }));
+  writeSecureAtomic(resolvedEnv, serializeEnv(values), { force: true });
+  return validateStagingEnv({
+    publicSuffix,
+    catalogPath,
+    envPath: resolvedEnv,
+    turnExternalIp: explicitTurnIp
+  });
 }
 
 function optionsFrom(argv) {
-  const options = { force: false, check: false };
+  const options = { force: false, check: false, enableTurn: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--force" || arg === "--check") {
       options[arg.slice(2)] = true;
       continue;
     }
-    const key = { "--public-suffix": "publicSuffix", "--catalog": "catalogPath", "--output": "outputPath" }[arg];
+    if (arg === "--enable-turn") {
+      options.enableTurn = true;
+      continue;
+    }
+    const key = {
+      "--public-suffix": "publicSuffix",
+      "--catalog": "catalogPath",
+      "--output": "outputPath",
+      "--turn-external-ip": "turnExternalIp"
+    }[arg];
     if (!key || !argv[index + 1]) throw new Error(`unknown or incomplete argument: ${arg}`);
     options[key] = argv[index + 1];
     index += 1;
@@ -223,9 +324,16 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   try {
     const options = optionsFrom(process.argv.slice(2));
-    const result = options.check
-      ? validateStagingEnv({ publicSuffix: options.publicSuffix, catalogPath: options.catalogPath, envPath: options.outputPath })
-      : renderStagingEnv(options);
+    const result = options.enableTurn
+      ? enableStagingTurn(options)
+      : options.check
+        ? validateStagingEnv({
+          publicSuffix: options.publicSuffix,
+          catalogPath: options.catalogPath,
+          envPath: options.outputPath,
+          turnExternalIp: options.turnExternalIp
+        })
+        : renderStagingEnv(options);
     console.log(JSON.stringify({ ok: true, ...result }));
   } catch (error) {
     console.error(error.message);

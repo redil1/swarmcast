@@ -47,6 +47,11 @@ for name in TURN_LISTENING_PORT TURN_TLS_LISTENING_PORT TURN_MIN_PORT TURN_MAX_P
   integer "$name"
 done
 
+TURN_PROMETHEUS_ADDRESS=${TURN_PROMETHEUS_ADDRESS:-0.0.0.0}
+case "$TURN_PROMETHEUS_ADDRESS" in
+  *[!A-Fa-f0-9.:]*|'') echo "TURN_PROMETHEUS_ADDRESS must be an IP address" >&2; exit 1 ;;
+esac
+
 if [ "$TURN_MIN_PORT" -gt "$TURN_MAX_PORT" ]; then
   echo "TURN_MIN_PORT must not exceed TURN_MAX_PORT" >&2
   exit 1
@@ -84,7 +89,7 @@ no-multicast-peers
 no-rfc5780
 prometheus
 prometheus-port=$TURN_PROMETHEUS_PORT
-prometheus-address=0.0.0.0
+prometheus-address=$TURN_PROMETHEUS_ADDRESS
 log-file=stdout
 simple-log
 new-log-timestamp
@@ -95,6 +100,12 @@ EOF
 
 if [ -n "${TURN_EXTERNAL_IP:-}" ]; then
   printf 'external-ip=%s\n' "$TURN_EXTERNAL_IP" >> "$config"
+fi
+if [ -n "${TURN_LISTENING_IP:-}" ]; then
+  printf 'listening-ip=%s\n' "$TURN_LISTENING_IP" >> "$config"
+fi
+if [ -n "${TURN_RELAY_IP:-}" ]; then
+  printf 'relay-ip=%s\n' "$TURN_RELAY_IP" >> "$config"
 fi
 if [ -n "${TURN_PREVIOUS_SHARED_SECRET:-}" ]; then
   printf 'static-auth-secret=%s\n' "$TURN_PREVIOUS_SHARED_SECRET" >> "$config"
