@@ -14,7 +14,7 @@ Use this runbook to rehearse or execute service rollback to the previous stable 
 ## Preflight
 
 1. Freeze unrelated deployments.
-2. Confirm the previous stable tag exists for `auth`, `ingest`, `tracker`, `control-plane`, `retention-worker`, and `turn`.
+2. Confirm the previous stable tag exists for `auth`, `ingest`, `tracker`, `control-plane`, `web`, `retention-worker`, and `turn`.
 3. Confirm current auth key volume, placement state, retention action log, and monitoring data are backed up or covered by the restore drill.
 4. Export the previous stable immutable image refs:
 
@@ -42,8 +42,8 @@ The release override sets immutable image names. Use the rollback commands with 
 ## Rollback
 
 ```bash
-docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker
-docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker
+docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane web retention-worker
+docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane web retention-worker
 docker compose -f infra/docker-compose.yml -f infra/docker-compose.release.yml ps
 docker compose --env-file .env.production -f infra/turn/docker-compose.yml pull turn
 docker compose --env-file .env.production -f infra/turn/docker-compose.yml up -d --no-build turn

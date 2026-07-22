@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { announceSegment, deliverSegmentMetadata, describeSegment, segmentSeqFromFilename } from "../src/segmentWatcher.js";
+import { announceSegment, deliverSegmentMetadata, describeSegment, describeSegmentWithRetry, segmentSeqFromFilename } from "../src/segmentWatcher.js";
 
 test("segmentSeqFromFilename extracts numeric sequence", () => {
   assert.equal(segmentSeqFromFilename("channel/seg_00000042.m4s"), 42);
@@ -43,6 +43,24 @@ test("describeSegment rejects malformed fMP4 before announcement", async () => {
     relativePath: path.join("demo", "seg_00000008.m4s"),
     rlncK: 32
   }), /ISO-BMFF|fMP4/);
+});
+
+test("describeSegmentWithRetry waits for ffmpeg to finish an observed segment", async () => {
+  let attempts = 0;
+  let sleeps = 0;
+  const result = await describeSegmentWithRetry({ fullPath: "segment" }, {
+    attempts: 4,
+    retryDelayMs: 10,
+    describeFn: async () => {
+      attempts += 1;
+      if (attempts < 3) throw new Error("incomplete fMP4");
+      return { seq: 7 };
+    },
+    sleep: async (ms) => { assert.equal(ms, 10); sleeps += 1; }
+  });
+  assert.deepEqual(result, { seq: 7 });
+  assert.equal(attempts, 3);
+  assert.equal(sleeps, 2);
 });
 
 test("announceSegment posts internal token and segment body", async () => {

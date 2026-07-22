@@ -1,0 +1,19 @@
+{
+  "name": "@swarmcast/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@swarmcast/config": "0.1.0",
+    "hls.js": "1.6.16",
+    "lucide": "0.468.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

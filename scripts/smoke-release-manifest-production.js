@@ -12,6 +12,7 @@ const requiredImages = [
   "ingest",
   "tracker",
   "control-plane",
+  "web",
   "retention-worker",
   "nginx",
   "prometheus",

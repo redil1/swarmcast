@@ -17,13 +17,13 @@ Deliverables:
 
 - Select only an owned GHCR digest after mirroring an upstream image.
 - Reject missing, malformed, upstream-only, or ambiguous repository digests.
-- Publish, scan, generate SBOMs for, sign, and verify all 15 images, including the owned TURN relay, NATS, and NATS exporter images.
+- Publish, scan, generate SBOMs for, sign, and verify all 16 images, including the web player, owned TURN relay, NATS, and NATS exporter images.
 
 Acceptance evidence:
 
 - Unit tests for upstream-first and failure cases.
 - Remote CI success for the repair commit.
-- One staging release with 15 clean scan reports, 15 image SBOMs, 15 owned digests, 15 verified signatures, source SBOM, and validated release manifest.
+- One staging release with 16 clean scan reports, 16 image SBOMs, 16 owned digests, 16 verified signatures, source SBOM, and validated release manifest.
 
 ## Phase B: Client Connectivity And Topology Repair
 

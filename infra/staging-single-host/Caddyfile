@@ -81,3 +81,17 @@ tracker.{$SWARMCAST_PUBLIC_SUFFIX} {
 		reverse_proxy tracker:7000
 	}
 }
+
+watch.{$SWARMCAST_PUBLIC_SUFFIX} {
+	encode zstd gzip
+
+	header {
+		Content-Security-Policy "default-src 'self'; connect-src 'self' https://origin.{$SWARMCAST_PUBLIC_SUFFIX} wss://tracker.{$SWARMCAST_PUBLIC_SUFFIX}; img-src 'self' data: https:; media-src 'self' blob: https://origin.{$SWARMCAST_PUBLIC_SUFFIX}; worker-src 'self' blob:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+	}
+
+	reverse_proxy web:7030
+}

@@ -15,7 +15,7 @@ const MAX_VALIDATOR_OUTPUT_BYTES = 4 * 1024 * 1024;
 
 const imageScanIds = [
   "segment-bus", "segment-bus-exporter", "auth", "ingest", "tracker", "control-plane",
-  "retention-worker", "nginx", "prometheus", "alertmanager", "grafana", "edge-nginx", "edge-metrics",
+  "web", "retention-worker", "nginx", "prometheus", "alertmanager", "grafana", "edge-nginx", "edge-metrics",
   "node-exporter", "turn"
 ].map((service) => `image-scan-${service}`);
 

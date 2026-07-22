@@ -143,6 +143,27 @@
       "evidence": ["nats-exporter infra/monitoring/prometheus.yml", "nats-exporter infra/monitoring/grafana/dashboards/swarmcast-overview.json"]
     },
     {
+      "id": "hls-js",
+      "status": "approved",
+      "owner": "web",
+      "decision": "Approve exact hls.js 1.6.16 after authenticated playback and multi-viewer peer-transfer smokes.",
+      "evidence": ["hls-js npm run smoke:web-live", "hls-js services/web/package.json"]
+    },
+    {
+      "id": "lucide",
+      "status": "approved",
+      "owner": "web",
+      "decision": "Approve exact Lucide 0.468.0 as a locally bundled browser dependency.",
+      "evidence": ["lucide npm run smoke:web-ui", "lucide services/web/package.json"]
+    },
+    {
+      "id": "esbuild",
+      "status": "approved",
+      "owner": "release",
+      "decision": "Approve exact esbuild 0.25.12 as a build-only dependency excluded from the runtime image.",
+      "evidence": ["esbuild services/web/Dockerfile", "esbuild npm run sbom:generate -- --check"]
+    },
+    {
       "id": "playwright-core",
       "status": "approved",
       "owner": "quality-engineering",

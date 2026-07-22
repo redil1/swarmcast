@@ -8,6 +8,7 @@ const requiredServices = [
   "ingest",
   "tracker",
   "control-plane",
+  "web",
   "retention-worker",
   "nginx",
   "prometheus",

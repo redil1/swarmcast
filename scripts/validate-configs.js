@@ -71,6 +71,7 @@ const checks = [
       "dockerfile: services/tracker/Dockerfile",
       "dockerfile: services/auth/Dockerfile",
       "dockerfile: services/control-plane/Dockerfile",
+      "dockerfile: services/web/Dockerfile",
       "dockerfile: services/retention-worker/Dockerfile",
       "AUTH_KEY_PATH: ${AUTH_KEY_PATH:-/data/es256.pem}",
       "INGEST_NODES: ${INGEST_NODES:-",
@@ -100,11 +101,13 @@ const checks = [
       "SWARMCAST_INGEST_IMAGE",
       "SWARMCAST_TRACKER_IMAGE",
       "SWARMCAST_CONTROL_PLANE_IMAGE",
+      "SWARMCAST_WEB_IMAGE",
       "SWARMCAST_RETENTION_WORKER_IMAGE",
       "auth:",
       "ingest:",
       "tracker:",
       "control-plane:",
+      "web:",
       "retention-worker:"
     ],
     forbidden: ["cloudfront", "akamai", "fastly"]
@@ -1494,6 +1497,21 @@ for (const check of [
     ]
   },
   {
+    file: "services/web/Dockerfile",
+    required: [
+      "COPY package.json package-lock.json",
+      "COPY services/web/package.json",
+      "npm ci --ignore-scripts --workspace @swarmcast/web",
+      "COPY services/web/client services/web/client",
+      "npm run build --workspace @swarmcast/web",
+      "ARG NODE_RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian13:nonroot@sha256:",
+      "COPY --from=build --chown=65532:65532 /app/services/web/dist services/web/dist",
+      "HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3",
+      "http://127.0.0.1:7030/ready",
+      'CMD ["services/web/src/server.js"]'
+    ]
+  },
+  {
     file: "services/retention-worker/Dockerfile",
     required: [
       "COPY package.json package-lock.json",
@@ -1892,7 +1910,7 @@ for (const required of [
   "retention worker",
   "Dependency review evidence passes `npm run dependency:review:validate -- path/to/dependency-review.json`; evidence must cover npm audit, SBOM, release image refs, image scans, Android debug/release builds, inventory decisions, reviewer roles, and waiver expiry; local guard coverage remains `npm run smoke:dependency-review-validation`",
   "Release artifact evidence includes the `swarmcast-release-manifest` and `swarmcast-sbom` artifacts, plus `npm run smoke:release-manifest-production` output",
-  "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 15 expected service and infrastructure scan report paths",
+  "Runtime image vulnerability scan reports pass `npm run image:scan:validate`, local report-level guard coverage remains `npm run smoke:image-scan-report-validation`, the release bundle passes `npm run image:scan:bundle:validate -- --manifest var/release/swarmcast-release-manifest.json var/scans/*.trivy.json`, and launch evidence references all 16 expected service and infrastructure scan report paths",
   "Capacity/load ladder evidence follows `docs/distributed-load-ladder.md`, uses `npm run load:ladder:probe` on independent generator hosts",
   "It requires hash-bound mode-`0600` raw probes, exact peer-range coverage, synchronized cross-provider starts",
   "local guard coverage remains `npm run smoke:capacity-plan-validation`, `npm run smoke:load-ladder-probe`, and `npm run smoke:load-ladder-evidence-validation`",
@@ -1933,7 +1951,7 @@ for (const required of [
   "Go/No-Go Record",
   "Machine-Readable Launch Evidence",
   "docs/launch-artifact-bundle.md",
-  "exact 52-artifact inventory",
+  "exact 53-artifact inventory",
   "distinct release, operations, and security approvals",
   "npm run launch:evidence:validate -- path/to/launch-evidence.json",
   "The validator requires every hard blocker to be present, owned, complete, and backed by evidence. It fails by default when any gate is `blocked`, `partial`, or `waived`; use `--allow-incomplete` only for rehearsal or shape checks before the final go/no-go review",
@@ -1966,7 +1984,7 @@ for (const required of [
 if (failed) process.exit(1);
 const launchArtifactBundleDocText = readFileSync("docs/launch-artifact-bundle.md", "utf8");
 for (const required of [
-  "all 34 launch gates with exactly 52 artifacts",
+  "all 34 launch gates with exactly 53 artifacts",
   "38 fixed validation groups",
   "one unique repository-relative path per artifact ID",
   "no `test-fixtures/` paths in a production bundle",
@@ -3206,7 +3224,7 @@ for (const required of [
   "sudo apt-get update && sudo apt-get install -y ffmpeg",
   "docker compose -f infra/docker-compose.yml config",
   "docker compose -f infra/edge/docker-compose.yml config",
-  "docker compose -f infra/docker-compose.yml build auth control-plane ingest retention-worker tracker",
+  "docker compose -f infra/docker-compose.yml build auth control-plane ingest retention-worker tracker web",
   "docker compose -f infra/edge/docker-compose.yml build edge-metrics",
   "npm run smoke:service-lifecycle-containers",
   "docker pull nginx:1.29.8-alpine3.23-slim@sha256:c9366b8c560169b101ca0e5422ed063b20779e6454c2326b9c9704225c9b0c08",
@@ -3310,8 +3328,8 @@ for (const required of [
   "npm run release:images:check",
   "@sha256:",
   "infra/docker-compose.release.yml",
-  "pull auth ingest tracker control-plane retention-worker",
-  "up -d --no-build auth ingest tracker control-plane retention-worker",
+  "pull auth ingest tracker control-plane web retention-worker",
+  "up -d --no-build auth ingest tracker control-plane web retention-worker",
   "npm run rollback:evidence:validate -- path/to/rollback-evidence.json",
   "test-fixtures/rollback/rollback-drill-complete.synthetic.json",
   "Tracker WebSocket join, signal relay, stats intake, and `/metrics` respond",

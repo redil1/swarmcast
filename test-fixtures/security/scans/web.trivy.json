@@ -1,0 +1,14 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "ghcr.io/example/swarmcast/web@sha256:abababababababababababababababababababababababababababababababab",
+  "ArtifactType": "container_image",
+  "Synthetic": true,
+  "Results": [
+    {
+      "Target": "gcr.io/distroless/nodejs22-debian13:nonroot",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": []
+    }
+  ]
+}

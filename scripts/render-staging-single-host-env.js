@@ -20,6 +20,8 @@ const REQUIRED_KEYS = Object.freeze([
   "SWARMCAST_PUBLIC_SUFFIX",
   "ORIGIN_BASE",
   "EDGE_BASE",
+  "API_BASE",
+  "TRACKER_BASE",
   "INGEST_NODES",
   "STAGING_M3U_FILE",
   "SOURCE_ALLOWED_HOSTS",
@@ -150,6 +152,7 @@ export function stagingEnvValues({ publicSuffix, catalogPath, turnExternalIp: ex
     ICE_STUN_URLS: JSON.stringify(["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"]),
     ...stagingTurnValues({ suffix, externalIp }),
     AUTH_PLAY_INTEGRITY_ENABLED: "0",
+    P2P_MIN_SWARM_SIZE: "2",
     SEGMENT_BUS_ENABLED: "1",
     SEGMENT_BUS_SERVERS: JSON.stringify(["nats://segment-bus:4222"]),
     SEGMENT_BUS_TLS_REQUIRED: "0",
@@ -278,6 +281,9 @@ export function enableStagingTurn({ publicSuffix, catalogPath, outputPath, turnE
   const sharedSecret = /^[a-f0-9]{64}$/.test(values.TURN_SHARED_SECRET || "")
     ? values.TURN_SHARED_SECRET
     : randomHex();
+  values.API_BASE = `https://api.${suffix}`;
+  values.TRACKER_BASE = `wss://tracker.${suffix}/ws`;
+  values.P2P_MIN_SWARM_SIZE = "2";
   Object.assign(values, stagingTurnValues({
     suffix,
     externalIp: turnExternalIp(suffix, explicitTurnIp || values.TURN_EXTERNAL_IP),
