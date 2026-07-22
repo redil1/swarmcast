@@ -54,6 +54,33 @@ test("join stores peer in swarm and sends joined response", async () => {
   assert.equal(fetches.length, 1);
 });
 
+test("join receives retained segment metadata after the joined response", async () => {
+  const state = createTrackerState();
+  state.segmentSubscriber = {
+    subscribeChannel: async (channelId) => {
+      state.swarms.get(channelId).announceSegment(
+        { seq: 42, sha256: "a".repeat(64), size: 4096, k: 24 },
+        () => {}
+      );
+    },
+    unsubscribeChannel: () => {}
+  };
+  const peer = createPeer();
+  const ws = fakeWs(peer);
+
+  await handlePeerMessage({
+    state,
+    peer,
+    ws,
+    raw: Buffer.from(JSON.stringify({ t: "join", channelId: "demo", caps: {} })),
+    fetchFn: async () => ({ ok: true })
+  });
+
+  assert.deepEqual(ws.sent.map((message) => message.t), ["joined", "segment"]);
+  assert.equal(ws.sent[1].seq, 42);
+  assert.equal(ws.sent[1].seedTier, false);
+});
+
 test("tracker subscribes on first local join and unsubscribes after the last peer leaves", async () => {
   const state = createTrackerState();
   const subscribed = [];

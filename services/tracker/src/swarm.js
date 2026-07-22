@@ -62,4 +62,19 @@ export class Swarm {
       edgeSeedAssignments: bootstrapSource === "edge" ? seeders.size : 0
     };
   }
+
+  retainedSegmentMessages(limit = 30) {
+    return [...this.segments.entries()]
+      .sort(([left], [right]) => left - right)
+      .slice(-limit)
+      .map(([seq, { sha256, size, k }]) => ({
+        t: "segment",
+        seq,
+        sha256,
+        size,
+        k,
+        seedTier: false,
+        edgeSeedTier: false
+      }));
+  }
 }

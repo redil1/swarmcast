@@ -127,7 +127,7 @@ const watcher = watchSegments({
   trackerInternalUrl: tracker.url,
   internalToken,
   rlncK: 32,
-  onSegment: (segment) => manager.recordSegment(segment.channelId)
+  onSegment: (segment) => manager.recordSegment(segment.channelId, Date.now(), segment.seq)
 });
 
 server.listen(0, "127.0.0.1");

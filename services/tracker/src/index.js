@@ -428,6 +428,12 @@ export async function handlePeerMessage({
         originUrlTemplate: media.originUrlTemplate
       }));
 
+      for (const segment of swarm.retainedSegmentMessages()) {
+        const encoded = JSON.stringify(segment);
+        if (send) send(peer, segment, encoded);
+        else ws.send(encoded);
+      }
+
       if (swarmMode === "p2p") {
         ws.send(JSON.stringify({ t: "peers", peers: swarm.peersFor(peer) }));
       }

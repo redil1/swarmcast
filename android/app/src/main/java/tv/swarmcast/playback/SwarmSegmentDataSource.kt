@@ -12,6 +12,21 @@ import kotlinx.coroutines.runBlocking
 import tv.swarmcast.p2p.SegmentScheduler
 import java.io.IOException
 
+private val supportedExtensions = setOf("m4s", "mp4", "ts")
+
+internal fun segmentSequenceFromFileName(fileName: String): Int? {
+    val lower = fileName.lowercase()
+    if (lower.contains("init") || lower.endsWith(".m3u8")) return null
+
+    val extension = lower.substringAfterLast('.', missingDelimiterValue = "")
+    if (extension !in supportedExtensions) return null
+
+    return Regex("\\d+").findAll(fileName.substringBeforeLast('.'))
+        .lastOrNull()
+        ?.value
+        ?.toIntOrNull()
+}
+
 @OptIn(UnstableApi::class)
 class SwarmSegmentDataSource private constructor(
     private val scheduler: SegmentScheduler,
@@ -115,22 +130,9 @@ class SwarmSegmentDataSource private constructor(
 
     private data class SegmentRequest(val fileName: String, val seq: Int) {
         companion object {
-            private val supportedExtensions = setOf("m4s", "mp4", "ts")
-            private val digits = Regex("\\d+")
-
             fun fromUri(uri: Uri): SegmentRequest? {
                 val fileName = uri.lastPathSegment ?: return null
-                val lower = fileName.lowercase()
-                if (lower.contains("init") || lower.endsWith(".m3u8")) return null
-
-                val extension = lower.substringAfterLast('.', missingDelimiterValue = "")
-                if (extension !in supportedExtensions) return null
-
-                val seq = digits.findAll(fileName)
-                    .lastOrNull()
-                    ?.value
-                    ?.toIntOrNull()
-                    ?: return null
+                val seq = segmentSequenceFromFileName(fileName) ?: return null
                 return SegmentRequest(fileName, seq)
             }
         }

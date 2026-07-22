@@ -5,7 +5,8 @@ data class PlaybackBufferPolicy(
     val maxBufferMs: Int = 60_000,
     val bufferForPlaybackMs: Int = 2_500,
     val bufferForPlaybackAfterRebufferMs: Int = 5_000,
-    val segmentUrgencyMs: Long = 1_500
+    val segmentUrgencyMs: Long = 1_500,
+    val liveTargetOffsetMs: Long = 2_000
 ) {
     init {
         require(minBufferMs > 0) { "minBufferMs must be positive" }
@@ -14,5 +15,6 @@ data class PlaybackBufferPolicy(
         require(bufferForPlaybackAfterRebufferMs >= bufferForPlaybackMs) {
             "bufferForPlaybackAfterRebufferMs must be at least bufferForPlaybackMs"
         }
+        require(liveTargetOffsetMs >= 0L) { "liveTargetOffsetMs must not be negative" }
     }
 }

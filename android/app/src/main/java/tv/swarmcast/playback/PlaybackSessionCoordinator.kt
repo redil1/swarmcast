@@ -2,6 +2,7 @@ package tv.swarmcast.playback
 
 import android.content.Context
 import android.os.SystemClock
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -93,7 +94,7 @@ class PlaybackSessionCoordinator(
         val networkSnapshot = networkPolicy.snapshot()
         applyNetworkPolicy(networkSnapshot)
 
-        eventsJob = scope.launch {
+        eventsJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             tracker.events.collect { handleTrackerEvent(it) }
         }
         statsJob = scope.launch {

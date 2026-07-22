@@ -50,12 +50,7 @@ data class PlayIntegrityConfig(
         }
 
         private fun optionalBoolean(meta: Bundle, key: String, fallback: Boolean): Boolean {
-            val raw = meta.getString(key)?.trim()?.lowercase() ?: return fallback
-            return when (raw) {
-                "1", "true", "yes", "on" -> true
-                "0", "false", "no", "off" -> false
-                else -> error("$key must be a boolean flag")
-            }
+            return parseBooleanFlag(bundleValue(meta, key), key, fallback)
         }
     }
 }
@@ -79,12 +74,21 @@ data class AppFeatureFlags(
         )
 
         private fun optionalBoolean(meta: Bundle, key: String, fallback: Boolean): Boolean {
-            val raw = meta.getString(key)?.trim()?.lowercase() ?: return fallback
-            return when (raw) {
-                "1", "true", "yes", "on" -> true
-                "0", "false", "no", "off" -> false
-                else -> error("$key must be a boolean flag")
-            }
+            return parseBooleanFlag(bundleValue(meta, key), key, fallback)
         }
     }
 }
+
+internal fun parseBooleanFlag(raw: Any?, key: String, fallback: Boolean): Boolean = when (raw) {
+    null -> fallback
+    is Boolean -> raw
+    is String -> when (raw.trim().lowercase()) {
+        "1", "true", "yes", "on" -> true
+        "0", "false", "no", "off" -> false
+        else -> error("$key must be a boolean flag")
+    }
+    else -> error("$key must be a boolean flag")
+}
+
+@Suppress("DEPRECATION")
+private fun bundleValue(meta: Bundle, key: String): Any? = meta.get(key)

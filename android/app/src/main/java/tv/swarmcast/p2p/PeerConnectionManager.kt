@@ -35,7 +35,7 @@ class PeerConnectionManager(
     private val iceAttempts = LinkedHashMap<String, IceAttempt>()
     private var nextIceAttemptId = 1L
     @Volatile
-    private var iceServers = buildIceServers(iceServerConfigs)
+    private var iceServers = buildIceServers(iceServerConfigs, allowEmpty = true)
 
     val connectedCount: Int
         get() = channels.count { it.value.state() == DataChannel.State.OPEN }
@@ -185,11 +185,12 @@ class PeerConnectionManager(
         return pc
     }
 
-    private fun buildIceServers(configs: List<IceServerConfig>): List<PeerConnection.IceServer> {
-        require(configs.isNotEmpty()) { "at least one ICE server is required" }
+    private fun buildIceServers(
+        configs: List<IceServerConfig>,
+        allowEmpty: Boolean = false
+    ): List<PeerConnection.IceServer> {
+        validateIceServerConfigs(configs, allowEmpty)
         return configs.flatMap { config ->
-            require(config.urls.isNotEmpty()) { "ICE server URLs are required" }
-            require(config.username.isBlank() == config.credential.isBlank()) { "ICE credentials are incomplete" }
             config.urls.map { url ->
                 PeerConnection.IceServer.builder(url)
                     .setUsername(config.username)
@@ -298,3 +299,13 @@ data class IceServerConfig(
     val username: String = "",
     val credential: String = ""
 )
+
+internal fun validateIceServerConfigs(configs: List<IceServerConfig>, allowEmpty: Boolean = false) {
+    require(configs.isNotEmpty() || allowEmpty) { "at least one ICE server is required" }
+    configs.forEach { config ->
+        require(config.urls.isNotEmpty()) { "ICE server URLs are required" }
+        require(config.username.isBlank() == config.credential.isBlank()) {
+            "ICE credentials are incomplete"
+        }
+    }
+}
