@@ -7,7 +7,7 @@
   "synthetic": true,
   "artifactBundle": {
     "path": "test-fixtures/launch/evidence-artifacts.complete.synthetic.json",
-    "sha256": "5e555797e8612db2c85394635b3a290217eedfc28446effede4cd4a3ece633b8"
+    "sha256": "7e1e3676343fdd4be88e594cd06d3aa868a2f8c29536f7c5a055bda79fbb5b88"
   },
   "reviewers": [
     {

@@ -18,7 +18,7 @@
     {
       "id": "release-manifest",
       "path": "test-fixtures/security/image-scan-release-manifest.synthetic.json",
-      "sha256": "0e075eb54d8a4e92b72098fffc3d48f73de9c79d0d1de34c629704c9a90344e6"
+      "sha256": "e4cecea9de619091f8a2514fa873cb04b9f963fd328722430fd0d0b8513f820d"
     },
     {
       "id": "android-release-config",
@@ -63,7 +63,7 @@
     {
       "id": "dependency-review",
       "path": "test-fixtures/dependency/dependency-review-complete.synthetic.json",
-      "sha256": "e8d1a8ac209676ecba6dd93f2e0bafcf690ef59760808cb17083ef60ceaac8ed"
+      "sha256": "a0fad73037f9d28c46e1e72014fe0d59e4526f0468eef5311cac3c4017fd4bd5"
     },
     {
       "id": "repository-governance",
@@ -99,6 +99,11 @@
       "id": "image-scan-control-plane",
       "path": "test-fixtures/security/scans/control-plane.trivy.json",
       "sha256": "990beb3a19aa360d4d28132b6e43c2d6efa0676421cd82c37e79a8dc2146f102"
+    },
+    {
+      "id": "image-scan-web",
+      "path": "test-fixtures/security/scans/web.trivy.json",
+      "sha256": "54c12a69df06d1174e4ed6d6292e64637451118ea97cec7ff738ad4868cb7712"
     },
     {
       "id": "image-scan-retention-worker",
@@ -173,7 +178,7 @@
     {
       "id": "production-environment",
       "path": "test-fixtures/config/production.env",
-      "sha256": "30a4538b35c84ede8486c3d6612ab3405002e91e85a0015ecc8705b33631918e"
+      "sha256": "6e2497f559bbe598a65fc9887c49d2522259c78df9dd0e0cc1672862c426711a"
     },
     {
       "id": "turn-capacity",
@@ -183,7 +188,7 @@
     {
       "id": "deployment-execution",
       "path": "test-fixtures/deployment/deployment-complete.synthetic.json",
-      "sha256": "b45a3c36ed26c943eab8aa699a56ab0d05f45435332e4c8cdc3e90f00de94b72"
+      "sha256": "3ba145fc1406e3d756f413d705e5a2f7ffde57a0699f5b8c04d577dee0480626"
     },
     {
       "id": "nginx-tls-smoke",
@@ -355,6 +360,7 @@
         "image-scan-ingest",
         "image-scan-tracker",
         "image-scan-control-plane",
+        "image-scan-web",
         "image-scan-retention-worker",
         "image-scan-nginx",
         "image-scan-prometheus",

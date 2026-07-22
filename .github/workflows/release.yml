@@ -75,6 +75,10 @@ jobs:
             mode: build
             dockerfile: services/control-plane/Dockerfile
             env_name: SWARMCAST_CONTROL_PLANE_IMAGE
+          - service: web
+            mode: build
+            dockerfile: services/web/Dockerfile
+            env_name: SWARMCAST_WEB_IMAGE
           - service: retention-worker
             mode: build
             dockerfile: services/retention-worker/Dockerfile

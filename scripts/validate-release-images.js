@@ -5,6 +5,7 @@ const requiredImages = [
   ["ingest", "SWARMCAST_INGEST_IMAGE"],
   ["tracker", "SWARMCAST_TRACKER_IMAGE"],
   ["control-plane", "SWARMCAST_CONTROL_PLANE_IMAGE"],
+  ["web", "SWARMCAST_WEB_IMAGE"],
   ["retention-worker", "SWARMCAST_RETENTION_WORKER_IMAGE"],
   ["nginx", "SWARMCAST_NGINX_IMAGE"],
   ["prometheus", "SWARMCAST_PROMETHEUS_IMAGE"],

@@ -4,8 +4,8 @@ umask 077
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 COMPOSE_FILES=(-f "$ROOT_DIR/infra/docker-compose.yml" -f "$ROOT_DIR/infra/staging-single-host/docker-compose.yml")
-SERVICES=(source-generator segment-bus segment-bus-exporter ingest tracker auth control-plane retention-worker prometheus alertmanager grafana gateway turn-cert-init turn)
-HEALTH_SERVICES=(source-generator segment-bus ingest tracker auth control-plane retention-worker gateway turn)
+SERVICES=(source-generator segment-bus segment-bus-exporter ingest tracker auth control-plane web retention-worker prometheus alertmanager grafana gateway turn-cert-init turn)
+HEALTH_SERVICES=(source-generator segment-bus ingest tracker auth control-plane web retention-worker gateway turn)
 
 PUBLIC_SUFFIX=""
 CATALOG_PATH=""
@@ -115,6 +115,8 @@ curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 
   "https://origin.$PUBLIC_SUFFIX/health" >/dev/null
 curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 \
   "https://api.$PUBLIC_SUFFIX/health" >/dev/null
+curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 \
+  "https://watch.$PUBLIC_SUFFIX/health" >/dev/null
 curl --fail --silent --show-error "http://127.0.0.1:${TURN_PROMETHEUS_PORT:-9641}/metrics" \
   | grep '^# HELP turn_' >/dev/null
 
@@ -122,4 +124,5 @@ printf 'SwarmCast staging deployment is healthy.\n'
 printf 'Origin: https://origin.%s\n' "$PUBLIC_SUFFIX"
 printf 'API: https://api.%s\n' "$PUBLIC_SUFFIX"
 printf 'Tracker: wss://tracker.%s/ws\n' "$PUBLIC_SUFFIX"
+printf 'Web: https://watch.%s\n' "$PUBLIC_SUFFIX"
 printf 'TURN: turn:origin.%s:3478 and turns:origin.%s:5349\n' "$PUBLIC_SUFFIX" "$PUBLIC_SUFFIX"

@@ -17,5 +17,8 @@ services:
   control-plane:
     image: ${SWARMCAST_CONTROL_PLANE_IMAGE:?set SWARMCAST_CONTROL_PLANE_IMAGE}
 
+  web:
+    image: ${SWARMCAST_WEB_IMAGE:?set SWARMCAST_WEB_IMAGE}
+
   retention-worker:
     image: ${SWARMCAST_RETENTION_WORKER_IMAGE:?set SWARMCAST_RETENTION_WORKER_IMAGE}

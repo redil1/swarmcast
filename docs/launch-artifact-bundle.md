@@ -4,7 +4,7 @@ The final launch record is not trusted from evidence labels alone. It must bind 
 
 ## Contract
 
-A complete launch artifact bundle covers all 34 launch gates with exactly 52 artifacts. The validator runs 38 fixed validation groups. Artifact input cannot select or replace commands.
+A complete launch artifact bundle covers all 34 launch gates with exactly 53 artifacts. The validator runs 38 fixed validation groups. Artifact input cannot select or replace commands.
 
 The bundle enforces:
 
@@ -62,4 +62,4 @@ Run the final check from the repository root:
 npm run launch:evidence:validate -- evidence/launch/v1.0.0/launch-evidence.json
 ```
 
-The result can report `launch-ready` only after the bundle hash, all 52 artifact hashes, all 38 fixed validation groups, every launch gate, and all three approvals pass. `--allow-synthetic` and `--allow-incomplete` are rehearsal-only flags and are prohibited for production approval.
+The result can report `launch-ready` only after the bundle hash, all 53 artifact hashes, all 38 fixed validation groups, every launch gate, and all three approvals pass. `--allow-synthetic` and `--allow-incomplete` are rehearsal-only flags and are prohibited for production approval.

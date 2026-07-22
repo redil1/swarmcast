@@ -22,6 +22,7 @@
       "var/scans/ingest.trivy.json",
       "var/scans/tracker.trivy.json",
       "var/scans/control-plane.trivy.json",
+      "var/scans/web.trivy.json",
       "var/scans/retention-worker.trivy.json",
       "var/scans/nginx.trivy.json",
       "var/scans/prometheus.trivy.json",
@@ -71,6 +72,11 @@
       "service": "control-plane",
       "env": "SWARMCAST_CONTROL_PLANE_IMAGE",
       "image": "ghcr.io/example/swarmcast/control-plane@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "service": "web",
+      "env": "SWARMCAST_WEB_IMAGE",
+      "image": "ghcr.io/example/swarmcast/web@sha256:abababababababababababababababababababababababababababababababab"
     },
     {
       "service": "retention-worker",

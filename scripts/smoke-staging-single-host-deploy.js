@@ -41,6 +41,7 @@ assert.equal(values.TURN_EXTERNAL_IP, "203.0.113.10");
 assert.equal(values.TURN_LISTENING_IP, "203.0.113.10");
 assert.equal(values.TURN_RELAY_IP, "203.0.113.10");
 assert.equal(values.TURN_REALM, "origin.203.0.113.10.sslip.io");
+assert.equal(values.P2P_MIN_SWARM_SIZE, "2");
 assert.match(values.TURN_SHARED_SECRET, /^[a-f0-9]{64}$/);
 assert.deepEqual(JSON.parse(values.TURN_URLS), [
   "turn:origin.203.0.113.10.sslip.io:3478?transport=udp",

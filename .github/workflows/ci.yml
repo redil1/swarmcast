@@ -73,7 +73,7 @@ jobs:
       - run: docker compose -f infra/docker-compose.yml config
       - run: docker compose -f infra/edge/docker-compose.yml config
       - run: docker compose --env-file test-fixtures/config/production.env -f infra/turn/docker-compose.yml config
-      - run: docker compose -f infra/docker-compose.yml build auth control-plane ingest retention-worker tracker
+      - run: docker compose -f infra/docker-compose.yml build auth control-plane ingest retention-worker tracker web
       - run: docker compose -f infra/edge/docker-compose.yml build edge-metrics
       - run: npm run smoke:service-lifecycle-containers
       - run: npm run smoke:segment-bus

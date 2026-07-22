@@ -19,6 +19,8 @@
     "staging:deploy": "bash infra/staging-single-host/deploy.sh",
     "smoke:staging-deploy": "node scripts/smoke-staging-single-host-deploy.js",
     "smoke:staging-turn-relay": "node scripts/smoke-staging-turn-relay.js",
+    "smoke:web-ui": "node scripts/smoke-web-ui.js",
+    "smoke:web-live": "node scripts/smoke-web-live.js",
     "smoke:control-plane-placement-restart": "node scripts/smoke-control-plane-placement-restart.js",
     "smoke:ffmpeg": "node scripts/smoke-ffmpeg-package.js",
     "media:fixtures:validate": "node scripts/validate-fmp4-fixtures.js",

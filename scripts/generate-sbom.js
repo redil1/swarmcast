@@ -68,6 +68,7 @@ function collectDockerfiles(components) {
     "services/control-plane/Dockerfile",
     "services/ingest/Dockerfile",
     "services/tracker/Dockerfile",
+    "services/web/Dockerfile",
     "services/retention-worker/Dockerfile",
     "infra/nginx/Dockerfile",
     "infra/edge/Dockerfile.nginx",

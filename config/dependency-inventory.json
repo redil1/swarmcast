@@ -122,6 +122,36 @@
       "releaseGate": "Pass clean scan and verify broker health, storage, API-error, and slow-consumer metrics."
     },
     {
+      "id": "hls-js",
+      "area": "web",
+      "name": "hls.js",
+      "current": "1.6.16",
+      "source": "services/web/package.json and package-lock.json",
+      "pinning": "exact npm version bundled into the browser artifact",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Pass authenticated live HLS playback, recovery, browser compatibility, and multi-viewer P2P smokes."
+    },
+    {
+      "id": "lucide",
+      "area": "web",
+      "name": "Lucide",
+      "current": "0.468.0",
+      "source": "services/web/package.json and package-lock.json",
+      "pinning": "exact npm version bundled into the browser artifact",
+      "launchDecision": "allowed for staging candidate",
+      "releaseGate": "Keep icons bundled locally and verify no third-party runtime asset requests."
+    },
+    {
+      "id": "esbuild",
+      "area": "web-build",
+      "name": "esbuild",
+      "current": "0.25.12",
+      "source": "services/web/package.json and package-lock.json",
+      "pinning": "exact npm development dependency",
+      "launchDecision": "allowed for staging build",
+      "releaseGate": "Keep esbuild out of the distroless runtime layer and retain audit and SBOM coverage."
+    },
+    {
       "id": "playwright-core",
       "area": "testing",
       "name": "Playwright Core",

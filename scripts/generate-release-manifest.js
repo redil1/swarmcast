@@ -8,6 +8,7 @@ const releaseImages = [
   ["ingest", "SWARMCAST_INGEST_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["tracker", "SWARMCAST_TRACKER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["control-plane", "SWARMCAST_CONTROL_PLANE_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
+  ["web", "SWARMCAST_WEB_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["retention-worker", "SWARMCAST_RETENTION_WORKER_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["nginx", "SWARMCAST_NGINX_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],
   ["prometheus", "SWARMCAST_PROMETHEUS_IMAGE", ({ repository, version, service }) => `ghcr.io/${repository}/${service}:${version}`],

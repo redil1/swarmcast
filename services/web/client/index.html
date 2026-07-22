@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111315">
+  <title>SwarmCast</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="app-bar">
+    <button class="icon-button mobile-only" id="menu-button" aria-label="Open channels" title="Open channels"><i data-lucide="menu"></i></button>
+    <a class="brand" href="/" aria-label="SwarmCast home"><span class="brand-mark">S</span><span>SwarmCast</span></a>
+    <div class="connection" id="connection"><span class="status-dot"></span><span id="connection-label">Ready</span></div>
+    <button class="icon-button" id="refresh-button" aria-label="Refresh channels" title="Refresh channels"><i data-lucide="refresh-cw"></i></button>
+  </header>
+
+  <main class="workspace">
+    <aside class="catalog" id="catalog-panel">
+      <div class="catalog-tools">
+        <label class="search-field">
+          <i data-lucide="search"></i>
+          <input id="search-input" type="search" autocomplete="off" placeholder="Search channels" aria-label="Search channels">
+        </label>
+        <select id="group-select" aria-label="Channel group"><option value="">All groups</option></select>
+      </div>
+      <div class="catalog-count" id="catalog-count">Channels</div>
+      <div class="channel-list" id="channel-list" role="listbox" aria-label="Channels"></div>
+      <button class="load-more" id="load-more" hidden>Load more</button>
+    </aside>
+
+    <section class="player-pane">
+      <div class="video-shell" id="video-shell">
+        <video id="video" playsinline controls></video>
+        <div class="player-empty" id="player-empty">
+          <i data-lucide="tv"></i>
+          <span>Select a channel</span>
+        </div>
+        <div class="player-loading" id="player-loading" hidden><span class="spinner"></span><span>Starting stream</span></div>
+      </div>
+
+      <div class="now-playing">
+        <div class="channel-identity">
+          <div class="channel-logo large" id="active-logo"><span>S</span></div>
+          <div><h1 id="active-name">SwarmCast</h1><p id="active-group">Live television</p></div>
+        </div>
+        <div class="live-badge" id="live-badge"><span></span>LIVE</div>
+      </div>
+
+      <div class="metrics-strip" aria-label="Swarm status">
+        <div><span class="metric-label">Swarm</span><strong id="metric-swarm">0</strong></div>
+        <div><span class="metric-label">Connected</span><strong id="metric-peers">0</strong></div>
+        <div><span class="metric-label">P2P offload</span><strong id="metric-offload">0%</strong></div>
+        <div><span class="metric-label">Received P2P</span><strong id="metric-p2p">0 B</strong></div>
+        <div><span class="metric-label">Uploaded</span><strong id="metric-upload">0 B</strong></div>
+      </div>
+
+      <div class="controls-row">
+        <label class="toggle-row">
+          <span><i data-lucide="share-2"></i><span>Share while watching</span></span>
+          <input id="upload-toggle" type="checkbox" checked>
+          <span class="toggle" aria-hidden="true"></span>
+        </label>
+        <div class="route-status"><span id="route-dot" class="route-dot edge"></span><span id="route-label">Edge fallback</span></div>
+      </div>
+
+      <div class="error-banner" id="error-banner" role="alert" hidden>
+        <i data-lucide="circle-alert"></i><span id="error-text"></span>
+        <button class="icon-button" id="retry-button" aria-label="Retry playback" title="Retry playback"><i data-lucide="rotate-ccw"></i></button>
+      </div>
+    </section>
+  </main>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

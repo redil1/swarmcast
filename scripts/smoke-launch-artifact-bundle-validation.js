@@ -35,7 +35,7 @@ function expectFailure(label, transform, pattern, recordTransform = (record) => 
 const result = validate(bundle);
 assert.deepEqual(
   { artifacts: result.artifactCount, gates: result.gateCount, validators: result.validatorCount },
-  { artifacts: 52, gates: 34, validators: 38 }
+  { artifacts: 53, gates: 34, validators: 38 }
 );
 const scrubbedEnvironmentResult = validate(bundle, launchRecord, {
   executeValidators: true,

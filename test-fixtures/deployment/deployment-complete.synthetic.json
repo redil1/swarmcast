@@ -9,8 +9,8 @@
   "thirdPartyCdnUsed": false,
   "synthetic": true,
   "commands": [
-    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane retention-worker segment-bus segment-bus-exporter",
-    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane retention-worker segment-bus segment-bus-exporter",
+    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml pull auth ingest tracker control-plane web retention-worker segment-bus segment-bus-exporter",
+    "docker compose --env-file /secure/prod.env -f infra/docker-compose.yml -f infra/docker-compose.release.yml up -d --no-build auth ingest tracker control-plane web retention-worker segment-bus segment-bus-exporter",
     "docker compose --env-file /secure/prod.env -f infra/turn/docker-compose.yml pull turn",
     "docker compose --env-file /secure/prod.env -f infra/turn/docker-compose.yml up -d --no-build turn"
   ],
@@ -46,6 +46,14 @@
       "running": true,
       "health": "healthy",
       "evidence": ["deploy/control-plane/health-synthetic"]
+    },
+    {
+      "name": "web",
+      "image": "ghcr.io/example/swarmcast/web@sha256:abababababababababababababababababababababababababababababababab",
+      "pulled": true,
+      "running": true,
+      "health": "healthy",
+      "evidence": ["deploy/web/health-synthetic"]
     },
     {
       "name": "retention-worker",

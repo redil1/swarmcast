@@ -28,6 +28,22 @@ export async function describeSegment({ fullPath, relativePath, rlncK }) {
   };
 }
 
+export async function describeSegmentWithRetry(
+  args,
+  { attempts = 12, retryDelayMs = 100, describeFn = describeSegment, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {}
+) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await describeFn(args);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await sleep(retryDelayMs);
+    }
+  }
+  throw lastError;
+}
+
 export async function announceSegment({
   trackerInternalUrl,
   trackerInternalUrls = trackerInternalUrl ? [trackerInternalUrl] : [],
@@ -93,9 +109,8 @@ export function watchSegments({
     if (!filename || !filename.endsWith(".m4s")) return;
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 150));
       const fullPath = path.join(hlsRoot, filename);
-      const segment = await describeSegment({ fullPath, relativePath: filename, rlncK });
+      const segment = await describeSegmentWithRetry({ fullPath, relativePath: filename, rlncK });
       if (!segment) return;
       await deliverSegmentMetadata({
         segment,

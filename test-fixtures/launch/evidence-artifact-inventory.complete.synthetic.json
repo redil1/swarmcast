@@ -24,6 +24,7 @@
     { "id": "image-scan-ingest", "path": "test-fixtures/security/scans/ingest.trivy.json" },
     { "id": "image-scan-tracker", "path": "test-fixtures/security/scans/tracker.trivy.json" },
     { "id": "image-scan-control-plane", "path": "test-fixtures/security/scans/control-plane.trivy.json" },
+    { "id": "image-scan-web", "path": "test-fixtures/security/scans/web.trivy.json" },
     { "id": "image-scan-retention-worker", "path": "test-fixtures/security/scans/retention-worker.trivy.json" },
     { "id": "image-scan-nginx", "path": "test-fixtures/security/scans/nginx.trivy.json" },
     { "id": "image-scan-prometheus", "path": "test-fixtures/security/scans/prometheus.trivy.json" },
