@@ -1,0 +1,72 @@
+{
+	admin off
+}
+
+http://gateway {
+	root * /source
+	file_server
+}
+
+origin.{$SWARMCAST_PUBLIC_SUFFIX} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+
+	handle_path /live/* {
+		forward_auth auth:7003 {
+			uri /verify
+			header_up X-Auth-Token {query.token}
+		}
+		root * /var/hls
+		header Cache-Control "public, max-age=300, immutable"
+		header Access-Control-Allow-Origin "*"
+		file_server
+	}
+
+	handle /health {
+		reverse_proxy ingest:7001
+	}
+}
+
+api.{$SWARMCAST_PUBLIC_SUFFIX} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+
+	handle /token {
+		reverse_proxy auth:7003
+	}
+
+	handle /jwks {
+		reverse_proxy auth:7003
+	}
+
+	handle /channels* {
+		reverse_proxy control-plane:7010
+	}
+
+	handle /groups* {
+		reverse_proxy control-plane:7010
+	}
+
+	handle /health {
+		reverse_proxy auth:7003
+	}
+}
+
+tracker.{$SWARMCAST_PUBLIC_SUFFIX} {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+
+	handle /ws* {
+		reverse_proxy tracker:7000
+	}
+}

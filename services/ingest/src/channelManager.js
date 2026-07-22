@@ -46,8 +46,27 @@ export class ChannelManager {
       return { ok: false, error: ERROR_CODES.CAPACITY };
     }
 
-    this.start(channelId, meta, { swarmSize });
+    const started = this.startSafely(channelId, meta, { swarmSize });
+    if (!started.ok) return { ok: false, error: ERROR_CODES.SOURCE_UNAVAILABLE };
     return { ok: true, state: CHANNEL_STATE.STARTING };
+  }
+
+  startSafely(channelId, meta, options = {}) {
+    try {
+      return { ok: true, entry: this.start(channelId, meta, options) };
+    } catch (error) {
+      this.active.delete(channelId);
+      try {
+        rmSync(path.join(this.config.hlsRoot, channelId), { recursive: true, force: true });
+      } catch {
+        // Cleanup must not hide the original worker startup failure.
+      }
+      this.logger?.error?.("ffmpeg_worker_start_failed", {
+        channel_id: channelId,
+        error_class: typeof error?.code === "string" ? error.code : "worker_start"
+      }, "channel worker could not start");
+      return { ok: false, error: ERROR_CODES.SOURCE_UNAVAILABLE };
+    }
   }
 
   start(channelId, meta, { swarmSize = 0, failures = 0 } = {}) {
@@ -70,7 +89,8 @@ export class ChannelManager {
       downscaled,
       stderrTail: [],
       latestSegmentAt: null,
-      outDir
+      outDir,
+      exitHandled: false
     };
 
     this.active.set(channelId, entry);
@@ -80,6 +100,7 @@ export class ChannelManager {
       if (entry.stderrTail.length > 20) entry.stderrTail.shift();
     });
 
+    proc.on?.("error", (error) => this.handleProcessError(channelId, meta, proc, error));
     proc.on?.("exit", (code) => this.handleExit(channelId, meta, proc, code));
 
     entry.state = CHANNEL_STATE.LIVE;
@@ -127,6 +148,8 @@ export class ChannelManager {
       "-map",
       "0:a:0?",
       ...codecArgs,
+      "-bsf:a",
+      "aac_adtstoasc",
       "-f",
       "hls",
       "-hls_time",
@@ -181,7 +204,7 @@ export class ChannelManager {
     const restart = () => {
       if (this.active.get(channelId) !== existing) return;
       this.active.delete(channelId);
-      this.start(channelId, meta, { swarmSize, failures });
+      this.startSafely(channelId, meta, { swarmSize, failures });
     };
 
     previousProc.once?.("exit", restart);
@@ -191,7 +214,8 @@ export class ChannelManager {
 
   handleExit(channelId, meta, proc, code) {
     const entry = this.active.get(channelId);
-    if (!entry || entry.proc !== proc) return;
+    if (!entry || entry.proc !== proc || entry.exitHandled) return;
+    entry.exitHandled = true;
 
     const recentDemand = Date.now() - entry.lastDemand < this.config.idleTeardownMs;
     if (recentDemand && code !== 0) {
@@ -211,7 +235,7 @@ export class ChannelManager {
       setTimeout(() => {
         if (this.active.get(channelId) === entry) {
           this.active.delete(channelId);
-          this.start(channelId, meta, { swarmSize: entry.swarmSize, failures });
+          this.startSafely(channelId, meta, { swarmSize: entry.swarmSize, failures });
         }
       }, backoff);
       return;
@@ -219,6 +243,16 @@ export class ChannelManager {
 
     this.active.delete(channelId);
     rmSync(entry.outDir, { recursive: true, force: true });
+  }
+
+  handleProcessError(channelId, meta, proc, error) {
+    const entry = this.active.get(channelId);
+    if (!entry || entry.proc !== proc || entry.exitHandled) return;
+    this.logger?.error?.("ffmpeg_worker_process_error", {
+      channel_id: channelId,
+      error_class: typeof error?.code === "string" ? error.code : "worker_process"
+    }, "channel worker process error");
+    this.handleExit(channelId, meta, proc, -1);
   }
 
   reapIdle() {
