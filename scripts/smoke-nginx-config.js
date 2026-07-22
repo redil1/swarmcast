@@ -58,6 +58,7 @@ function dockerNginxTest({ label, configDir, mainConfig, tempRoot, extraHosts = 
     "--add-host", "tracker:127.0.0.1",
     "--add-host", "auth:127.0.0.1",
     "--add-host", "control-plane:127.0.0.1",
+    "--add-host", "web:127.0.0.1",
     "--add-host", "auth.example.tv:127.0.0.1",
     "--add-host", "origin.example.tv:127.0.0.1",
     ...extraHosts.flatMap((host) => ["--add-host", `${host}:127.0.0.1`]),
@@ -88,7 +89,7 @@ if (!commandExists("openssl")) {
 }
 
 const tempRoot = mkdtempSync(path.join(tmpdir(), "swarmcast-nginx-"));
-ensureCertTree(tempRoot, ["origin.example.tv", "tracker.example.tv", "edge.example.tv", "api.example.tv"]);
+ensureCertTree(tempRoot, ["origin.example.tv", "tracker.example.tv", "edge.example.tv", "api.example.tv", "watch.example.tv"]);
 mkdirSync(path.join(tempRoot, "certbot", ".well-known", "acme-challenge"), { recursive: true });
 writeFileSync(path.join(tempRoot, "placeholder"), "ok");
 
