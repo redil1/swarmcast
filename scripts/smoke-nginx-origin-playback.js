@@ -128,6 +128,7 @@ function startNginxContainer({ containerName, tempRoot, confDir, hlsRoot }) {
     "--add-host", "host.docker.internal:host-gateway",
     "--add-host", "tracker:127.0.0.1",
     "--add-host", "control-plane:127.0.0.1",
+    "--add-host", "web:127.0.0.1",
     "-p", "127.0.0.1::443",
     "-v", `${path.join(rootDir, "infra/nginx/nginx.conf")}:/etc/nginx/nginx.conf:ro`,
     "-v", `${confDir}:/etc/nginx/conf.d:ro`,
@@ -179,7 +180,7 @@ try {
   await mkdir(outDir, { recursive: true });
   mkdirSync(confDir, { recursive: true });
   mkdirSync(path.join(tempRoot, "certbot", ".well-known", "acme-challenge"), { recursive: true });
-  ensureCertTree(tempRoot, ["origin.example.tv", "api.example.tv", "tracker.example.tv"]);
+  ensureCertTree(tempRoot, ["origin.example.tv", "api.example.tv", "tracker.example.tv", "watch.example.tv"]);
 
   run("ffmpeg", [
     "-hide_banner", "-loglevel", "error",
