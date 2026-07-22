@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { ChannelManager } from "../src/channelManager.js";
@@ -65,6 +65,56 @@ test("demand starts an unknown idle channel and enforces capacity", () => {
   assert.deepEqual(manager.demand("b"), { ok: false, error: "capacity" });
 });
 
+test("demand returns source_unavailable when the HLS directory cannot be created", () => {
+  const catalog = new Map([["a", { id: "a", sourceUrl: "https://source.test/a.m3u8" }]]);
+  const parent = mkdtempSync(path.join(tmpdir(), "swarmcast-unwritable-"));
+  const hlsRoot = path.join(parent, "not-a-directory");
+  const errors = [];
+  writeFileSync(hlsRoot, "occupied");
+
+  const manager = new ChannelManager({
+    catalog,
+    config: testConfig({ hlsRoot }),
+    logger: { error: (...args) => errors.push(args) },
+    spawnFn: () => {
+      throw new Error("spawn must not be reached");
+    }
+  });
+
+  assert.deepEqual(manager.demand("a"), { ok: false, error: "source_unavailable" });
+  assert.equal(manager.status("a").state, "idle");
+  assert.equal(errors[0][0], "ffmpeg_worker_start_failed");
+  assert.equal(errors[0][1].channel_id, "a");
+});
+
+test("asynchronous worker errors use bounded restart handling", async () => {
+  const catalog = new Map([["a", { id: "a", sourceUrl: "https://source.test/a.m3u8" }]]);
+  const procs = [];
+  const errors = [];
+  const manager = new ChannelManager({
+    catalog,
+    config: testConfig({ idleTeardownMs: 10_000, restartBackoffMs: [1] }),
+    logger: { error: (...args) => errors.push(args) },
+    spawnFn: () => {
+      const proc = fakeProc();
+      procs.push(proc);
+      return proc;
+    }
+  });
+
+  assert.equal(manager.demand("a").ok, true);
+  const processError = new Error("ffmpeg unavailable");
+  processError.code = "ENOENT";
+  procs[0].emit("error", processError);
+  procs[0].emit("exit", -1);
+
+  await waitFor(() => procs.length === 2);
+  assert.equal(manager.status("a").failures, 1);
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0][0], "ffmpeg_worker_process_error");
+  assert.equal(errors[0][1].error_class, "ENOENT");
+});
+
 test("reapIdle stops stale ffmpeg process", async () => {
   const catalog = new Map([["a", { id: "a", sourceUrl: "https://source.test/a.m3u8" }]]);
   let proc;
@@ -93,6 +143,7 @@ test("ffmpegArgs uses reconnect only for HTTP sources", () => {
 
   const httpArgs = manager.ffmpegArgs("https://source.test/live.m3u8", "/tmp/out");
   assert.equal(httpArgs.includes("-reconnect"), true);
+  assert.equal(httpArgs.includes("aac_adtstoasc"), true);
 
   const fileArgs = manager.ffmpegArgs("/tmp/source.mp4", "/tmp/out");
   assert.equal(fileArgs.includes("-reconnect"), false);

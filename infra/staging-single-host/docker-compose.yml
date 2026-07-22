@@ -1,0 +1,116 @@
+services:
+  source-volume-init:
+    image: caddy@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa
+    user: "0:0"
+    command: ["sh", "-c", "chown 1000:1000 /source"]
+    volumes:
+      - staging-source:/source
+    networks: [internal]
+
+  source-generator:
+    image: infra-ingest
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    command:
+      - ffmpeg
+      - -hide_banner
+      - -loglevel
+      - warning
+      - -re
+      - -stream_loop
+      - "-1"
+      - -i
+      - /fixture/playlist.m3u8
+      - -map
+      - 0:v:0
+      - -map
+      - 0:a:0?
+      - -c
+      - copy
+      - -f
+      - hls
+      - -hls_time
+      - "2"
+      - -hls_list_size
+      - "12"
+      - -hls_flags
+      - delete_segments+independent_segments+program_date_time
+      - -hls_segment_type
+      - fmp4
+      - -hls_fmp4_init_filename
+      - init.mp4
+      - -hls_segment_filename
+      - /source/seg_%08d.m4s
+      - /source/playlist.m3u8
+    volumes:
+      - ../test-fixtures/media/fmp4:/fixture:ro
+      - staging-source:/source
+    networks: [internal]
+    depends_on:
+      source-volume-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "test", "-s", "/source/playlist.m3u8"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  gateway:
+    image: caddy@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    environment:
+      SWARMCAST_PUBLIC_SUFFIX: ${SWARMCAST_PUBLIC_SUFFIX:?set SWARMCAST_PUBLIC_SUFFIX}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./staging-single-host/Caddyfile:/etc/caddy/Caddyfile:ro
+      - staging-source:/source:ro
+      - /var/hls:/var/hls:ro
+      - staging-caddy-data:/data
+      - staging-caddy-config:/config
+    networks: [internal]
+    depends_on:
+      source-generator:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+      control-plane:
+        condition: service_healthy
+      ingest:
+        condition: service_healthy
+      tracker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  ingest:
+    environment:
+      M3U_PATH: /app/services/ingest/source.m3u
+    volumes:
+      - ${STAGING_M3U_FILE:-./staging-single-host/source.m3u}:/app/services/ingest/source.m3u:ro
+
+  control-plane:
+    environment:
+      M3U_PATH: /app/services/control-plane/source.m3u
+    volumes:
+      - ${STAGING_M3U_FILE:-./staging-single-host/source.m3u}:/app/services/control-plane/source.m3u:ro
+
+volumes:
+  staging-source: {}
+  staging-caddy-data: {}
+  staging-caddy-config: {}

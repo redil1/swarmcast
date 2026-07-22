@@ -1,0 +1,3 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="synthetic-fmp4" tvg-name="SwarmCast Synthetic" group-title="Staging",SwarmCast Synthetic
+http://gateway/playlist.m3u8
