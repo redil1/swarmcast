@@ -112,3 +112,16 @@ test("announceSegment rejects an unknown bootstrap source", () => {
     /bootstrapSource/
   );
 });
+
+test("retainedSegmentMessages returns a bounded ordered metadata window", () => {
+  const swarm = new Swarm("ch1");
+  swarm.announceSegment({ seq: 12, sha256: "c", size: 1200, k: 24 }, () => {});
+  swarm.announceSegment({ seq: 10, sha256: "a", size: 1000, k: 24 }, () => {});
+  swarm.announceSegment({ seq: 11, sha256: "b", size: 1100, k: 24 }, () => {});
+
+  const retained = swarm.retainedSegmentMessages(2);
+  assert.deepEqual(retained.map((segment) => segment.seq), [11, 12]);
+  assert.equal(retained.every((segment) => segment.t === "segment"), true);
+  assert.equal(retained.every((segment) => !segment.seedTier && !segment.edgeSeedTier), true);
+  assert.equal(retained.every((segment) => !("ts" in segment)), true);
+});

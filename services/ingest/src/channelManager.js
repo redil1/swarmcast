@@ -14,14 +14,22 @@ export const CHANNEL_STATE = Object.freeze({
 export const MAX_FFMPEG_FAILURES = 5;
 
 export class ChannelManager {
-  constructor({ catalog, config, spawnFn = spawn, logger = createLogger({ service: "ingest" }) } = {}) {
+  constructor({
+    catalog,
+    config,
+    spawnFn = spawn,
+    logger = createLogger({ service: "ingest" }),
+    nowMs = Date.now
+  } = {}) {
     if (!catalog) throw new Error("catalog is required");
     if (!config) throw new Error("config is required");
     this.catalog = catalog;
     this.config = config;
     this.spawnFn = spawnFn;
     this.logger = logger;
+    this.nowMs = nowMs;
     this.active = new Map();
+    this.lastSegmentSeqByChannel = new Map();
   }
 
   demand(channelId, { swarmSize = 0 } = {}) {
@@ -75,7 +83,8 @@ export class ChannelManager {
     mkdirSync(outDir, { recursive: true });
 
     const downscaled = this.shouldDownscale(swarmSize);
-    const args = this.ffmpegArgs(meta.sourceUrl, outDir, { downscale: downscaled });
+    const startNumber = this.nextSegmentStartNumber(channelId);
+    const args = this.ffmpegArgs(meta.sourceUrl, outDir, { downscale: downscaled, startNumber });
     const proc = this.spawnFn(this.config.ffmpegBin, args, {
       stdio: ["ignore", "ignore", "pipe"]
     });
@@ -107,14 +116,18 @@ export class ChannelManager {
     return entry;
   }
 
-  recordSegment(channelId, nowMs = Date.now()) {
+  recordSegment(channelId, nowMs = Date.now(), seq = null) {
     const entry = this.active.get(channelId);
     if (!entry) return false;
     entry.latestSegmentAt = nowMs;
+    if (Number.isSafeInteger(seq) && seq >= 0) {
+      const previous = this.lastSegmentSeqByChannel.get(channelId) ?? -1;
+      this.lastSegmentSeqByChannel.set(channelId, Math.max(previous, seq));
+    }
     return true;
   }
 
-  ffmpegArgs(sourceUrl, outDir, { downscale = false } = {}) {
+  ffmpegArgs(sourceUrl, outDir, { downscale = false, startNumber = 0 } = {}) {
     const reconnectArgs = /^https?:\/\//i.test(sourceUrl)
       ? ["-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"]
       : [];
@@ -156,6 +169,8 @@ export class ChannelManager {
       String(this.config.segmentSeconds),
       "-hls_list_size",
       String(this.config.windowSegments),
+      "-start_number",
+      String(startNumber),
       "-hls_flags",
       "delete_segments+independent_segments+program_date_time",
       "-hls_segment_type",
@@ -166,6 +181,14 @@ export class ChannelManager {
       path.join(outDir, "seg_%08d.m4s"),
       path.join(outDir, "playlist.m3u8")
     ];
+  }
+
+  nextSegmentStartNumber(channelId) {
+    const clockNumber = Math.floor(this.nowMs() / (this.config.segmentSeconds * 1000));
+    const previous = this.lastSegmentSeqByChannel.get(channelId) ?? -1;
+    const next = Math.max(clockNumber, previous + 1);
+    this.lastSegmentSeqByChannel.set(channelId, next);
+    return next;
   }
 
   shouldDownscale(swarmSize = 0) {

@@ -1074,7 +1074,7 @@ for (const check of [
   },
   {
     file: "services/ingest/src/index.js",
-    required: ["onSegment: (segment) => manager.recordSegment(segment.channelId)"]
+    required: ["onSegment: (segment) => manager.recordSegment(segment.channelId, Date.now(), segment.seq)"]
   },
   {
     file: "scripts/smoke-headless-super-peer-sweep.js",

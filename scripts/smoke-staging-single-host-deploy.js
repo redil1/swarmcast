@@ -55,6 +55,9 @@ assert.throws(() => renderStagingEnv({
 }), /not HTTP\(S\)/);
 
 const deployPath = path.resolve("infra/staging-single-host/deploy.sh");
+const caddyfile = readFileSync(path.resolve("infra/staging-single-host/Caddyfile"), "utf8");
+assert.match(caddyfile, /handle_path \/live\/\*/);
+assert.match(caddyfile, /handle_path \/edge\/single-host\/live\/\*/);
 const syntax = spawnSync("bash", ["-n", deployPath], { encoding: "utf8" });
 assert.equal(syntax.status, 0, syntax.stderr);
 const prepared = spawnSync("bash", [

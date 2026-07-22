@@ -121,7 +121,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     rlncK: runtimeConfig.rlncK,
     logger,
     publishSegment: segmentPublisher ? (segment) => segmentPublisher.publish(segment) : null,
-    onSegment: (segment) => manager.recordSegment(segment.channelId)
+    onSegment: (segment) => manager.recordSegment(segment.channelId, Date.now(), segment.seq)
   });
 
   const reapTimer = setInterval(() => manager.reapIdle(), 15_000);

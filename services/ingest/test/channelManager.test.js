@@ -149,6 +149,32 @@ test("ffmpegArgs uses reconnect only for HTTP sources", () => {
   assert.equal(fileArgs.includes("-reconnect"), false);
 });
 
+test("segment numbers remain monotonic across worker restarts", async () => {
+  const catalog = new Map([["a", { id: "a", sourceUrl: "https://source.test/a.m3u8" }]]);
+  const spawned = [];
+  const procs = [];
+  const manager = new ChannelManager({
+    catalog,
+    config: testConfig({ idleTeardownMs: 10_000, restartBackoffMs: [1] }),
+    nowMs: () => 1_000_000,
+    spawnFn: (_bin, args) => {
+      spawned.push(args);
+      const proc = fakeProc();
+      procs.push(proc);
+      return proc;
+    }
+  });
+
+  assert.equal(manager.demand("a").ok, true);
+  const firstStartIndex = spawned[0].indexOf("-start_number");
+  assert.equal(spawned[0][firstStartIndex + 1], "500");
+  manager.recordSegment("a", 1_001_000, 503);
+  procs[0].emit("exit", 1);
+  await waitFor(() => spawned.length === 2);
+  const secondStartIndex = spawned[1].indexOf("-start_number");
+  assert.equal(spawned[1][secondStartIndex + 1], "504");
+});
+
 test("ffmpegArgs can package cold tail channels at lower bitrate", () => {
   const manager = new ChannelManager({
     catalog: new Map(),

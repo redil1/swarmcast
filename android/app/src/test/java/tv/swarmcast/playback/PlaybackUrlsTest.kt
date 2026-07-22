@@ -16,4 +16,17 @@ class PlaybackUrlsTest {
             url
         )
     }
+
+    @Test
+    fun authenticatedAddsTokenToResolvedHlsInitializationUrl() {
+        val url = PlaybackUrls.authenticated(
+            "https://edge.example.tv/live/channel/init.mp4",
+            "session-token"
+        )
+
+        assertEquals(
+            "https://edge.example.tv/live/channel/init.mp4?token=session-token",
+            url
+        )
+    }
 }

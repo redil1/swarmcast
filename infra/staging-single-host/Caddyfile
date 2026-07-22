@@ -26,6 +26,17 @@ origin.{$SWARMCAST_PUBLIC_SUFFIX} {
 		file_server
 	}
 
+	handle_path /edge/single-host/live/* {
+		forward_auth auth:7003 {
+			uri /verify
+			header_up X-Auth-Token {query.token}
+		}
+		root * /var/hls
+		header Cache-Control "public, max-age=300, immutable"
+		header Access-Control-Allow-Origin "*"
+		file_server
+	}
+
 	handle /health {
 		reverse_proxy ingest:7001
 	}
